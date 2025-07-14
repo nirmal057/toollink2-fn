@@ -1,0 +1,290 @@
+/* ToolLink - Enhanced Responsive Design Utilities */
+
+/* Custom Responsive Breakpoints */
+/* 
+  Mobile: 320px - 767px
+  Tablet: 768px - 1023px  
+  Desktop: 1024px - 1439px
+  Large Desktop: 1440px+
+*/
+
+/* Mobile-First Responsive Typography */
+.responsive-heading-1 {
+  @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold;
+}
+
+.responsive-heading-2 {
+  @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-semibold;
+}
+
+.responsive-heading-3 {
+  @apply text-lg sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl font-medium;
+}
+
+.responsive-body {
+  @apply text-sm sm:text-base md:text-lg lg:text-xl;
+}
+
+.responsive-caption {
+  @apply text-xs sm:text-sm md:text-base;
+}
+
+/* Responsive Container Classes */
+.container-responsive {
+  @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-narrow {
+  @apply w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+.container-form {
+  @apply w-full max-w-sm sm:max-w-md md:max-w-lg mx-auto px-4 sm:px-6;
+}
+
+/* Responsive Grid Systems */
+.grid-responsive-1 {
+  @apply grid grid-cols-1 gap-4 sm:gap-6 lg:gap-8;
+}
+
+.grid-responsive-2 {
+  @apply grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8;
+}
+
+.grid-responsive-3 {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8;
+}
+
+.grid-responsive-4 {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8;
+}
+
+.grid-responsive-auto {
+  @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6 lg:gap-8;
+}
+
+/* Responsive Flexbox Utilities */
+.flex-responsive-col {
+  @apply flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-8;
+}
+
+.flex-responsive-wrap {
+  @apply flex flex-wrap gap-2 sm:gap-4 lg:gap-6;
+}
+
+/* Responsive Spacing */
+.spacing-responsive-sm {
+  @apply p-2 sm:p-4 md:p-6 lg:p-8;
+}
+
+.spacing-responsive-md {
+  @apply p-4 sm:p-6 md:p-8 lg:p-10 xl:p-12;
+}
+
+.spacing-responsive-lg {
+  @apply p-6 sm:p-8 md:p-10 lg:p-12 xl:p-16;
+}
+
+.margin-responsive {
+  @apply m-2 sm:m-4 md:m-6 lg:m-8;
+}
+
+/* Responsive Button Styles */
+.btn-responsive {
+  @apply px-4 py-2 sm:px-6 sm:py-3 md:px-8 md:py-4 text-sm sm:text-base md:text-lg rounded-lg transition-all duration-300;
+}
+
+.btn-responsive-icon {
+  @apply p-2 sm:p-3 md:p-4 rounded-lg transition-all duration-300;
+}
+
+/* Responsive Card Components */
+.card-responsive {
+  @apply bg-white rounded-lg shadow-md p-4 sm:p-6 md:p-8 border transition-all duration-300;
+}
+
+.card-responsive-hover {
+  @apply hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1;
+}
+
+/* Responsive Navigation */
+.nav-responsive {
+  @apply h-14 sm:h-16 md:h-18 lg:h-20 px-4 sm:px-6 lg:px-8;
+}
+
+.nav-item-responsive {
+  @apply px-2 py-1 sm:px-4 sm:py-2 text-sm sm:text-base rounded-lg transition-all duration-300;
+}
+
+/* Responsive Form Elements */
+.input-responsive {
+  @apply w-full px-3 py-2 sm:px-4 sm:py-3 md:px-5 md:py-4 text-sm sm:text-base rounded-lg border transition-all duration-300;
+}
+
+.label-responsive {
+  @apply block text-xs sm:text-sm md:text-base font-medium mb-1 sm:mb-2;
+}
+
+/* Responsive Images */
+.image-responsive {
+  @apply w-full h-auto object-cover rounded-lg;
+}
+
+.image-responsive-square {
+  @apply w-full aspect-square object-cover rounded-lg;
+}
+
+.image-responsive-video {
+  @apply w-full aspect-video object-cover rounded-lg;
+}
+
+/* Responsive Icons */
+.icon-responsive-sm {
+  @apply w-4 h-4 sm:w-5 sm:h-5;
+}
+
+.icon-responsive-md {
+  @apply w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7;
+}
+
+.icon-responsive-lg {
+  @apply w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10;
+}
+
+.icon-responsive-xl {
+  @apply w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 lg:w-16 lg:h-16;
+}
+
+/* Responsive Tables */
+.table-responsive {
+  @apply w-full overflow-x-auto;
+}
+
+.table-responsive table {
+  @apply min-w-full text-sm sm:text-base;
+}
+
+.table-responsive th,
+.table-responsive td {
+  @apply px-2 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4;
+}
+
+/* Mobile-Specific Utilities */
+@media (max-width: 639px) {
+  .mobile-hidden {
+    @apply hidden;
+  }
+  
+  .mobile-full-width {
+    @apply w-full;
+  }
+  
+  .mobile-center {
+    @apply text-center;
+  }
+  
+  .mobile-stack {
+    @apply flex flex-col space-y-2;
+  }
+}
+
+/* Tablet-Specific Utilities */
+@media (min-width: 640px) {
+  .tablet-visible {
+    @apply block;
+  }
+  
+  .tablet-grid-2 {
+    @apply grid-cols-2;
+  }
+}
+
+/* Desktop-Specific Utilities */
+@media (min-width: 1024px) {
+  .desktop-visible {
+    @apply block;
+  }
+  
+  .desktop-grid-3 {
+    @apply grid-cols-3;
+  }
+  
+  .desktop-grid-4 {
+    @apply grid-cols-4;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .print-hidden {
+    @apply hidden;
+  }
+  
+  .print-break-page {
+    page-break-after: always;
+  }
+  
+  .print-break-avoid {
+    page-break-inside: avoid;
+  }
+}
+
+/* Accessibility Enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .motion-safe-only {
+    @apply transition-none;
+  }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+  .contrast-enhanced {
+    @apply border-2 border-black;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px] p-3;
+  }
+  
+  .touch-spacing {
+    @apply space-y-4;
+  }
+}
+
+/* Responsive Typography Scale */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg sm:text-xl md:text-2xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl;
+}
+
+.text-responsive-2xl {
+  @apply text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl;
+}
+
+/* Responsive Shadows */
+.shadow-responsive {
+  @apply shadow-sm sm:shadow-md md:shadow-lg lg:shadow-xl;
+}
+
+/* Responsive Border Radius */
+.rounded-responsive {
+  @apply rounded-md sm:rounded-lg md:rounded-xl lg:rounded-2xl;
+}

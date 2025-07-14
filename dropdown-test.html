@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dropdown Z-Index Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Test z-index layers */
+        .test-content {
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        .header-test {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .dropdown-test {
+            position: fixed;
+            z-index: 99999;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .overlay-test {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.1);
+            z-index: 40;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with dropdowns -->
+    <header class="header-test">
+        <div class="px-4 py-3">
+            <div class="flex items-center justify-between">
+                <h1 class="text-lg font-semibold">Header Test</h1>
+                <div class="flex items-center space-x-4">
+                    <!-- Notification Button -->
+                    <div class="relative">
+                        <button onclick="toggleNotifications()" class="p-2 bg-blue-500 text-white rounded-full">
+                            🔔 Notifications
+                        </button>
+                        <div id="notifications-dropdown" class="dropdown-test hidden" style="top: 50px; right: 0; width: 300px;">
+                            <div class="p-4">
+                                <h3 class="font-bold mb-2">Notifications</h3>
+                                <div class="space-y-2">
+                                    <div class="p-3 bg-gray-50 rounded">
+                                        <p class="text-sm font-medium">Test Notification 1</p>
+                                        <p class="text-xs text-gray-500">This should appear on top</p>
+                                    </div>
+                                    <div class="p-3 bg-gray-50 rounded">
+                                        <p class="text-sm font-medium">Test Notification 2</p>
+                                        <p class="text-xs text-gray-500">Even with scrollable content below</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- User Menu Button -->
+                    <div class="relative">
+                        <button onclick="toggleUserMenu()" class="p-2 bg-green-500 text-white rounded-full">
+                            👤 User Menu
+                        </button>
+                        <div id="user-dropdown" class="dropdown-test hidden" style="top: 50px; right: 0; width: 200px;">
+                            <div class="p-4">
+                                <h3 class="font-bold mb-2">User Menu</h3>
+                                <div class="space-y-2">
+                                    <button class="block w-full text-left p-2 hover:bg-gray-100 rounded">Profile</button>
+                                    <button class="block w-full text-left p-2 hover:bg-gray-100 rounded">Settings</button>
+                                    <hr>
+                                    <button class="block w-full text-left p-2 hover:bg-gray-100 rounded text-red-600">Logout</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Scrollable content that should be behind dropdowns -->
+    <div class="test-content pt-16">
+        <div class="p-8 text-white">
+            <h2 class="text-3xl font-bold mb-6">Test Content Below Header</h2>
+            <p class="mb-4">This content should be behind the dropdown menus when they are open.</p>
+            <p class="mb-4">The dropdowns should have z-index: 99999 and appear on top of everything.</p>
+            
+            <!-- Lots of test content to ensure scrolling -->
+            <div class="space-y-4">
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 1</h3>
+                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 2</h3>
+                    <p>Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 3</h3>
+                    <p>Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 4</h3>
+                    <p>Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 5</h3>
+                    <p>Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.</p>
+                </div>
+                <div class="bg-white bg-opacity-20 p-4 rounded">
+                    <h3 class="text-xl font-bold mb-2">Test Section 6</h3>
+                    <p>Totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notifications-dropdown');
+            const userDropdown = document.getElementById('user-dropdown');
+            
+            // Close user menu
+            userDropdown.classList.add('hidden');
+            
+            // Toggle notifications
+            dropdown.classList.toggle('hidden');
+        }
+
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('user-dropdown');
+            const notificationDropdown = document.getElementById('notifications-dropdown');
+            
+            // Close notifications
+            notificationDropdown.classList.add('hidden');
+            
+            // Toggle user menu
+            dropdown.classList.toggle('hidden');
+        }
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const notificationBtn = event.target.closest('button[onclick="toggleNotifications()"]');
+            const userBtn = event.target.closest('button[onclick="toggleUserMenu()"]');
+            const notificationDropdown = document.getElementById('notifications-dropdown');
+            const userDropdown = document.getElementById('user-dropdown');
+            
+            if (!notificationBtn && !event.target.closest('#notifications-dropdown')) {
+                notificationDropdown.classList.add('hidden');
+            }
+            
+            if (!userBtn && !event.target.closest('#user-dropdown')) {
+                userDropdown.classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

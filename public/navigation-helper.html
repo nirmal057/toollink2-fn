@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolLink Quick Navigation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #f9f9f9;
+        }
+        .card h2 {
+            margin-top: 0;
+            color: #2980b9;
+        }
+        .button {
+            display: inline-block;
+            background-color: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            text-decoration: none;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        .button:hover {
+            background-color: #2980b9;
+        }
+        .warning {
+            background-color: #ffe8e8;
+            border-left: 4px solid #ff5252;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .info {
+            background-color: #e8f4ff;
+            border-left: 4px solid #2196f3;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        code {
+            background-color: #f1f1f1;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>ToolLink Navigation Helper</h1>
+    
+    <div class="info">
+        <p><strong>Note:</strong> This page helps you navigate directly to specific pages in the ToolLink application.</p>
+    </div>
+    
+    <div class="container">
+        <div class="card">
+            <h2>Customer Approval</h2>
+            <p>Access the customer approval page directly:</p>
+            <a href="http://localhost:5173/customer-approval" class="button" target="_blank">Open Customer Approval</a>
+            
+            <div class="warning">
+                <p><strong>Important:</strong> You need to be logged in as an admin or cashier to access this page. If you're not logged in, you'll be redirected to the login page.</p>
+            </div>
+            
+            <h3>Admin Credentials</h3>
+            <p>Email: <code>admin@toollink.lk</code></p>
+            <p>Password: <code>admin123</code></p>
+        </div>
+        
+        <div class="card">
+            <h2>Other Useful Pages</h2>
+            <a href="http://localhost:5173/login" class="button" target="_blank">Login Page</a>
+            <a href="http://localhost:5173/register" class="button" target="_blank">Registration Page</a>
+            <a href="http://localhost:5173/dashboard" class="button" target="_blank">Dashboard</a>
+            <a href="http://localhost:5173/user-management" class="button" target="_blank">User Management</a>
+            
+            <h3>Testing</h3>
+            <button id="testRejection" class="button" style="background-color: #e74c3c;">Test Customer Rejection</button>
+            <div id="rejectionTestResult" class="info" style="display: none;"></div>
+        </div>
+    </div>
+    
+    <script>
+        // This script will check if the backend server is running
+        fetch('http://localhost:3001/api/auth/me', { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => {
+            if (response.status === 401) {
+                console.log('Backend server is running');
+                document.querySelector('.info').innerHTML += '<p style="color: green">✓ Backend server is running</p>';
+            } else {
+                console.log('Unexpected response from backend server');
+                document.querySelector('.info').innerHTML += '<p style="color: orange">! Backend server returned unexpected response</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Backend server is not running or not accessible', error);
+            document.querySelector('.info').innerHTML += '<p style="color: red">✗ Backend server is not running or not accessible</p>';
+        });
+        
+        // Check if frontend server is running on expected port
+        if (window.location.port === '5173') {
+            document.querySelector('.info').innerHTML += '<p style="color: green">✓ Frontend server is running correctly on port 5173</p>';
+        } else {
+            document.querySelector('.info').innerHTML += '<p style="color: orange">! Frontend server is running on unexpected port: ' + window.location.port + '</p>';
+        }
+        
+        // Test rejection functionality
+        document.getElementById('testRejection').addEventListener('click', async function() {
+            const resultDiv = document.getElementById('rejectionTestResult');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p>Running customer rejection test...</p>';
+            
+            try {
+                // Step 1: Create a test customer
+                resultDiv.innerHTML += '<p>1. Creating test customer...</p>';
+                const customerEmail = `test.reject.${Date.now()}@toollink.lk`;
+                
+                const registerResponse = await fetch('http://localhost:3001/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: customerEmail,
+                        password: 'customer123',
+                        fullName: 'Reject Test Customer',
+                        role: 'customer'
+                    })
+                });
+                
+                if (!registerResponse.ok) {
+                    throw new Error('Failed to create test customer');
+                }
+                
+                const registerData = await registerResponse.json();
+                const customerId = registerData.user.id;
+                
+                resultDiv.innerHTML += `<p style="color: green">✓ Created test customer: ${customerEmail}</p>`;
+                
+                // Step 2: Login as admin
+                resultDiv.innerHTML += '<p>2. Logging in as admin...</p>';
+                
+                const loginResponse = await fetch('http://localhost:3001/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'admin@toollink.lk',
+                        password: 'admin123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error('Failed to login as admin');
+                }
+                
+                const loginData = await loginResponse.json();
+                const token = loginData.data.token;
+                
+                resultDiv.innerHTML += `<p style="color: green">✓ Admin login successful</p>`;
+                
+                // Step 3: Reject the customer
+                resultDiv.innerHTML += '<p>3. Rejecting customer...</p>';
+                
+                const rejectResponse = await fetch('http://localhost:3001/api/auth/reject-user', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        userId: customerId,
+                        reason: 'Test rejection from navigation helper'
+                    })
+                });
+                
+                if (!rejectResponse.ok) {
+                    throw new Error('Failed to reject customer');
+                }
+                
+                const rejectData = await rejectResponse.json();
+                
+                resultDiv.innerHTML += `<p style="color: green">✓ Customer rejected successfully</p>`;
+                resultDiv.innerHTML += `<p>Reason: ${rejectData.user.rejectionReason}</p>`;
+                
+                // Final success message
+                resultDiv.innerHTML += `<p style="color: green; font-weight: bold;">✅ Customer rejection test completed successfully!</p>`;
+                resultDiv.innerHTML += `<p>You can now try to login with email: ${customerEmail} and password: customer123, which should fail because the account has been rejected.</p>`;
+                
+            } catch (error) {
+                resultDiv.innerHTML += `<p style="color: red">❌ Error: ${error.message}</p>`;
+                resultDiv.innerHTML += `<p>Check the browser console for more details</p>`;
+                console.error('Customer rejection test error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

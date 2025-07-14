@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management System Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background-color: #f3f4f6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        h1 {
+            color: #1f2937;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 30px;
+        }
+
+        .status-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .status-section h2 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.25rem;
+        }
+
+        .status-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .status-item {
+            background: white;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            min-width: 200px;
+        }
+
+        .status-item h3 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+            font-size: 1rem;
+        }
+
+        .status-item p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background-color: #2563eb;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-secondary {
+            background-color: #6b7280;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+
+        .server-check {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            background: white;
+        }
+
+        .server-check h3 {
+            margin: 0 0 10px 0;
+            color: #1f2937;
+        }
+
+        .server-status {
+            font-family: monospace;
+            font-size: 12px;
+            color: #6b7280;
+            white-space: pre-wrap;
+        }
+
+        .success {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .error {
+            border-color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .excel-info {
+            background-color: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .excel-info h3 {
+            margin: 0 0 10px 0;
+            color: #1e40af;
+        }
+
+        .excel-info p {
+            margin: 5px 0;
+            color: #1f2937;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>ToolLink User Management System</h1>
+
+        <div class="status-section">
+            <h2>System Status</h2>
+            <div class="status-list">
+                <div class="status-item">
+                    <h3>Backend Server</h3>
+                    <p>Node.js + Express running on port 3000</p>
+                    <p>Status: <span id="backend-status">Checking...</span></p>
+                </div>
+                <div class="status-item">
+                    <h3>MongoDB Atlas</h3>
+                    <p>Database: toollink</p>
+                    <p>Collection: UserNew</p>
+                    <p>Status: <span id="db-status">Connected</span></p>
+                </div>
+                <div class="status-item">
+                    <h3>User Records</h3>
+                    <p>Total Users: <span id="user-count">13</span></p>
+                    <p>From Excel Import</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <h2>Available Operations</h2>
+            <button class="btn" onclick="testBackend()">Test Backend Connection</button>
+            <button class="btn btn-secondary" onclick="testUserAPI()">Test User API</button>
+            <button class="btn btn-secondary" onclick="testExcelUpload()">Test Excel Upload</button>
+        </div>
+
+        <div class="excel-info">
+            <h3>Excel Data Import Summary</h3>
+            <p><strong>File:</strong> ToolLink_User_List.xlsx</p>
+            <p><strong>Records Imported:</strong> 13 users</p>
+            <p><strong>Distribution:</strong></p>
+            <ul>
+                <li>Admin: 1 user</li>
+                <li>Warehouse Manager: 3 users</li>
+                <li>Cashier: 4 users</li>
+                <li>Customer: 5 users</li>
+            </ul>
+        </div>
+
+        <div class="server-check">
+            <h3>Server Connection Test</h3>
+            <div id="server-response" class="server-status">Click 'Test Backend Connection' to check server status</div>
+        </div>
+    </div>
+
+    <script>
+        async function testBackend() {
+            const responseDiv = document.getElementById('server-response');
+            const backendStatus = document.getElementById('backend-status');
+
+            responseDiv.textContent = 'Testing backend connection...';
+
+            try {
+                const response = await fetch('http://localhost:3000/api/usersNew');
+                const data = await response.json();
+
+                if (response.ok) {
+                    responseDiv.textContent = `✅ Backend Connection Successful
+Total Users: ${data.length}
+Response Time: ${Date.now() - start}ms
+
+Sample User Data:
+${JSON.stringify(data[0], null, 2)}`;
+
+                    backendStatus.textContent = 'Online';
+                    backendStatus.style.color = '#10b981';
+                    document.getElementById('user-count').textContent = data.length;
+                } else {
+                    throw new Error(`HTTP ${response.status}: ${data.message}`);
+                }
+            } catch (error) {
+                responseDiv.textContent = `❌ Backend Connection Failed
+Error: ${error.message}
+
+Make sure:
+1. Backend server is running (npm start in ToolinkBackend folder)
+2. MongoDB connection is working
+3. Server is accessible on localhost:3000`;
+
+                backendStatus.textContent = 'Offline';
+                backendStatus.style.color = '#ef4444';
+            }
+        }
+
+        async function testUserAPI() {
+            const responseDiv = document.getElementById('server-response');
+            responseDiv.textContent = 'Testing User API endpoints...';
+
+            try {
+                // Test all endpoints
+                const endpoints = [
+                    { method: 'GET', url: '/api/usersNew', description: 'Get all users' },
+                    { method: 'GET', url: '/api/usersNew/stats', description: 'Get user statistics' }
+                ];
+
+                let results = 'API Endpoint Test Results:\n\n';
+
+                for (const endpoint of endpoints) {
+                    try {
+                        const response = await fetch(`http://localhost:3000${endpoint.url}`);
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            results += `✅ ${endpoint.method} ${endpoint.url} - ${endpoint.description}\n`;
+                            if (endpoint.url === '/api/usersNew/stats') {
+                                results += `   Stats: ${JSON.stringify(data, null, 2)}\n`;
+                            }
+                        } else {
+                            results += `❌ ${endpoint.method} ${endpoint.url} - Error: ${data.message}\n`;
+                        }
+                    } catch (error) {
+                        results += `❌ ${endpoint.method} ${endpoint.url} - Connection Error\n`;
+                    }
+                    results += '\n';
+                }
+
+                responseDiv.textContent = results;
+
+            } catch (error) {
+                responseDiv.textContent = `Error testing API endpoints: ${error.message}`;
+            }
+        }
+
+        async function testExcelUpload() {
+            const responseDiv = document.getElementById('server-response');
+            responseDiv.textContent = 'Excel Upload Test - This would normally test file upload functionality\n\nTo test Excel upload:\n1. Use the React UserManagement component\n2. Click "Upload Excel" button\n3. Select your Excel file\n4. System will parse and import users\n\nSupported format:\n- name, email, password, role, status columns\n- .xlsx files only\n- Automatic password hashing\n- Duplicate email detection';
+        }
+
+        // Auto-test on page load
+        window.addEventListener('load', function () {
+            setTimeout(testBackend, 1000);
+        });
+    </script>
+</body>
+
+</html>

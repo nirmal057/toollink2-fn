@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolLink System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .success { background: rgba(46, 160, 67, 0.3); }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .button:hover { background: #45a049; }
+        .api-test {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ToolLink System Test</h1>
+        <p>Testing MongoDB Backend Connection</p>
+        
+        <div class="status success">
+            <h3>✅ Frontend Server Running</h3>
+            <p>This page is being served by Vite on port 5173</p>
+        </div>
+        
+        <div class="api-test">
+            <h3>Backend API Test</h3>
+            <button class="button" onclick="testBackend()">Test MongoDB Backend</button>
+            <button class="button" onclick="testLogin()">Test Admin Login</button>
+            <div id="results" style="margin-top: 20px;"></div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/" class="button">Go to ToolLink App</a>
+            <a href="http://localhost:5001/api/health" class="button" target="_blank">Backend Health</a>
+        </div>
+    </div>
+
+    <script>
+        async function testBackend() {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Testing backend...';
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/health');
+                const data = await response.json();
+                
+                results.innerHTML = `
+                    <div class="status success">
+                        <h4>✅ Backend Connected!</h4>
+                        <p>Status: ${data.status}</p>
+                        <p>Database: ${data.database}</p>
+                        <p>Port: ${data.port}</p>
+                    </div>
+                `;
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status" style="background: rgba(244, 67, 54, 0.3);">
+                        <h4>❌ Backend Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        async function testLogin() {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Testing admin login...';
+            
+            try {
+                const response = await fetch('http://localhost:5001/api/auth-enhanced/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@toollink.com',
+                        password: 'admin123'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    results.innerHTML = `
+                        <div class="status success">
+                            <h4>✅ Login Successful!</h4>
+                            <p>User: ${data.user.email}</p>
+                            <p>Role: ${data.user.role}</p>
+                        </div>
+                    `;
+                } else {
+                    results.innerHTML = `
+                        <div class="status" style="background: rgba(244, 67, 54, 0.3);">
+                            <h4>❌ Login Failed</h4>
+                            <p>${data.message}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                results.innerHTML = `
+                    <div class="status" style="background: rgba(244, 67, 54, 0.3);">
+                        <h4>❌ Login Error</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // Auto-test backend on load
+        window.onload = function() {
+            testBackend();
+        };
+    </script>
+</body>
+</html>

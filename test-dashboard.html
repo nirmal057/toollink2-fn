@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolLink Registration Flow Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #0B2545, #FF6B35);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            border-left: 5px solid #FF6B35;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+        .warning {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+        .test-steps {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.3s;
+        }
+        .step:last-child {
+            border-bottom: none;
+        }
+        .step:hover {
+            background-color: #f8f9fa;
+        }
+        .step-number {
+            background: #0B2545;
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 15px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .step-content {
+            flex: 1;
+        }
+        .step-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        .step-description {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 600;
+        }
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-testing {
+            background: #cce7ff;
+            color: #004085;
+        }
+        .button {
+            background: #FF6B35;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s;
+        }
+        .button:hover {
+            background: #e55a2b;
+        }
+        .button-secondary {
+            background: #0B2545;
+        }
+        .button-secondary:hover {
+            background: #083248;
+        }
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .metric-card {
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+        }
+        .metric-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #0B2545;
+            margin-bottom: 5px;
+        }
+        .metric-label {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+        .code-block {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .links {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 ToolLink Registration Flow Test</h1>
+            <p>Complete testing guide for customer registration and user management integration</p>
+            <div style="font-size: 0.9em; margin-top: 15px;">
+                <strong>Status:</strong> Development Server Running on localhost:5174 ✅
+            </div>
+        </div>
+
+        <div class="test-section success">
+            <h2>✅ Fixed Issues Summary</h2>
+            <ul>
+                <li><strong>Registration Component:</strong> Now properly uses userRegistrationService instead of simulation</li>
+                <li><strong>Service Integration:</strong> Registration creates users in central userManagementService</li>
+                <li><strong>Error Handling:</strong> Added validation, duplicate email checking, and error states</li>
+                <li><strong>UI Feedback:</strong> Success and error messages for better user experience</li>
+                <li><strong>Data Flow:</strong> Registered customers automatically appear in admin user management</li>
+            </ul>
+        </div>
+
+        <div class="test-steps">
+            <h2>🧪 Test Plan - Complete Registration Flow</h2>
+            
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <div class="step-title">Test Customer Registration</div>
+                    <div class="step-description">Register a new customer through the registration form</div>
+                    <div class="code-block">
+Test Data:
+Name: Alex TestUser
+Email: alex.testuser@example.com
+Phone: +1555123456
+Password: testpass123
+Address: 456 Test Avenue, Test City
+                    </div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <div class="step-title">Verify Registration Success</div>
+                    <div class="step-description">Check for success message and redirect to login</div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <div class="step-title">Admin Login</div>
+                    <div class="step-description">Login as admin to access user management</div>
+                    <div class="code-block">
+Admin Credentials:
+Email: demo@toollink.com
+Password: demo123
+                    </div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <div class="step-title">Verify Customer in User Management</div>
+                    <div class="step-description">Navigate to User Management and confirm new customer appears</div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+
+            <div class="step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <div class="step-title">Test Customer Login</div>
+                    <div class="step-description">Logout and login as the new customer</div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+
+            <div class="step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <div class="step-title">Test Navigation & Permissions</div>
+                    <div class="step-description">Verify customer can access appropriate pages</div>
+                </div>
+                <span class="status-badge status-pending">Pending</span>
+            </div>
+        </div>
+
+        <div class="metrics">
+            <div class="metric-card">
+                <div class="metric-value">2</div>
+                <div class="metric-label">Default Users</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">3</div>
+                <div class="metric-label">User Roles</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">4</div>
+                <div class="metric-label">Mock Auth Users</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value">13</div>
+                <div class="metric-label">Permissions</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🚀 Quick Test Links</h2>
+            <div class="links">
+                <a href="http://localhost:5174/" class="button">Landing Page</a>
+                <a href="http://localhost:5174/auth/register" class="button">Registration Form</a>
+                <a href="http://localhost:5174/auth/login" class="button">Login Page</a>
+                <a href="http://localhost:5174/users" class="button button-secondary">User Management (Admin)</a>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔍 Validation Points</h2>
+            <h3>Registration Validation</h3>
+            <ul>
+                <li>Email format validation</li>
+                <li>Duplicate email detection</li>
+                <li>Required field validation</li>
+                <li>Success message display</li>
+                <li>Automatic redirect to login</li>
+            </ul>
+
+            <h3>User Management Integration</h3>
+            <ul>
+                <li>New customer appears in user list</li>
+                <li>Correct role assignment (customer)</li>
+                <li>Active status by default</li>
+                <li>Activity log creation</li>
+                <li>Real-time updates via listeners</li>
+            </ul>
+
+            <h3>Authentication Flow</h3>
+            <ul>
+                <li>Customer can login with registered credentials</li>
+                <li>Correct role-based navigation</li>
+                <li>Customer-specific page access</li>
+                <li>Logout functionality</li>
+                <li>Session persistence</li>
+            </ul>
+        </div>
+
+        <div class="test-section warning">
+            <h2>⚠️ Known Limitations</h2>
+            <ul>
+                <li><strong>Mock Authentication:</strong> Registration doesn't automatically add to auth service mock users</li>
+                <li><strong>Password Storage:</strong> Passwords not actually stored/hashed (demo environment)</li>
+                <li><strong>Data Persistence:</strong> User data resets on browser refresh (in-memory storage)</li>
+                <li><strong>Email Validation:</strong> No actual email verification process</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>📝 Testing Instructions</h2>
+            <ol>
+                <li><strong>Start Testing:</strong> Open the application at localhost:5174</li>
+                <li><strong>Register Customer:</strong> Use the test data provided above</li>
+                <li><strong>Verify Integration:</strong> Login as admin and check user management</li>
+                <li><strong>Test Authentication:</strong> Attempt customer login (note: may need to add to mock users for full test)</li>
+                <li><strong>Document Results:</strong> Record any issues or unexpected behavior</li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🛠️ Developer Console Commands</h2>
+            <p>Open browser console and run these commands to verify internal state:</p>
+            <div class="code-block">
+// Check user management service state
+console.log('Total users:', window.userManagementService?.getUsers?.()?.length || 'Service not accessible');
+
+// Check if specific email is registered
+// (Note: Services may not be exposed to window in production build)
+
+// Monitor registration process
+// Watch network tab for any API calls during registration
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple script to make the page interactive
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers to status badges to toggle between states
+            const badges = document.querySelectorAll('.status-badge');
+            badges.forEach(badge => {
+                badge.addEventListener('click', function() {
+                    if (this.classList.contains('status-pending')) {
+                        this.classList.remove('status-pending');
+                        this.classList.add('status-testing');
+                        this.textContent = 'Testing';
+                    } else if (this.classList.contains('status-testing')) {
+                        this.classList.remove('status-testing');
+                        this.classList.add('status-complete');
+                        this.textContent = 'Complete';
+                    } else {
+                        this.classList.remove('status-complete');
+                        this.classList.add('status-pending');
+                        this.textContent = 'Pending';
+                    }
+                });
+            });
+
+            // Auto-refresh metrics periodically
+            setInterval(() => {
+                const timestamp = new Date().toLocaleTimeString();
+                console.log(`ToolLink Test Dashboard - ${timestamp}`);
+            }, 30000);
+        });
+    </script>
+</body>
+</html>

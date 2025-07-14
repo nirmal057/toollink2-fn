@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolLink User API Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .api-test {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .success {
+            border-color: #4CAF50;
+            background-color: #f9fff9;
+        }
+
+        .error {
+            border-color: #f44336;
+            background-color: #fff9f9;
+        }
+
+        .loading {
+            border-color: #2196F3;
+            background-color: #f9f9ff;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .user-card {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background-color: #fafafa;
+        }
+
+        .status-active {
+            color: #4CAF50;
+        }
+
+        .status-inactive {
+            color: #f44336;
+        }
+
+        .status-pending {
+            color: #FF9800;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>ToolLink User Management API Debug</h1>
+        <p>This page tests the connection between frontend and backend for user management.</p>
+
+        <div class="api-test">
+            <h3>1. Backend Server Status</h3>
+            <button onclick="testBackendStatus()">Test Backend Connection</button>
+            <div id="backend-status"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>2. Users API Test</h3>
+            <button onclick="testUsersAPI()">Fetch All Users</button>
+            <button onclick="testUsersAPILimited()">Fetch 5 Users</button>
+            <div id="users-api-result"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>3. CORS Test</h3>
+            <button onclick="testCORS()">Test CORS Headers</button>
+            <div id="cors-result"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>4. Frontend UserApiService Test</h3>
+            <button onclick="testFrontendService()">Test UserApiService</button>
+            <div id="frontend-service-result"></div>
+        </div>
+
+        <div class="api-test">
+            <h3>5. User Data Display</h3>
+            <div id="user-display"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:3000';
+
+        function setResult(elementId, content, type = 'success') {
+            const element = document.getElementById(elementId);
+            element.innerHTML = content;
+            element.className = `api-test ${type}`;
+        }
+
+        function setLoading(elementId) {
+            setResult(elementId, '<p>Loading...</p>', 'loading');
+        }
+
+        async function testBackendStatus() {
+            setLoading('backend-status');
+            try {
+                const response = await fetch(`${API_BASE}/api/users-new?limit=1`);
+                const data = await response.json();
+
+                setResult('backend-status', `
+                    <h4>✅ Backend is running</h4>
+                    <p><strong>Status:</strong> ${response.status}</p>
+                    <p><strong>Response:</strong> ${data.success ? 'Success' : 'Failed'}</p>
+                    <p><strong>Total Users:</strong> ${data.pagination?.total || 'Unknown'}</p>
+                `);
+            } catch (error) {
+                setResult('backend-status', `
+                    <h4>❌ Backend connection failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testUsersAPI() {
+            setLoading('users-api-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/users-new?limit=1000&page=1`);
+                const data = await response.json();
+
+                setResult('users-api-result', `
+                    <h4>✅ Users API Response</h4>
+                    <p><strong>Status Code:</strong> ${response.status}</p>
+                    <p><strong>Success:</strong> ${data.success}</p>
+                    <p><strong>Users Count:</strong> ${data.data?.length || 0}</p>
+                    <p><strong>Pagination:</strong> ${JSON.stringify(data.pagination)}</p>
+                    <h5>Raw Response Structure:</h5>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `);
+
+                if (data.data && data.data.length > 0) {
+                    displayUsers(data.data);
+                }
+            } catch (error) {
+                setResult('users-api-result', `
+                    <h4>❌ Users API failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testUsersAPILimited() {
+            setLoading('users-api-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/users-new?limit=5`);
+                const data = await response.json();
+
+                setResult('users-api-result', `
+                    <h4>✅ Limited Users API Response</h4>
+                    <p><strong>Users Count:</strong> ${data.data?.length || 0}</p>
+                    <h5>Users:</h5>
+                    ${data.data?.map(user => `
+                        <div class="user-card">
+                            <strong>${user.name}</strong> (${user.email})<br>
+                            Role: ${user.role} | Status: <span class="status-${user.status}">${user.status}</span>
+                        </div>
+                    `).join('') || 'No users found'}
+                `);
+            } catch (error) {
+                setResult('users-api-result', `
+                    <h4>❌ API call failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testCORS() {
+            setLoading('cors-result');
+            try {
+                const response = await fetch(`${API_BASE}/api/users-new?limit=1`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('access-control-allow-origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('access-control-allow-methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('access-control-allow-headers'),
+                };
+
+                setResult('cors-result', `
+                    <h4>✅ CORS Test Complete</h4>
+                    <p><strong>Request successful:</strong> ${response.ok}</p>
+                    <h5>CORS Headers:</h5>
+                    <pre>${JSON.stringify(corsHeaders, null, 2)}</pre>
+                `);
+            } catch (error) {
+                setResult('cors-result', `
+                    <h4>❌ CORS test failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        async function testFrontendService() {
+            setLoading('frontend-service-result');
+
+            // Simulate the frontend service call structure
+            try {
+                const response = await fetch(`${API_BASE}/api/users-new?limit=1000&page=1`);
+                const responseData = await response.json();
+
+                // This mimics what userApiService.getUsers() does
+                console.log('Raw response:', responseData);
+                const users = responseData.data || []; // Extract users array
+                console.log('Extracted users:', users);
+
+                setResult('frontend-service-result', `
+                    <h4>✅ Frontend Service Simulation</h4>
+                    <p><strong>Response structure:</strong> {success: ${responseData.success}, data: Array(${responseData.data?.length || 0}), pagination: {...}}</p>
+                    <p><strong>Extracted users array:</strong> ${users.length} users</p>
+                    <p><strong>Data extraction:</strong> responseData.data contains the users</p>
+                    ${users.length > 0 ? `
+                        <h5>Sample User:</h5>
+                        <pre>${JSON.stringify(users[0], null, 2)}</pre>
+                    ` : '<p>❌ No users in extracted array</p>'}
+                `);
+            } catch (error) {
+                setResult('frontend-service-result', `
+                    <h4>❌ Frontend service simulation failed</h4>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `, 'error');
+            }
+        }
+
+        function displayUsers(users) {
+            const userDisplay = document.getElementById('user-display');
+            userDisplay.innerHTML = `
+                <h4>👥 User List (${users.length} users)</h4>
+                ${users.map(user => `
+                    <div class="user-card">
+                        <strong>${user.name}</strong><br>
+                        📧 ${user.email}<br>
+                        👤 Role: ${user.role}<br>
+                        📍 Status: <span class="status-${user.status}">${user.status}</span><br>
+                        🆔 ID: ${user._id}<br>
+                        📅 Created: ${new Date(user.createdAt).toLocaleDateString()}
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        // Auto-run basic tests when page loads
+        window.onload = function () {
+            testBackendStatus();
+        };
+    </script>
+</body>
+
+</html>
