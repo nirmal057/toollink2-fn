@@ -9,7 +9,8 @@ import LandingPage from './pages/LandingPage';
 import OrderManagement from './pages/OrderManagement';
 import InventoryManagement from './pages/InventoryManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
-import Notifications from './pages/Notifications';
+import Notifications from './pages/NotificationsSimple';
+import SimpleNotifications from './pages/SimpleNotifications';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
 import Profile from './pages/Profile';
@@ -109,6 +110,7 @@ function AppRoutes() {
       {/* <Route path="/direct-header-test" element={<DirectHeaderTest />} /> */}
       <Route path="/z-index-test" element={<ZIndexTest />} />
       <Route path="/auth-debug" element={<AuthDebugPage />} />
+      <Route path="/simple-notifications" element={<SimpleNotifications />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}

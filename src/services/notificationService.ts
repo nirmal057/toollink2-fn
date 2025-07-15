@@ -128,7 +128,7 @@ class NotificationService {
       const url = `${API_CONFIG.BASE_URL}/api/notifications/${notificationId}/read`;
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: createApiHeaders(token || undefined)
       });
 
@@ -153,7 +153,7 @@ class NotificationService {
       const url = `${API_CONFIG.BASE_URL}/api/notifications/mark-all-read`;
 
       const response = await fetch(url, {
-        method: 'POST',
+        method: 'PUT',
         headers: createApiHeaders(token || undefined)
       });
 
