@@ -20,6 +20,7 @@ import NewUserManagement from './components/UserManagement';
 import CustomerApproval from './pages/CustomerApproval';
 import CustomerMessages from './pages/CustomerMessages';
 import AdminDashboard from './pages/AdminDashboard';
+import ActivitiesPage from './pages/ActivitiesPage';
 import AuditLogs from './pages/AuditLogs';
 import SystemReports from './pages/SystemReports';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
@@ -199,6 +200,14 @@ function AppRoutes() {
             element={
               <SimpleAdminGuard>
                 <SystemReports />
+              </SimpleAdminGuard>
+            }
+          />
+          <Route
+            path="/admin/activities"
+            element={
+              <SimpleAdminGuard>
+                <ActivitiesPage />
               </SimpleAdminGuard>
             }
           />
