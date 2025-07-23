@@ -315,30 +315,66 @@ const AdminDashboard: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Beautiful Header */}
         <div className="mb-8">
-          <div className="relative bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl p-8 text-white overflow-hidden">
-            <div className="absolute inset-0 bg-black/10"></div>
-            <div className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full"></div>
-            <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-white/5 rounded-full"></div>
+          <div className="relative bg-gradient-to-br from-violet-600 via-pink-500 to-orange-400 rounded-3xl p-8 text-white overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-all duration-500">
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 via-transparent to-yellow-300/20"></div>
+            <div className="absolute -top-6 -right-6 w-32 h-32 bg-gradient-to-br from-white/20 to-white/5 rounded-full animate-pulse"></div>
+            <div className="absolute -bottom-8 -left-8 w-40 h-40 bg-gradient-to-tr from-white/10 to-transparent rounded-full"></div>
+            <div className="absolute top-1/2 right-1/4 w-16 h-16 bg-white/10 rounded-full animate-bounce delay-300"></div>
+            <div className="absolute bottom-1/4 left-1/3 w-12 h-12 bg-white/15 rounded-full animate-ping delay-700"></div>
+
+            {/* Floating Particles */}
+            <div className="absolute top-6 left-1/4 w-2 h-2 bg-white/40 rounded-full animate-float"></div>
+            <div className="absolute bottom-8 right-1/3 w-3 h-3 bg-white/30 rounded-full animate-float-delayed"></div>
+            <div className="absolute top-1/3 right-1/6 w-1.5 h-1.5 bg-white/50 rounded-full animate-float-slow"></div>
+
             <div className="relative z-10">
               <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold mb-2">Admin Dashboard</h1>
-                  <p className="text-blue-100 text-lg">
-                    Complete system control and monitoring • {new Date().toLocaleDateString()}
-                  </p>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+                    <h1 className="text-5xl font-black bg-gradient-to-r from-white via-yellow-100 to-pink-100 bg-clip-text text-transparent drop-shadow-lg">
+                      Admin Dashboard
+                    </h1>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-2">
+                      <Zap className="h-5 w-5 text-yellow-300 animate-pulse" />
+                      <span className="text-white/90 text-lg font-semibold tracking-wide">
+                        Complete System Control & Real-time Analytics
+                      </span>
+                    </div>
+                    <div className="hidden sm:flex items-center space-x-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+                      <Clock className="h-4 w-4 text-cyan-300" />
+                      <span className="text-cyan-100 text-sm font-medium">
+                        {new Date().toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="hidden md:flex items-center space-x-6">
-                  <div className="text-center">
-                    <ActivityIcon className="h-8 w-8 mx-auto mb-1" />
-                    <div className="text-sm text-blue-100">System Online</div>
+                <div className="hidden lg:flex items-center space-x-6">
+                  <div className="text-center group hover:scale-110 transition-transform duration-300">
+                    <div className="bg-green-500/20 backdrop-blur-sm rounded-2xl p-3 border border-green-400/30">
+                      <ActivityIcon className="h-8 w-8 mx-auto mb-1 text-green-300 group-hover:animate-pulse" />
+                    </div>
+                    <div className="text-sm text-green-200 font-medium">Live System</div>
                   </div>
-                  <div className="text-center">
-                    <Server className="h-8 w-8 mx-auto mb-1" />
-                    <div className="text-sm text-blue-100">v{dashboardData?.systemInfo?.version}</div>
+                  <div className="text-center group hover:scale-110 transition-transform duration-300">
+                    <div className="bg-blue-500/20 backdrop-blur-sm rounded-2xl p-3 border border-blue-400/30">
+                      <Server className="h-8 w-8 mx-auto mb-1 text-blue-300 group-hover:animate-bounce" />
+                    </div>
+                    <div className="text-sm text-blue-200 font-medium">v{dashboardData?.systemInfo?.version?.slice(1) || '22.11'}</div>
                   </div>
-                  <div className="text-center">
-                    <Globe className="h-8 w-8 mx-auto mb-1" />
-                    <div className="text-sm text-blue-100">{dashboardData?.systemInfo?.environment}</div>
+                  <div className="text-center group hover:scale-110 transition-transform duration-300">
+                    <div className="bg-purple-500/20 backdrop-blur-sm rounded-2xl p-3 border border-purple-400/30">
+                      <Globe className="h-8 w-8 mx-auto mb-1 text-purple-300 group-hover:animate-spin" />
+                    </div>
+                    <div className="text-sm text-purple-200 font-medium">{dashboardData?.systemInfo?.environment || 'Production'}</div>
                   </div>
                 </div>
               </div>
@@ -361,14 +397,14 @@ const AdminDashboard: React.FC = () => {
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className={`p-3 rounded-xl ${index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                      index === 1 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                        'bg-gradient-to-r from-orange-500 to-red-500'
+                    index === 1 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                      'bg-gradient-to-r from-orange-500 to-red-500'
                     } shadow-lg`}>
                     <IconComponent className="h-6 w-6 text-white" />
                   </div>
                   <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${stat.trend === 'up'
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
-                      : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
+                    ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
                     }`}>
                     {stat.trend === 'up' ? (
                       <ArrowUpRight className="h-3 w-3 mr-1" />
@@ -455,16 +491,16 @@ const AdminDashboard: React.FC = () => {
                   <div key={role} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
                     <div className="flex items-center space-x-3">
                       <div className={`p-2 rounded-lg ${role === 'admin' ? 'bg-red-100 dark:bg-red-900/30' :
-                          role === 'customer' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                            role === 'cashier' ? 'bg-green-100 dark:bg-green-900/30' :
-                              role === 'warehouse manager' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                                'bg-gray-100 dark:bg-gray-700'
+                        role === 'customer' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                          role === 'cashier' ? 'bg-green-100 dark:bg-green-900/30' :
+                            role === 'warehouse manager' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                              'bg-gray-100 dark:bg-gray-700'
                         }`}>
                         <Shield className={`h-4 w-4 ${role === 'admin' ? 'text-red-600' :
-                            role === 'customer' ? 'text-blue-600' :
-                              role === 'cashier' ? 'text-green-600' :
-                                role === 'warehouse manager' ? 'text-purple-600' :
-                                  'text-gray-600'
+                          role === 'customer' ? 'text-blue-600' :
+                            role === 'cashier' ? 'text-green-600' :
+                              role === 'warehouse manager' ? 'text-purple-600' :
+                                'text-gray-600'
                           }`} />
                       </div>
                       <span className="font-medium text-gray-900 dark:text-white capitalize">{role}</span>
@@ -474,10 +510,10 @@ const AdminDashboard: React.FC = () => {
                       <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
                         <div
                           className={`h-2 rounded-full ${role === 'admin' ? 'bg-red-500' :
-                              role === 'customer' ? 'bg-blue-500' :
-                                role === 'cashier' ? 'bg-green-500' :
-                                  role === 'warehouse manager' ? 'bg-purple-500' :
-                                    'bg-gray-500'
+                            role === 'customer' ? 'bg-blue-500' :
+                              role === 'cashier' ? 'bg-green-500' :
+                                role === 'warehouse manager' ? 'bg-purple-500' :
+                                  'bg-gray-500'
                             }`}
                           style={{ width: `${(count / dashboardData.userStats.total) * 100}%` }}
                         ></div>
@@ -537,9 +573,9 @@ const AdminDashboard: React.FC = () => {
                         )}
                       </div>
                       <div className={`px-2 py-1 text-xs rounded-full ${activity.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          activity.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                            activity.severity === 'medium' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        activity.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                          activity.severity === 'medium' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                         }`}>
                         {activity.severity}
                       </div>

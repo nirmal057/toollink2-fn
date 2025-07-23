@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  TrendingUp, 
+import {
+  Users,
+  Package,
+  ShoppingCart,
+  TrendingUp,
   TrendingDown,
   Activity,
   Download,
@@ -58,27 +58,27 @@ const SystemReports: React.FC = () => {
       setLoading(true);
       setError(null);
       const data = await adminApiService.getSystemReports();
-      
+      console.log('📊 Raw reports data:', data);
+
       // Transform the data to match our interface
-      // This would typically come formatted from the backend
       const transformedData: SystemReport = {
         users: {
-          total: data.userStats?.total || 0,
-          active: data.userStats?.active || 0,
-          newThisMonth: data.userStats?.newThisMonth || 0,
-          growth: data.userStats?.growth || 0
+          total: data.users?.totalUsers || 0,
+          active: data.users?.activeUsers || 0,
+          newThisMonth: data.users?.newThisMonth || 0,
+          growth: data.users?.growth || 0
         },
         orders: {
-          total: data.orderStats?.total || 0,
-          completed: data.orderStats?.completed || 0,
-          pending: data.orderStats?.pending || 0,
-          revenue: data.orderStats?.revenue || 0
+          total: data.orders?.totalOrders || 0,
+          completed: data.orders?.deliveredOrders || 0,
+          pending: data.orders?.pendingOrders || 0,
+          revenue: data.orders?.totalRevenue || 0
         },
         inventory: {
-          totalItems: data.inventoryStats?.totalItems || 0,
-          lowStock: data.inventoryStats?.lowStock || 0,
-          outOfStock: data.inventoryStats?.outOfStock || 0,
-          value: data.inventoryStats?.value || 0
+          totalItems: data.inventory?.totalItems || 0,
+          lowStock: data.inventory?.lowStockItems || 0,
+          outOfStock: data.inventory?.outOfStockItems || 0,
+          value: data.inventory?.totalValue || 0
         },
         performance: {
           uptime: data.performance?.uptime || 99.9,
@@ -87,7 +87,7 @@ const SystemReports: React.FC = () => {
           lastUpdate: data.performance?.lastUpdate || new Date().toISOString()
         }
       };
-      
+
       setReports(transformedData);
     } catch (err) {
       console.error('Failed to load reports:', err);
@@ -100,7 +100,7 @@ const SystemReports: React.FC = () => {
   const exportReports = async () => {
     try {
       if (!reports) return;
-      
+
       const reportData = `System Reports - ${new Date().toLocaleDateString()}
 
 User Statistics:
@@ -283,9 +283,8 @@ Performance Metrics:
                     ) : (
                       <TrendingDown className="h-4 w-4 text-red-500" />
                     )}
-                    <span className={`text-sm ml-1 ${
-                      stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-                    }`}>
+                    <span className={`text-sm ml-1 ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
+                      }`}>
                       {stat.change}%
                     </span>
                   </div>
@@ -440,8 +439,8 @@ Performance Metrics:
                 <div className="flex items-center justify-between">
                   <span className="text-gray-600 dark:text-gray-400">Last Updated</span>
                   <span className="text-sm text-gray-500">
-                    {reports?.performance.lastUpdate ? 
-                      new Date(reports.performance.lastUpdate).toLocaleString() : 
+                    {reports?.performance.lastUpdate ?
+                      new Date(reports.performance.lastUpdate).toLocaleString() :
                       'N/A'
                     }
                   </span>

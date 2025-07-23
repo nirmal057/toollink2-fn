@@ -9,7 +9,7 @@ import LandingPage from './pages/LandingPage';
 import OrderManagement from './pages/OrderManagement';
 import InventoryManagement from './pages/InventoryManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
-import Notifications from './pages/NotificationsSimple';
+import Notifications from './pages/Notifications';
 import SimpleNotifications from './pages/SimpleNotifications';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
@@ -158,7 +158,7 @@ function AppRoutes() {
           />
 
           {/* Common routes - all authenticated users */}
-          <Route path="/notifications" element={<Notifications userRole={user.role} />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="/messages" element={<CustomerMessages userRole={user.role} />} />          <Route
             path="/reports"
             element={

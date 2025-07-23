@@ -208,7 +208,7 @@ class AdminApiService {
         ...(filters?.userId && { userId: filters.userId })
       });
 
-      const response = await api.get(`/admin/audit-logs?${params}`);
+      const response = await api.get(`/api/admin/audit-logs?${params}`);
       if (response.data.success) {
         return response.data.auditLogs;
       }
@@ -224,7 +224,7 @@ class AdminApiService {
    */
   async bulkUserOperation(operation: string, userIds: number[], data?: any): Promise<void> {
     try {
-      const response = await api.post('/admin/users/bulk', {
+      const response = await api.post('/api/admin/users/bulk', {
         operation,
         userIds,
         ...(data && { data })
@@ -244,7 +244,7 @@ class AdminApiService {
    */
   async getSystemConfig(): Promise<SystemConfig> {
     try {
-      const response = await api.get('/admin/config');
+      const response = await api.get('/api/admin/config');
       if (response.data.success) {
         return response.data.config;
       }
@@ -260,7 +260,7 @@ class AdminApiService {
    */
   async updateSystemConfig(section: string, settings: any): Promise<void> {
     try {
-      const response = await api.put('/admin/config', {
+      const response = await api.put('/api/admin/config', {
         section,
         settings
       });
@@ -279,14 +279,23 @@ class AdminApiService {
    */
   async getSystemReports(): Promise<Record<string, any>> {
     try {
-      const response = await api.get('/admin/reports');
+      const response = await api.get('/api/admin/reports');
+
       if (response.data.success) {
-        return response.data.reports;
+        return response.data.data || response.data.reports || {};
       }
       throw new Error(response.data.error || 'Failed to load system reports');
     } catch (error: any) {
-      console.error('Error loading system reports:', error);
-      throw new Error(error.response?.data?.error || 'Failed to load system reports');
+      console.error('❌ Error loading system reports:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error config:', error.config);
+
+      if (error.response?.status === 404) {
+        throw new Error('Endpoint not found. Check if backend server is running on port 5000 and admin routes are configured.');
+      }
+
+      throw new Error(error.response?.data?.error || error.message || 'Failed to load system reports');
     }
   }
 }
