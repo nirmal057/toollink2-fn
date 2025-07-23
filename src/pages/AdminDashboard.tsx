@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, 
-  Package, 
-  ShoppingCart, 
-  TruckIcon, 
-  BarChart3, 
-  Settings, 
-  Shield, 
+import {
+  Users,
+  Package,
+  ShoppingCart,
+  TruckIcon,
+  BarChart3,
+  Settings,
+  Shield,
   Activity as ActivityIcon,
   UserCheck,
   UserX,
@@ -45,7 +45,7 @@ const AdminDashboard: React.FC = () => {
     try {
       // Log some sample activities first time
       await logSampleActivities();
-      
+
       const recentActivities = await activityService.getRecentActivities(10);
       setActivities(recentActivities);
     } catch (error) {
@@ -123,7 +123,7 @@ const AdminDashboard: React.FC = () => {
         }
       }
     };
-    
+
     ensureFreshSession();
   }, [isAuthenticated, refreshUser]);
 
@@ -131,7 +131,7 @@ const AdminDashboard: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       // Try to load from API first
       try {
         const data = await adminApiService.getDashboard();
@@ -139,7 +139,7 @@ const AdminDashboard: React.FC = () => {
         return;
       } catch (apiError) {
         console.warn('API failed, using mock data:', apiError);
-        
+
         // Fallback to enhanced mock data when API fails
         const mockDashboard = {
           userStats: {
@@ -186,7 +186,7 @@ const AdminDashboard: React.FC = () => {
             { label: 'Response Time', value: '142ms', change: '-5%', trend: 'down' as const, icon: 'Zap' }
           ]
         };
-        
+
         setDashboardData(mockDashboard);
         console.log('AdminDashboard: Using mock data due to API unavailability');
       }
@@ -269,7 +269,7 @@ const AdminDashboard: React.FC = () => {
           <div className="mt-6">
             <DebugAuth />
           </div>
-          <button 
+          <button
             onClick={() => {
               // Force refresh user data
               console.log('Force refresh attempt...');
@@ -350,28 +350,26 @@ const AdminDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {dashboardData?.quickStats?.map((stat, index) => {
             const IconComponent = stat.icon === 'ShoppingCart' ? ShoppingCart :
-                                stat.icon === 'Users' ? Users :
-                                stat.icon === 'DollarSign' ? DollarSign :
-                                stat.icon === 'Zap' ? Zap : ActivityIcon;
-            
+              stat.icon === 'Users' ? Users :
+                stat.icon === 'DollarSign' ? DollarSign :
+                  stat.icon === 'Zap' ? Zap : ActivityIcon;
+
             return (
               <div
                 key={index}
                 className="group bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-xl p-6 border border-gray-100 dark:border-gray-700 transition-all duration-300 transform hover:-translate-y-1"
               >
                 <div className="flex items-center justify-between mb-4">
-                  <div className={`p-3 rounded-xl ${
-                    index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                    index === 1 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                    'bg-gradient-to-r from-orange-500 to-red-500'
-                  } shadow-lg`}>
+                  <div className={`p-3 rounded-xl ${index === 0 ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                      index === 1 ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                        'bg-gradient-to-r from-orange-500 to-red-500'
+                    } shadow-lg`}>
                     <IconComponent className="h-6 w-6 text-white" />
                   </div>
-                  <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    stat.trend === 'up' 
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400' 
+                  <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${stat.trend === 'up'
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400'
                       : 'bg-red-100 text-red-700 dark:bg-red-900/20 dark:text-red-400'
-                  }`}>
+                    }`}>
                     {stat.trend === 'up' ? (
                       <ArrowUpRight className="h-3 w-3 mr-1" />
                     ) : (
@@ -395,7 +393,7 @@ const AdminDashboard: React.FC = () => {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          
+
           {/* User Analytics */}
           <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
@@ -405,7 +403,7 @@ const AdminDashboard: React.FC = () => {
                 <span>Live Data</span>
               </div>
             </div>
-            
+
             {/* User Stats Grid */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4">
@@ -417,7 +415,7 @@ const AdminDashboard: React.FC = () => {
                   <Users className="h-8 w-8 text-blue-500" />
                 </div>
               </div>
-              
+
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -427,7 +425,7 @@ const AdminDashboard: React.FC = () => {
                   <UserCheck className="h-8 w-8 text-green-500" />
                 </div>
               </div>
-              
+
               <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -437,7 +435,7 @@ const AdminDashboard: React.FC = () => {
                   <Clock className="h-8 w-8 text-yellow-500" />
                 </div>
               </div>
-              
+
               <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-xl p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -456,34 +454,31 @@ const AdminDashboard: React.FC = () => {
                 {dashboardData?.userStats?.byRole && Object.entries(dashboardData.userStats.byRole).map(([role, count]) => (
                   <div key={role} className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-700/50">
                     <div className="flex items-center space-x-3">
-                      <div className={`p-2 rounded-lg ${
-                        role === 'admin' ? 'bg-red-100 dark:bg-red-900/30' :
-                        role === 'customer' ? 'bg-blue-100 dark:bg-blue-900/30' :
-                        role === 'cashier' ? 'bg-green-100 dark:bg-green-900/30' :
-                        role === 'warehouse' ? 'bg-purple-100 dark:bg-purple-900/30' :
-                        'bg-gray-100 dark:bg-gray-700'
-                      }`}>
-                        <Shield className={`h-4 w-4 ${
-                          role === 'admin' ? 'text-red-600' :
-                          role === 'customer' ? 'text-blue-600' :
-                          role === 'cashier' ? 'text-green-600' :
-                          role === 'warehouse' ? 'text-purple-600' :
-                          'text-gray-600'
-                        }`} />
+                      <div className={`p-2 rounded-lg ${role === 'admin' ? 'bg-red-100 dark:bg-red-900/30' :
+                          role === 'customer' ? 'bg-blue-100 dark:bg-blue-900/30' :
+                            role === 'cashier' ? 'bg-green-100 dark:bg-green-900/30' :
+                              role === 'warehouse manager' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                                'bg-gray-100 dark:bg-gray-700'
+                        }`}>
+                        <Shield className={`h-4 w-4 ${role === 'admin' ? 'text-red-600' :
+                            role === 'customer' ? 'text-blue-600' :
+                              role === 'cashier' ? 'text-green-600' :
+                                role === 'warehouse manager' ? 'text-purple-600' :
+                                  'text-gray-600'
+                          }`} />
                       </div>
                       <span className="font-medium text-gray-900 dark:text-white capitalize">{role}</span>
                     </div>
                     <div className="flex items-center space-x-3">
                       <span className="text-lg font-bold text-gray-900 dark:text-white">{count}</span>
                       <div className="w-16 bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            role === 'admin' ? 'bg-red-500' :
-                            role === 'customer' ? 'bg-blue-500' :
-                            role === 'cashier' ? 'bg-green-500' :
-                            role === 'warehouse' ? 'bg-purple-500' :
-                            'bg-gray-500'
-                          }`}
+                        <div
+                          className={`h-2 rounded-full ${role === 'admin' ? 'bg-red-500' :
+                              role === 'customer' ? 'bg-blue-500' :
+                                role === 'cashier' ? 'bg-green-500' :
+                                  role === 'warehouse manager' ? 'bg-purple-500' :
+                                    'bg-gray-500'
+                            }`}
                           style={{ width: `${(count / dashboardData.userStats.total) * 100}%` }}
                         ></div>
                       </div>
@@ -496,23 +491,23 @@ const AdminDashboard: React.FC = () => {
 
           {/* Recent Activity */}
           <div className="space-y-6">
-            
+
             {/* Recent Activity */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Activity</h3>
                 <Bell className="h-5 w-5 text-gray-400" />
               </div>
-              
+
               <div className="space-y-3">
                 {activities.slice(0, 5).map((activity) => {
                   const IconComponent = getActivityIconComponent(activity);
                   const colorClass = activityService.getActivityColor(activity);
                   const timeAgo = activityService.formatTimeAgo(activity.timestamp);
-                  
+
                   return (
-                    <div 
-                      key={activity.id} 
+                    <div
+                      key={activity.id}
                       onClick={() => handleActivityClick(activity)}
                       className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer group"
                     >
@@ -541,20 +536,19 @@ const AdminDashboard: React.FC = () => {
                           </div>
                         )}
                       </div>
-                      <div className={`px-2 py-1 text-xs rounded-full ${
-                        activity.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                        activity.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
-                        activity.severity === 'medium' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
-                        'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                      }`}>
+                      <div className={`px-2 py-1 text-xs rounded-full ${activity.severity === 'critical' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                          activity.severity === 'high' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' :
+                            activity.severity === 'medium' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                              'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        }`}>
                         {activity.severity}
                       </div>
                     </div>
                   );
                 })}
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => navigate('/admin/activities')}
                 className="w-full mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
@@ -567,7 +561,7 @@ const AdminDashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {[
               { title: 'User Management', icon: Users, color: 'from-blue-500 to-cyan-500', link: '/users' },
