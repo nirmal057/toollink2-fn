@@ -3,7 +3,7 @@ import { authService } from './authService';
 
 class SocketService {
     private socket: Socket | null = null;
-    private readonly serverUrl = 'http://localhost:3000';
+    private readonly serverUrl = 'http://localhost:5000';
 
     connect() {
         if (this.socket?.connected) {

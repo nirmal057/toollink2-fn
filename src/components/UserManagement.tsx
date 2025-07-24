@@ -46,7 +46,7 @@ const UserManagement: React.FC = () => {
         status: 'Active'
     });
 
-    const API_BASE = 'http://localhost:3000/api';
+    const API_BASE = 'http://localhost:5000/api';
 
     // Add notification helper function
     const addNotification = (type: 'success' | 'info' | 'warning' | 'error', title: string, message: string) => {

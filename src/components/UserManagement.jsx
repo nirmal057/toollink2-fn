@@ -21,7 +21,7 @@ const UserManagement = () => {
         status: 'Active'
     });
 
-    const API_BASE = 'http://localhost:3000/api/usersNew';
+    const API_BASE = 'http://localhost:5000/api/usersNew';
 
     // Fetch users from backend
     const fetchUsers = async () => {

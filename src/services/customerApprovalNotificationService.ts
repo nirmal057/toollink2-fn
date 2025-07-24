@@ -13,7 +13,7 @@ class CustomerApprovalNotificationService {
       const token = localStorage.getItem('accessToken');
       if (!token) return [];
 
-      const response = await fetch('http://localhost:3000/api/auth/pending-users', {
+      const response = await fetch('http://localhost:5000/api/auth/pending-users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

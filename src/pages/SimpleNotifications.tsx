@@ -20,7 +20,7 @@ const SimpleNotifications = () => {
                 console.log('🔄 Starting notification test...');
 
                 // Test 1: Check if we can reach the backend
-                const baseUrl = 'http://localhost:3000/api';
+                const baseUrl = 'http://localhost:5000/api';
                 console.log('📡 Testing backend connection...');
 
                 // Test 2: Get auth token
