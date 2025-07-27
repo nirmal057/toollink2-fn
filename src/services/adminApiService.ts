@@ -210,7 +210,10 @@ class AdminApiService {
 
       const response = await api.get(`/api/admin/audit-logs?${params}`);
       if (response.data.success) {
-        return response.data.auditLogs;
+        return {
+          logs: response.data.data,
+          pagination: response.data.pagination
+        };
       }
       throw new Error(response.data.error || 'Failed to load audit logs');
     } catch (error: any) {
