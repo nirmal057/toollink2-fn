@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Activity, 
-  Search, 
-  User, 
-  Shield, 
+import {
+  Activity,
+  Search,
+  User,
+  Shield,
   RefreshCw,
   ChevronLeft,
   ChevronRight,
@@ -172,14 +172,15 @@ const AuditLogs: React.FC = () => {
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               >
                 <option value="">All Actions</option>
-                <option value="USER_LOGIN">User Login</option>
-                <option value="USER_LOGOUT">User Logout</option>
-                <option value="USER_CREATED">User Created</option>
-                <option value="USER_UPDATED">User Updated</option>
-                <option value="USER_DELETED">User Deleted</option>
-                <option value="PERMISSION_GRANTED">Permission Granted</option>
-                <option value="PERMISSION_DENIED">Permission Denied</option>
-                <option value="SYSTEM_ERROR">System Error</option>
+                <option value="user_login">User Login</option>
+                <option value="user_logout">User Logout</option>
+                <option value="user_created">User Created</option>
+                <option value="user_updated">User Updated</option>
+                <option value="user_deleted">User Deleted</option>
+                <option value="inventory_created">Inventory Created</option>
+                <option value="inventory_updated">Inventory Updated</option>
+                <option value="order_created">Order Created</option>
+                <option value="order_updated">Order Updated</option>
               </select>
             </div>
             <div>
@@ -230,6 +231,9 @@ const AuditLogs: React.FC = () => {
                         Details
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         IP Address
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
@@ -239,7 +243,7 @@ const AuditLogs: React.FC = () => {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {logs.map((log) => (
-                      <tr key={log.id}>
+                      <tr key={log._id}>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center">
                             {getActionIcon(log.action)}
@@ -249,10 +253,71 @@ const AuditLogs: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                          {log.userId}
+                          {log.userId ? (
+                            <div>
+                              <div className="font-medium">
+                                {log.userId.fullName || log.userId.username || 'Unknown User'}
+                              </div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
+                                {log.userId.email}
+                              </div>
+                            </div>
+                          ) : (
+                            'System'
+                          )}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs truncate">
-                          {log.details}
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white max-w-xs">
+                          <div className="truncate">
+                            {typeof log.details === 'object' ? (
+                              <div>
+                                {log.details.action && (
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full mb-1 ${log.details.action.includes('success')
+                                      ? 'text-green-700 bg-green-100'
+                                      : log.details.action.includes('failed')
+                                        ? 'text-red-700 bg-red-100'
+                                        : 'text-blue-700 bg-blue-100'
+                                    }`}>
+                                    {log.details.action.replace(/_/g, ' ')}
+                                  </span>
+                                )}
+                                {log.details.userEmail && (
+                                  <div className="text-xs text-gray-600">Email: {log.details.userEmail}</div>
+                                )}
+                                {log.details.reason && (
+                                  <div className="text-xs text-gray-600">Reason: {log.details.reason}</div>
+                                )}
+                                {log.details.changedFields && (
+                                  <div className="text-xs text-gray-600">
+                                    Fields: {log.details.changedFields.join(', ')}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              log.details
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            {log.details && typeof log.details === 'object' && log.details.success !== undefined ? (
+                              log.details.success ? (
+                                <div className="flex items-center text-green-600">
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  <span className="text-xs font-medium">Success</span>
+                                </div>
+                              ) : (
+                                <div className="flex items-center text-red-600">
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  <span className="text-xs font-medium">Failed</span>
+                                </div>
+                              )
+                            ) : (
+                              <div className="flex items-center text-blue-600">
+                                <Info className="h-4 w-4 mr-1" />
+                                <span className="text-xs font-medium">Info</span>
+                              </div>
+                            )}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {log.ipAddress}

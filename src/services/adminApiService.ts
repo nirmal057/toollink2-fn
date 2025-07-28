@@ -41,12 +41,24 @@ export interface AdminDashboard {
 }
 
 export interface AuditLog {
-  id: number;
-  userId: string;
+  _id: string;
   action: string;
-  details: string;
-  timestamp: string;
+  userId?: {
+    _id: string;
+    username: string;
+    email: string;
+    fullName: string;
+    profile?: any;
+    isLocked?: boolean;
+    id: string;
+  } | null;
+  targetId?: string;
+  targetType?: string;
+  details: any;
   ipAddress: string;
+  userAgent?: string;
+  timestamp: string;
+  status: string;
 }
 
 export interface SystemConfig {
