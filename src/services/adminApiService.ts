@@ -61,6 +61,138 @@ export interface AuditLog {
   status: string;
 }
 
+// ===== Enhanced Prediction System Interfaces =====
+
+export interface MaterialDemandPrediction {
+  itemId: string;
+  itemName: string;
+  category: string;
+  warehouseId: string;
+  warehouseName: string;
+  currentStock: number;
+  unit: string;
+
+  // Prediction data
+  predictedDemand: {
+    nextMonth: number;
+    next3Months: number;
+    peakSeason: {
+      month: string;
+      demandIncrease: number; // percentage
+    };
+  };
+
+  // Analysis insights
+  trendAnalysis: {
+    trend: 'increasing' | 'decreasing' | 'stable' | 'seasonal';
+    confidence: number; // percentage
+    seasonalPattern: {
+      highDemandMonths: string[];
+      lowDemandMonths: string[];
+    };
+  };
+
+  // Refill recommendations
+  refillRecommendation: {
+    urgencyLevel: 'critical' | 'high' | 'medium' | 'low';
+    recommendedQuantity: number;
+    estimatedStockoutDate: string;
+    supplierLeadTime: number; // days
+    orderByDate: string;
+    estimatedCost: number;
+  };
+
+  // Historical context
+  historicalData: {
+    last12MonthsUsage: number[];
+    averageMonthlyDemand: number;
+    maxMonthlyDemand: number;
+    minMonthlyDemand: number;
+  };
+}
+
+export interface PredictionDashboard {
+  overview: {
+    totalItemsTracked: number;
+    criticalItems: number;
+    highPriorityItems: number;
+    totalPredictedCost: number;
+    potentialStockouts: number;
+  };
+
+  predictions: MaterialDemandPrediction[];
+
+  warehouseInsights: {
+    warehouseId: string;
+    warehouseName: string;
+    totalItems: number;
+    criticalItems: number;
+    predictedMonthlyDemand: number;
+  }[];
+
+  seasonalInsights: {
+    currentSeason: string;
+    seasonalMultiplier: number;
+    upcomingEvents: {
+      event: string;
+      expectedImpact: number;
+      affectedCategories: string[];
+    }[];
+  };
+}
+
+export interface SmartRefillAlert {
+  id: string;
+  itemId: string;
+  itemName: string;
+  warehouseId: string;
+  warehouseName: string;
+  alertType: 'stockout_warning' | 'seasonal_prep' | 'demand_spike' | 'supplier_delay';
+  severity: 'critical' | 'high' | 'medium' | 'info';
+  message: string;
+  recommendedAction: string;
+  quantityNeeded: number;
+  estimatedCost: number;
+  orderByDate: string;
+  createdAt: string;
+  acknowledged: boolean;
+}
+
+export interface DeliveryOptimization {
+  routeId: string;
+  deliveryDate: string;
+  vehicleType: string;
+  capacity: number;
+
+  optimizedRoute: {
+    stops: {
+      customerId: string;
+      customerName: string;
+      address: string;
+      deliveryWindow: string;
+      items: {
+        itemId: string;
+        itemName: string;
+        quantity: number;
+        weight: number;
+      }[];
+      estimatedArrival: string;
+    }[];
+
+    totalDistance: number;
+    estimatedDuration: number;
+    fuelCost: number;
+    driverHours: number;
+  };
+
+  efficiency: {
+    capacityUtilization: number; // percentage
+    timeEfficiency: number; // percentage
+    costSavings: number;
+    carbonFootprintReduction: number;
+  };
+}
+
 export interface SystemConfig {
   general: {
     siteName: string;
@@ -235,7 +367,7 @@ class AdminApiService {
   }
 
   /**
-   * Perform bulk user operations
+   * Bulk user operations
    */
   async bulkUserOperation(operation: string, userIds: number[], data?: any): Promise<void> {
     try {
@@ -311,6 +443,159 @@ class AdminApiService {
       }
 
       throw new Error(error.response?.data?.error || error.message || 'Failed to load system reports');
+    }
+  }
+
+  // ===== 🚀 ENHANCED NOVELTY FUNCTIONS =====
+
+  /**
+   * ToolLink DemandSense: Get comprehensive material demand predictions
+   * Uses 24-month historical data with seasonal pattern recognition
+   */
+  async getPredictionDashboard(warehouseId?: string): Promise<PredictionDashboard> {
+    try {
+      const params = warehouseId ? `?warehouseId=${warehouseId}` : '';
+      const response = await api.get(`/api/predictions/dashboard${params}`);
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to load prediction dashboard');
+    } catch (error: any) {
+      console.error('Error loading prediction dashboard:', error);
+      throw new Error(error.response?.data?.error || 'Failed to load prediction dashboard');
+    }
+  }
+
+  /**
+   * Get detailed material demand prediction for specific items
+   */
+  async getMaterialPredictions(filters?: {
+    warehouseId?: string;
+    category?: string;
+    urgencyLevel?: string;
+    limit?: number;
+  }): Promise<MaterialDemandPrediction[]> {
+    try {
+      const params = new URLSearchParams();
+      if (filters?.warehouseId) params.append('warehouseId', filters.warehouseId);
+      if (filters?.category) params.append('category', filters.category);
+      if (filters?.urgencyLevel) params.append('urgencyLevel', filters.urgencyLevel);
+      if (filters?.limit) params.append('limit', filters.limit.toString());
+
+      const response = await api.get(`/api/predictions/materials?${params}`);
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to load material predictions');
+    } catch (error: any) {
+      console.error('Error loading material predictions:', error);
+      throw new Error(error.response?.data?.error || 'Failed to load material predictions');
+    }
+  }
+
+  /**
+   * Get smart refill alerts with AI-powered recommendations
+   */
+  async getRefillAlerts(acknowledged = false): Promise<SmartRefillAlert[]> {
+    try {
+      const response = await api.get(`/api/predictions/alerts?acknowledged=${acknowledged}`);
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to load refill alerts');
+    } catch (error: any) {
+      console.error('Error loading refill alerts:', error);
+      throw new Error(error.response?.data?.error || 'Failed to load refill alerts');
+    }
+  }
+
+  /**
+   * Acknowledge refill alert
+   */
+  async acknowledgeAlert(alertId: string): Promise<void> {
+    try {
+      const response = await api.put(`/api/predictions/alerts/${alertId}/acknowledge`);
+
+      if (!response.data.success) {
+        throw new Error(response.data.error || 'Failed to acknowledge alert');
+      }
+    } catch (error: any) {
+      console.error('Error acknowledging alert:', error);
+      throw new Error(error.response?.data?.error || 'Failed to acknowledge alert');
+    }
+  }
+
+  /**
+   * Generate automatic refill order based on predictions
+   */
+  async generateRefillOrder(itemId: string, warehouseId: string, quantity?: number): Promise<{
+    orderId: string;
+    estimatedCost: number;
+    supplierInfo: any;
+    deliveryDate: string;
+  }> {
+    try {
+      const response = await api.post('/api/predictions/generate-order', {
+        itemId,
+        warehouseId,
+        ...(quantity && { quantity })
+      });
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to generate refill order');
+    } catch (error: any) {
+      console.error('Error generating refill order:', error);
+      throw new Error(error.response?.data?.error || 'Failed to generate refill order');
+    }
+  }
+
+  /**
+   * Smart Delivery Route Optimization
+   * Second novelty function: AI-powered delivery route planning
+   */
+  async optimizeDeliveryRoutes(date: string, vehicleType?: string): Promise<DeliveryOptimization[]> {
+    try {
+      const params = new URLSearchParams({ date });
+      if (vehicleType) params.append('vehicleType', vehicleType);
+
+      const response = await api.get(`/api/delivery/optimize?${params}`);
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to optimize delivery routes');
+    } catch (error: any) {
+      console.error('Error optimizing delivery routes:', error);
+      throw new Error(error.response?.data?.error || 'Failed to optimize delivery routes');
+    }
+  }
+
+  /**
+   * Get delivery performance analytics
+   */
+  async getDeliveryAnalytics(period = '30d'): Promise<{
+    totalDeliveries: number;
+    onTimeDeliveries: number;
+    averageDeliveryTime: number;
+    fuelSavings: number;
+    carbonFootprintReduction: number;
+    customerSatisfaction: number;
+  }> {
+    try {
+      const response = await api.get(`/api/delivery/analytics?period=${period}`);
+
+      if (response.data.success) {
+        return response.data.data;
+      }
+      throw new Error(response.data.error || 'Failed to load delivery analytics');
+    } catch (error: any) {
+      console.error('Error loading delivery analytics:', error);
+      throw new Error(error.response?.data?.error || 'Failed to load delivery analytics');
     }
   }
 }

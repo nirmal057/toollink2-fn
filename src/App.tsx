@@ -19,6 +19,7 @@ import UserManagement from './pages/UserManagement';
 import NewUserManagement from './components/UserManagement';
 import CustomerApproval from './pages/CustomerApproval';
 import CustomerMessages from './pages/CustomerMessages';
+import MessageDashboard from './components/MessageDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ActivitiesPage from './pages/ActivitiesPage';
 import AuditLogs from './pages/AuditLogs';
@@ -29,12 +30,6 @@ import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext
 import { ROLES } from './services/rbacService';
 import ToastContainer from './components/UI/ToastContainer';
 import SimpleAdminGuard from './components/SimpleAdminGuard';
-// Test components - REMOVE IN PRODUCTION
-// import SimpleHeaderTest from './components/Layout/SimpleHeaderTest';
-// import HeaderButtonsTest from './components/Layout/HeaderButtonsTest';
-// import UltraSimpleTest from './components/Layout/UltraSimpleTest';
-// import DirectHeaderTest from './components/Layout/DirectHeaderTest';
-// import DashboardTest from './components/Layout/DashboardTest';
 import ZIndexTest from './pages/ZIndexTest';
 import AuthDebugPage from './pages/AuthDebugPage';
 
@@ -102,13 +97,6 @@ function AppRoutes() {
         path="/auth/reset-password"
         element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/dashboard" replace />}
       />
-      {/* Debug routes for header testing - REMOVE IN PRODUCTION */}
-      {/* <Route path="/header-test" element={<SimpleHeaderTest />} /> */}
-      {/* <Route path="/buttons-test" element={<HeaderButtonsTest />} /> */}
-      {/* <Route path="/ultra-simple" element={<UltraSimpleTest />} /> */}
-      {/* <Route path="/direct-header" element={<DirectHeaderTest />} /> */}
-      {/* <Route path="/dashboard-test" element={<DashboardTest />} /> */}
-      {/* <Route path="/direct-header-test" element={<DirectHeaderTest />} /> */}
       <Route path="/z-index-test" element={<ZIndexTest />} />
       <Route path="/auth-debug" element={<AuthDebugPage />} />
       <Route path="/simple-notifications" element={<SimpleNotifications />} />
@@ -159,7 +147,17 @@ function AppRoutes() {
 
           {/* Common routes - all authenticated users */}
           <Route path="/notifications" element={<Notifications />} />
-          <Route path="/messages" element={<CustomerMessages userRole={user.role} />} />          <Route
+          <Route path="/messages" element={<CustomerMessages userRole={user.role} />} />
+          {/* Admin and Cashier Message Dashboard */}
+          <Route
+            path="/admin/messages"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.CASHIER]} fallback={<Unauthorized />}>
+                <MessageDashboard userRole={user.role} userId={user.id} />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="/reports"
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.USER]} fallback={<Unauthorized />}>

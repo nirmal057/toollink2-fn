@@ -11,7 +11,7 @@ const LandingPage = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
-  
+
   // Get public testimonials from feedback service
   const testimonials = FeedbackService.getPublicFeedback().slice(0, 3);
 
@@ -27,17 +27,17 @@ const LandingPage = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
+
   // Enhanced smooth scroll function with performance optimizations and fallbacks
   const handleSmoothScroll = (e: React.MouseEvent<HTMLAnchorElement>, targetId: string) => {
     e.preventDefault();
-    
+
     const targetElement = document.getElementById(targetId);
     if (!targetElement) return;
 
     const navHeight = 80; // Account for fixed navigation height
     const targetPosition = targetElement.offsetTop - navHeight;
-    
+
     // Close mobile menu immediately for better UX
     setIsMobileMenuOpen(false);
 
@@ -64,15 +64,15 @@ const LandingPage = () => {
     const animation = (currentTime: number) => {
       const timeElapsed = currentTime - startTime;
       const progress = Math.min(timeElapsed / duration, 1);
-      
+
       // Smooth easing function (ease-in-out)
       const easeInOutCubic = progress < 0.5
         ? 4 * progress * progress * progress
         : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-      
+
       const currentPosition = start + (distance * easeInOutCubic);
       window.scrollTo(0, currentPosition);
-      
+
       if (progress < 1) {
         requestAnimationFrame(animation);
       }
@@ -80,7 +80,7 @@ const LandingPage = () => {
 
     requestAnimationFrame(animation);
   };
-  
+
   // Parallax scroll effect
   const { scrollY } = useScroll();
   const heroY = useTransform(scrollY, [0, 500], [0, -100]);
@@ -149,7 +149,8 @@ const LandingPage = () => {
       transition: {
         duration: 0.4,
         ease: [0.4, 0, 0.2, 1],
-        staggerChildren: 0.03      }
+        staggerChildren: 0.03
+      }
     }
   };
 
@@ -170,31 +171,31 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1a1113] to-[#12152c] dark:from-gray-900 dark:to-gray-800 text-white transition-colors duration-300">
       {/* Navigation Bar */}
-      <motion.nav 
+      <motion.nav
         variants={navVariants}
         initial="hidden"
         animate="visible"
-        className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 sm:px-6 lg:px-12 py-4 
+        className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-4 sm:px-6 lg:px-12 py-4
                    bg-[#1a1113]/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-[#2a2d40]/50 dark:border-gray-700/50 shadow-2xl
                    smooth-transform"        style={{ transform: 'translateZ(0)' }} // Hardware acceleration
       >
         {/* Dark background effect matching app theme */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a1113]/60 via-[#12152c]/40 to-[#1a1113]/60 rounded-b-3xl"></div>
         <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-[#2a2d40]/40 via-[#12152c]/30 to-[#2a2d40]/40"></div>
-        
+
         {/* Animated border glow */}
         <div className="absolute inset-0 rounded-b-3xl">
           <div className="absolute inset-0 rounded-b-3xl bg-gradient-to-r from-transparent via-orange-500/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-1000"></div>
-        </div>          <motion.div 
+        </div>          <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.05 }}
           className="relative flex items-center space-x-2 sm:space-x-4 z-10"
         >
-          <motion.div 
+          <motion.div
             className="relative bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-2xl shadow-orange-500/30"
-            whileHover={{ 
-              scale: 1.1, 
+            whileHover={{
+              scale: 1.1,
               rotate: [0, -5, 5, 0],
               boxShadow: "0 20px 40px rgba(251, 146, 60, 0.4)"
             }}
@@ -204,43 +205,43 @@ const LandingPage = () => {
             {/* Subtle pulse ring */}
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 opacity-20 animate-ping"></div>
           </motion.div>
-          <motion.span 
+          <motion.span
             className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-white via-orange-100 to-orange-200 bg-clip-text text-transparent tracking-wide"
             whileHover={{ scale: 1.05 }}
           >
             ToolLink
           </motion.span>
         </motion.div>
-          {/* Desktop Navigation Menu */}
-        <motion.div 
+        {/* Desktop Navigation Menu */}
+        <motion.div
           initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}          transition={{ duration: 0.4, delay: 0.1 }}
+          animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           className="hidden lg:flex items-center space-x-6 xl:space-x-10 relative z-10"
-        >          {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
-            <motion.a
-              key={item}
-              href={`#${item.toLowerCase()}`}
-              onClick={(e) => handleSmoothScroll(e, item.toLowerCase())}
-              className="relative text-white/70 hover:text-white font-semibold transition-all duration-500 group cursor-pointer text-sm xl:text-base"
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 + index * 0.02 }}
-              whileHover={{ y: -2 }}
-            >
-              <span className="relative z-10">{item}</span>
-              {/* Animated underline */}
-              <motion.div
-                className="absolute -bottom-2 left-0 w-0 h-1 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 rounded-full group-hover:w-full transition-all duration-500"
-                whileHover={{ boxShadow: "0 0 20px rgba(251, 146, 60, 0.6)" }}
-              />
-              {/* Hover glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mx-3 -my-1"></div>
-            </motion.a>
-          ))}
+        >          {['Features', 'About', 'Testimonials'].map((item, index) => (
+          <motion.a
+            key={item}
+            href={`#${item.toLowerCase()}`}
+            onClick={(e) => handleSmoothScroll(e, item.toLowerCase())}
+            className="relative text-white/70 hover:text-white font-semibold transition-all duration-500 group cursor-pointer text-sm xl:text-base"
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + index * 0.02 }}
+            whileHover={{ y: -2 }}
+          >
+            <span className="relative z-10">{item}</span>
+            {/* Animated underline */}
+            <motion.div
+              className="absolute -bottom-2 left-0 w-0 h-1 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 rounded-full group-hover:w-full transition-all duration-500"
+              whileHover={{ boxShadow: "0 0 20px rgba(251, 146, 60, 0.6)" }}
+            />
+            {/* Hover glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mx-3 -my-1"></div>
+          </motion.a>
+        ))}
         </motion.div>
 
         {/* Desktop Auth Buttons */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, delay: 0.15 }}
@@ -260,10 +261,10 @@ const LandingPage = () => {
             >
               <UserIcon size={20} />
             </motion.button>
-            
+
             {/* User Menu Dropdown */}
             {showUserMenu && (
-              <div 
+              <div
                 className="user-menu-container absolute right-0 top-12 w-48 bg-[#1a1113]/95 backdrop-blur-md rounded-lg shadow-2xl py-1 border border-[#3a3d50]/50 z-50"
                 onClick={(e) => e.stopPropagation()}
               >
@@ -278,11 +279,11 @@ const LandingPage = () => {
               </div>
             )}
           </div>
-          
+
           <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
             <Link
               to="/auth/login"
-              className="relative px-4 lg:px-6 py-2 lg:py-2.5 text-white/90 hover:text-white font-medium rounded-full 
+              className="relative px-4 lg:px-6 py-2 lg:py-2.5 text-white/90 hover:text-white font-medium rounded-full
                          transition-all duration-300 overflow-hidden group backdrop-blur-sm text-sm lg:text-base
                          border border-[#3a3d50]/60 dark:border-gray-600/60 hover:border-orange-400/60 hover:bg-[#2a2d40]/30 dark:hover:bg-gray-700/30"
             >
@@ -290,13 +291,13 @@ const LandingPage = () => {
               <span className="relative">Login</span>
             </Link>
           </motion.div>
-          
+
           <motion.div whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}>
             <Link
               to="/auth/register"
-              className="relative px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-orange-500 to-red-500 
-                         hover:from-orange-600 hover:to-red-600 text-white rounded-full 
-                         font-medium transition-all duration-300 shadow-lg hover:shadow-orange-500/25 
+              className="relative px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-orange-500 to-red-500
+                         hover:from-orange-600 hover:to-red-600 text-white rounded-full
+                         font-medium transition-all duration-300 shadow-lg hover:shadow-orange-500/25
                          overflow-hidden group text-sm lg:text-base"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -304,14 +305,14 @@ const LandingPage = () => {
             </Link>
           </motion.div>
         </motion.div>
-          {/* Mobile menu button */}
-        <motion.div 
+        {/* Mobile menu button */}
+        <motion.div
           className="md:hidden relative z-10"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.15 }}
         >
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="text-white/80 hover:text-white p-2 rounded-lg bg-[#2a2d40]/50 backdrop-blur-sm border border-[#3a3d50]/50 hover:bg-[#3a3d50]/60 transition-all duration-300"
           >
@@ -335,27 +336,27 @@ const LandingPage = () => {
           >
             <div className="p-6 space-y-4">
               {/* Mobile Navigation Links */}
-              <div className="space-y-3">                {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
-                  <motion.a
-                    key={item}
-                    href={`#${item.toLowerCase()}`}
-                    onClick={(e) => handleSmoothScroll(e, item.toLowerCase())}
-                    className="block text-white/80 hover:text-white font-medium py-2 px-4 rounded-lg hover:bg-[#2a2d40]/50 transition-all duration-300"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                  >
-                    {item}
-                  </motion.a>
-                ))}
+              <div className="space-y-3">                {['Features', 'About', 'Testimonials'].map((item, index) => (
+                <motion.a
+                  key={item}
+                  href={`#${item.toLowerCase()}`}
+                  onClick={(e) => handleSmoothScroll(e, item.toLowerCase())}
+                  className="block text-white/80 hover:text-white font-medium py-2 px-4 rounded-lg hover:bg-[#2a2d40]/50 transition-all duration-300"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                >
+                  {item}
+                </motion.a>
+              ))}
               </div>
-              
+
               {/* Mobile Auth Buttons */}
               <div className="pt-4 border-t border-[#2a2d40]/50 space-y-3">
                 <Link
                   to="/auth/login"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full text-center px-6 py-3 text-white/90 hover:text-white font-medium rounded-full 
+                  className="block w-full text-center px-6 py-3 text-white/90 hover:text-white font-medium rounded-full
                              border border-[#3a3d50]/60 hover:border-orange-400/60 hover:bg-[#2a2d40]/30 transition-all duration-300"
                 >
                   Login
@@ -363,13 +364,13 @@ const LandingPage = () => {
                 <Link
                   to="/auth/register"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="block w-full text-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 
-                             hover:from-orange-600 hover:to-red-600 text-white rounded-full 
+                  className="block w-full text-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500
+                             hover:from-orange-600 hover:to-red-600 text-white rounded-full
                              font-medium transition-all duration-300 shadow-lg"
                 >
                   Register
                 </Link>
-                
+
                 {/* Mobile Dark Mode Toggle */}
                 <div className="flex justify-center pt-2">
                   <DarkModeToggle />
@@ -379,20 +380,20 @@ const LandingPage = () => {
           </motion.div>
         )}
       </motion.nav>      {/* Hero Section */}
-      <motion.div 
+      <motion.div
         variants={heroVariants}
         initial="hidden"
         animate="visible"
         className="relative flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 sm:py-20 pt-24 sm:pt-32 text-center min-h-screen overflow-hidden
                    smooth-transform"
-        style={{ 
-          y: heroY, 
+        style={{
+          y: heroY,
           opacity: heroOpacity,
           transform: 'translateZ(0)' // Hardware acceleration for parallax
         }}
       >
         {/* Background Image */}
-        <div 
+        <div
           className="absolute inset-0 z-0"
           style={{
             backgroundImage: `url(${bg1})`,
@@ -403,7 +404,7 @@ const LandingPage = () => {
         />
         {/* Overlay for better text readability */}
         <div className="absolute inset-0 bg-black/40 z-10" />
-        
+
         {/* Content */}
         <motion.div
           variants={containerVariants}
@@ -411,7 +412,7 @@ const LandingPage = () => {
           animate="visible"
           className="relative z-20 text-center max-w-4xl mx-auto"
         >
-          <motion.h1 
+          <motion.h1
             variants={itemVariants}
             className="text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold mb-4 leading-tight"
           >
@@ -419,8 +420,8 @@ const LandingPage = () => {
               ToolLink
             </span>
           </motion.h1>
-          
-          <motion.h2 
+
+          <motion.h2
             variants={itemVariants}
             className="text-lg xs:text-xl sm:text-2xl md:text-3xl font-semibold mb-4 sm:mb-6 leading-relaxed"
           >
@@ -432,8 +433,8 @@ const LandingPage = () => {
             <br className="xs:hidden" />
             <span className="text-tertiary-400 font-display drop-shadow-lg">Real-time tracking</span>
           </motion.h2>
-          
-          <motion.p 
+
+          <motion.p
             variants={itemVariants}
             className="mt-4 sm:mt-6 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed px-4"
           >
@@ -445,20 +446,20 @@ const LandingPage = () => {
             <span className="text-xl sm:text-2xl animate-pulse">🚚</span>
           </motion.p>
 
-          <motion.div 
+          <motion.div
             variants={itemVariants}
             className="mt-6 sm:mt-8 flex flex-col sm:flex-row justify-center gap-3 sm:gap-4 px-4"
           >            <motion.div
-              whileHover={{ 
-                scale: 1.05,
-                y: -2,
-                boxShadow: "0 15px 30px rgba(251, 146, 60, 0.4)",
-                transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
-              }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-              className="w-full sm:w-auto"
-            >
+            whileHover={{
+              scale: 1.05,
+              y: -2,
+              boxShadow: "0 15px 30px rgba(251, 146, 60, 0.4)",
+              transition: { duration: 0.3, ease: [0.4, 0, 0.2, 1] }
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            className="w-full sm:w-auto"
+          >
               <Link
                 to="/auth/register"
                 className="block w-full sm:w-auto bg-primary-500 hover:bg-primary-600 text-white px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-full shadow-lg transition-all duration-300 font-medium"
@@ -466,9 +467,9 @@ const LandingPage = () => {
                 Start Managing Orders →
               </Link>
             </motion.div>
-            
+
             <motion.div
-              whileHover={{ 
+              whileHover={{
                 scale: 1.05,
                 y: -2,
                 borderColor: "rgba(251, 146, 60, 0.6)",
@@ -478,16 +479,16 @@ const LandingPage = () => {
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
               className="w-full sm:w-auto"
             ><a
-                href="#features"
-                onClick={(e) => handleSmoothScroll(e, 'features')}
-                className="block w-full sm:w-auto bg-transparent hover:bg-primary-500/10 text-white border-2 border-primary-500 hover:border-primary-600 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-full transition-all duration-300 font-medium"
-              >
+              href="#features"
+              onClick={(e) => handleSmoothScroll(e, 'features')}
+              className="block w-full sm:w-auto bg-transparent hover:bg-primary-500/10 text-white border-2 border-primary-500 hover:border-primary-600 px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-full transition-all duration-300 font-medium"
+            >
                 View Features
               </a>
             </motion.div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             variants={itemVariants}
             className="mt-4 sm:mt-6 text-xs sm:text-sm text-white/80 flex flex-col sm:flex-row justify-center gap-2 sm:gap-4 px-4"
           >
@@ -499,7 +500,7 @@ const LandingPage = () => {
       </motion.div>      {/* Features Section */}
       <section id="features" className="py-12 sm:py-16 lg:py-20 bg-[#12152c]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -509,7 +510,7 @@ const LandingPage = () => {
             Key Features
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               whileHover={{ y: -10, scale: 1.02 }}
@@ -523,8 +524,8 @@ const LandingPage = () => {
               <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">Inventory Management</h3>
               <p className="text-gray-300 text-sm sm:text-base leading-relaxed">Keep track of your stock levels in real-time with our advanced inventory management system.</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               whileHover={{ y: -10, scale: 1.02 }}
@@ -538,8 +539,8 @@ const LandingPage = () => {
               <h3 className="text-lg sm:text-xl font-semibold mb-2 text-white">Order Processing</h3>
               <p className="text-gray-300 text-sm sm:text-base leading-relaxed">Efficiently process and manage orders with automated workflows and real-time updates.</p>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, y: 50 }}
               whileInView={{ opacity: 1, y: 0 }}
               whileHover={{ y: -10, scale: 1.02 }}
@@ -558,14 +559,14 @@ const LandingPage = () => {
       </section>      {/* About Section */}
       <section id="about" className="py-12 sm:py-16 lg:py-20 bg-[#1a1113]">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
             className="max-w-4xl mx-auto text-center"
           >
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
@@ -574,38 +575,38 @@ const LandingPage = () => {
             >
               About ToolLink
             </motion.h2>
-            <motion.p 
+            <motion.p
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
               viewport={{ once: true }}
               className="text-lg text-gray-300 mb-8"
             >
-              ToolLink revolutionizes construction material management by providing a comprehensive platform 
-              that connects suppliers, warehouses, and customers. Our solution streamlines the entire supply 
+              ToolLink revolutionizes construction material management by providing a comprehensive platform
+              that connects suppliers, warehouses, and customers. Our solution streamlines the entire supply
               chain process, from order placement to final delivery.
             </motion.p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">              <motion.div 
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                viewport={{ once: true }}
-                className="text-left"
-              >
-                <h3 className="text-xl font-semibold mb-4 text-primary-400">Our Mission</h3>                <p className="text-gray-400">
-                  To simplify construction material logistics and empower businesses with efficient, 
-                  transparent, and reliable supply chain management tools.
-                </p>
-              </motion.div>              <motion.div 
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                viewport={{ once: true }}
-                className="text-left"
-              >
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-12">              <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="text-left"
+            >
+              <h3 className="text-xl font-semibold mb-4 text-primary-400">Our Mission</h3>                <p className="text-gray-400">
+                To simplify construction material logistics and empower businesses with efficient,
+                transparent, and reliable supply chain management tools.
+              </p>
+            </motion.div>              <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="text-left"
+            >
                 <h3 className="text-xl font-semibold mb-4 text-primary-400">Why Choose Us</h3>
                 <p className="text-gray-400">
-                  With years of industry experience and cutting-edge technology, we understand the 
+                  With years of industry experience and cutting-edge technology, we understand the
                   unique challenges of construction material logistics and provide tailored solutions.
                 </p>
               </motion.div>
@@ -615,7 +616,7 @@ const LandingPage = () => {
       </section>      {/* Testimonials Section */}
       <section id="testimonials" className="py-20 bg-[#12152c]">
         <div className="container mx-auto px-4">
-          <motion.h2 
+          <motion.h2
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -625,8 +626,8 @@ const LandingPage = () => {
           </motion.h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {testimonials.map((testimonial, index) => (
-              <motion.div 
-                key={testimonial.id} 
+              <motion.div
+                key={testimonial.id}
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 whileHover={{ y: -5, scale: 1.02 }}
@@ -660,9 +661,9 @@ const LandingPage = () => {
               </motion.div>
             ))}
           </div>
-          
+
           {/* View All Reviews Button */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -681,140 +682,6 @@ const LandingPage = () => {
                 View All Reviews →
               </Link>
             </motion.div>
-          </motion.div>
-        </div>
-      </section>      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-[#1a1113]">
-        <div className="container mx-auto px-4">
-          <motion.div 
-            initial={{ opacity: 0, y: 50 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            viewport={{ once: true }}
-            className="max-w-4xl mx-auto"
-          >            <motion.h2 
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              viewport={{ once: true }}
-              className="text-3xl font-bold text-center mb-12 text-white"
-            >
-              Get in Touch
-            </motion.h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                viewport={{ once: true }}
-              >
-                <h3 className="text-xl font-semibold mb-6 text-primary-400">Contact Information</h3>
-                <div className="space-y-4">
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.3 }}
-                    viewport={{ once: true }}
-                    className="flex items-center hover:transform hover:translate-x-2 transition-transform duration-300"
-                  >
-                    <span className="text-primary-500 text-xl mr-3">📧</span>                    <div>
-                      <p className="text-white font-semibold">Email</p>
-                      <p className="text-gray-300">support@toollink.lk</p>
-                    </div>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.4 }}
-                    viewport={{ once: true }}
-                    className="flex items-center hover:transform hover:translate-x-2 transition-transform duration-300"
-                  >
-                    <span className="text-primary-500 text-xl mr-3">📞</span>
-                    <div>
-                      <p className="text-white font-semibold">Phone</p>
-                      <p className="text-gray-300">+94 11 234 5678</p>
-                    </div>
-                  </motion.div>
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.5 }}
-                    viewport={{ once: true }}
-                    className="flex items-center hover:transform hover:translate-x-2 transition-transform duration-300"
-                  >
-                    <span className="text-primary-500 text-xl mr-3">📍</span>
-                    <div>                      <p className="text-white font-semibold">Address</p>
-                      <p className="text-gray-300">Colombo, Sri Lanka</p>
-                    </div>
-                  </motion.div>
-                </div>
-              </motion.div>              <motion.div
-                initial={{ opacity: 0, x: 50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.4 }}
-                viewport={{ once: true }}
-              >
-                <h3 className="text-xl font-semibold mb-6 text-primary-400">Send us a Message</h3>
-                <motion.form 
-                  initial={{ opacity: 0, y: 30 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.5 }}
-                  viewport={{ once: true }}
-                  className="space-y-4"
-                >                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: 0.1 }}
-                    viewport={{ once: true }}
-                  ><input
-                      type="text"
-                      placeholder="Your Name"
-                      className="w-full px-4 py-3 bg-[#2a2d40] border border-[#3a3d50] rounded-lg text-white placeholder-gray-400 focus:border-primary-500 focus:outline-none transition-colors duration-300"
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.7 }}
-                    viewport={{ once: true }}
-                  >
-                    <input
-                      type="email"
-                      placeholder="Your Email"
-                      className="w-full px-4 py-3 bg-[#2a2d40] border border-[#3a3d50] rounded-lg text-white placeholder-gray-400 focus:border-primary-500 focus:outline-none transition-colors duration-300"
-                    />
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.8 }}
-                    viewport={{ once: true }}
-                  >
-                    <textarea
-                      rows={4}
-                      placeholder="Your Message"
-                      className="w-full px-4 py-3 bg-[#2a2d40] border border-[#3a3d50] rounded-lg text-white placeholder-gray-400 focus:border-primary-500 focus:outline-none resize-none transition-colors duration-300"
-                    ></textarea>
-                  </motion.div>
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.9 }}
-                    viewport={{ once: true }}
-                  >
-                    <motion.button
-                      type="submit"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 10 }}
-                      className="w-full bg-primary-500 hover:bg-primary-600 text-white py-3 rounded-lg font-semibold transition-colors duration-300"
-                    >
-                      Send Message
-                    </motion.button>
-                  </motion.div>
-                </motion.form>
-              </motion.div>
-            </div>
           </motion.div>
         </div>
       </section>      {/* Footer */}
