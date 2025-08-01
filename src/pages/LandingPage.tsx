@@ -4,12 +4,14 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { UserIcon, LogInIcon } from 'lucide-react';
 import { FeedbackService } from '../services/feedbackService';
 import DarkModeToggle from '../components/UI/DarkModeToggle';
+import ContactModal from '../components/UI/ContactModal';
 import bg1 from '../images/bg1.jpg';
 
 const LandingPage = () => {
   // Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showContactModal, setShowContactModal] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Get public testimonials from feedback service
@@ -217,7 +219,7 @@ const LandingPage = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           className="hidden lg:flex items-center space-x-6 xl:space-x-10 relative z-10"
-        >          {['Features', 'About', 'Testimonials'].map((item, index) => (
+        >          {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
           <motion.a
             key={item}
             href={`#${item.toLowerCase()}`}
@@ -336,7 +338,7 @@ const LandingPage = () => {
           >
             <div className="p-6 space-y-4">
               {/* Mobile Navigation Links */}
-              <div className="space-y-3">                {['Features', 'About', 'Testimonials'].map((item, index) => (
+              <div className="space-y-3">                {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase()}`}
@@ -684,7 +686,103 @@ const LandingPage = () => {
             </motion.div>
           </motion.div>
         </div>
-      </section>      {/* Footer */}
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-[#0d0f1a]">
+        <div className="container mx-auto px-4">
+          <motion.h2
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+            className="text-3xl font-bold text-center mb-12 text-white"
+          >
+            Get in Touch
+          </motion.h2>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              viewport={{ once: true }}
+              className="text-center p-6 bg-[#1a1113] border border-[#2a2d40] rounded-lg hover:border-primary-500 transition-all duration-300"
+            >
+              <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Phone</h3>
+              <p className="text-gray-400 mb-2">+94 11 234 5678</p>
+              <p className="text-gray-500 text-sm">Mon-Fri 9AM-6PM</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="text-center p-6 bg-[#1a1113] border border-[#2a2d40] rounded-lg hover:border-primary-500 transition-all duration-300"
+            >
+              <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Email</h3>
+              <p className="text-gray-400 mb-2">support@toollink.lk</p>
+              <p className="text-gray-500 text-sm">We reply within 24hrs</p>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              viewport={{ once: true }}
+              className="text-center p-6 bg-[#1a1113] border border-[#2a2d40] rounded-lg hover:border-primary-500 transition-all duration-300"
+            >
+              <div className="w-16 h-16 bg-primary-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-semibold text-white mb-2">Location</h3>
+              <p className="text-gray-400 mb-2">Colombo, Sri Lanka</p>
+              <p className="text-gray-500 text-sm">Visit our office</p>
+            </motion.div>
+          </div>
+
+          {/* Contact CTA */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true }}
+            className="text-center mt-12"
+          >
+            <p className="text-gray-400 mb-6 max-w-2xl mx-auto">
+              Have a question or need assistance? Our team is here to help you with all your construction material needs.
+            </p>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <button
+                onClick={() => setShowContactModal(true)}
+                className="inline-flex items-center bg-primary-500 text-white hover:bg-primary-600 px-8 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-primary-500/30"
+              >
+                Contact Us Today →
+              </button>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Footer */}
       <footer className="bg-[#0d0f1a] border-t border-[#2a2d40] py-12">
         <div className="container mx-auto px-4">
           <div className="text-center text-gray-400">
@@ -692,6 +790,12 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      {/* Contact Modal */}
+      <ContactModal
+        isOpen={showContactModal}
+        onClose={() => setShowContactModal(false)}
+      />
     </div>
   );
 };

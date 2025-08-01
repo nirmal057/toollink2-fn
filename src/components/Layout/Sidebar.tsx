@@ -8,6 +8,7 @@ import {
   BarChartIcon,
   MessageSquareIcon,
   MailIcon,
+  PhoneIcon,
   UserIcon,
   TrendingUpIcon,
   LogOutIcon,
@@ -149,6 +150,13 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       icon: <MessageSquareIcon size={20} />,
       label: userRole === 'customer' ? 'Submit Feedback' : 'Feedback'
     },
+
+    // Contact (only for non-admin users)
+    ...(userRole !== 'admin' ? [{
+      to: '/contact',
+      icon: <PhoneIcon size={20} />,
+      label: 'Contact Us'
+    }] : []),
 
     // Profile
     {

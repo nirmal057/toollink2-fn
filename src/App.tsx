@@ -13,6 +13,7 @@ import Notifications from './pages/Notifications';
 import SimpleNotifications from './pages/SimpleNotifications';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
+import ContactPage from './pages/ContactPage';
 import Profile from './pages/Profile';
 import MaterialPrediction from './pages/MaterialPrediction';
 import UserManagement from './pages/UserManagement';
@@ -72,7 +73,7 @@ function AppRoutes() {
     <Routes>      {/* Public routes */}
       <Route
         path="/"
-        element={!isAuthenticated ? <LandingPage /> : <Navigate to="/dashboard" replace />}
+        element={<LandingPage />}
       />
       <Route
         path="/auth/login"
@@ -105,14 +106,10 @@ function AppRoutes() {
       {/* Protected Routes */}
       {isAuthenticated && user ? (
         <Route element={<MainLayout userRole={user.role} onLogout={logout} />}>
-          {/* Dashboard route - redirect admins to admin dashboard */}
+          {/* Dashboard route - general dashboard accessible to all authenticated users */}
           <Route
             path="/dashboard"
-            element={
-              user.role === 'admin' ?
-                <Navigate to="/admin/dashboard" replace /> :
-                <Dashboard userRole={user.role} />
-            }
+            element={<Dashboard userRole={user.role} />}
           />
 
           {/* Order routes - accessible by customer, admin, and cashier */}
@@ -166,6 +163,7 @@ function AppRoutes() {
             }
           />
           <Route path="/feedback" element={<Feedback userRole={user.role} />} />
+          <Route path="/contact" element={<ContactPage />} />
           <Route path="/profile" element={<Profile userRole={user.role} />} />
 
           {/* Admin-only routes */}
