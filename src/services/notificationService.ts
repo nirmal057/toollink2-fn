@@ -99,13 +99,24 @@ class NotificationService {
   async getUnreadCount(): Promise<number> {
     try {
       const token = localStorage.getItem('accessToken');
+
+      // If no token, return 0 without making API call
+      if (!token) {
+        return 0;
+      }
+
       const url = `${API_CONFIG.BASE_URL}/api/notifications/unread-count`;
 
       const response = await fetch(url, {
-        headers: createApiHeaders(token || undefined)
+        headers: createApiHeaders(token)
       });
 
       if (!response.ok) {
+        // If unauthorized, clear token and return 0
+        if (response.status === 401) {
+          localStorage.removeItem('accessToken');
+          return 0;
+        }
         throw new Error(`Failed to fetch unread count: ${response.statusText}`);
       }
 

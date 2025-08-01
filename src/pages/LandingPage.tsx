@@ -4,14 +4,12 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { UserIcon, LogInIcon } from 'lucide-react';
 import { FeedbackService } from '../services/feedbackService';
 import DarkModeToggle from '../components/UI/DarkModeToggle';
-import ContactModal from '../components/UI/ContactModal';
 import bg1 from '../images/bg1.jpg';
 
 const LandingPage = () => {
   // Mobile menu state
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showContactModal, setShowContactModal] = useState(false);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Get public testimonials from feedback service
@@ -219,7 +217,7 @@ const LandingPage = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.1 }}
           className="hidden lg:flex items-center space-x-6 xl:space-x-10 relative z-10"
-        >          {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
+        >          {['Features', 'About', 'Testimonials'].map((item, index) => (
           <motion.a
             key={item}
             href={`#${item.toLowerCase()}`}
@@ -240,6 +238,27 @@ const LandingPage = () => {
             <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mx-3 -my-1"></div>
           </motion.a>
         ))}
+          {/* Contact navigation - link to contact page */}
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 + 3 * 0.02 }}
+            whileHover={{ y: -2 }}
+          >
+            <Link
+              to="/contact"
+              className="relative text-white/70 hover:text-white font-semibold transition-all duration-500 group cursor-pointer text-sm xl:text-base"
+            >
+              <span className="relative z-10">Contact</span>
+              {/* Animated underline */}
+              <motion.div
+                className="absolute -bottom-2 left-0 w-0 h-1 bg-gradient-to-r from-orange-400 via-orange-500 to-red-500 rounded-full group-hover:w-full transition-all duration-500"
+                whileHover={{ boxShadow: "0 0 20px rgba(251, 146, 60, 0.6)" }}
+              />
+              {/* Hover glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 via-orange-500/10 to-orange-500/0 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 -mx-3 -my-1"></div>
+            </Link>
+          </motion.div>
         </motion.div>
 
         {/* Desktop Auth Buttons */}
@@ -338,7 +357,7 @@ const LandingPage = () => {
           >
             <div className="p-6 space-y-4">
               {/* Mobile Navigation Links */}
-              <div className="space-y-3">                {['Features', 'About', 'Testimonials', 'Contact'].map((item, index) => (
+              <div className="space-y-3">                {['Features', 'About', 'Testimonials'].map((item, index) => (
                 <motion.a
                   key={item}
                   href={`#${item.toLowerCase()}`}
@@ -351,6 +370,20 @@ const LandingPage = () => {
                   {item}
                 </motion.a>
               ))}
+                {/* Contact navigation - link to contact page */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 3 * 0.05 }}
+                >
+                  <Link
+                    to="/contact"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block text-white/80 hover:text-white font-medium py-2 px-4 rounded-lg hover:bg-[#2a2d40]/50 transition-all duration-300"
+                  >
+                    Contact
+                  </Link>
+                </motion.div>
               </div>
 
               {/* Mobile Auth Buttons */}
@@ -771,12 +804,12 @@ const LandingPage = () => {
               whileTap={{ scale: 0.95 }}
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
-              <button
-                onClick={() => setShowContactModal(true)}
-                className="inline-flex items-center bg-primary-500 text-white hover:bg-primary-600 px-8 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-primary-500/30"
+              <Link
+                to="/contact"
+                className="inline-flex items-center bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white px-8 py-3 rounded-full transition-all duration-300 shadow-lg hover:shadow-lg"
               >
                 Contact Us Today →
-              </button>
+              </Link>
             </motion.div>
           </motion.div>
         </div>
@@ -790,12 +823,6 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
-
-      {/* Contact Modal */}
-      <ContactModal
-        isOpen={showContactModal}
-        onClose={() => setShowContactModal(false)}
-      />
     </div>
   );
 };

@@ -180,9 +180,8 @@ export const createApiHeaders = (token?: string) => {
   if (token) {
     headers.Authorization = `Bearer ${token}`;
     console.log('Adding token to headers:', token.substring(0, 10) + '...');
-  } else {
-    console.log('No token available for API request');
   }
+  // Removed the else clause that logs "No token available" as it's normal for unauthenticated requests
 
   return headers;
 };

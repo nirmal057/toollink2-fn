@@ -101,6 +101,7 @@ function AppRoutes() {
       <Route path="/z-index-test" element={<ZIndexTest />} />
       <Route path="/auth-debug" element={<AuthDebugPage />} />
       <Route path="/simple-notifications" element={<SimpleNotifications />} />
+      <Route path="/contact" element={<ContactPage />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
       {/* Protected Routes */}
@@ -163,7 +164,6 @@ function AppRoutes() {
             }
           />
           <Route path="/feedback" element={<Feedback userRole={user.role} />} />
-          <Route path="/contact" element={<ContactPage />} />
           <Route path="/profile" element={<Profile userRole={user.role} />} />
 
           {/* Admin-only routes */}

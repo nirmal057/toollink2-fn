@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { notificationService } from '../services/notificationService';
+import { useAuth } from '../hooks/useAuth';
 
 interface ToastNotification {
   id: string;
@@ -14,11 +15,11 @@ interface GlobalNotificationContextType {
   toasts: ToastNotification[];
   addToast: (toast: Omit<ToastNotification, 'id'>) => void;
   removeToast: (id: string) => void;
-  
+
   // System notifications
   unreadCount: number;
   refreshUnreadCount: () => void;
-  
+
   // Real-time updates
   isConnected: boolean;
 }
@@ -41,6 +42,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
   const [toasts, setToasts] = useState<ToastNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isConnected, setIsConnected] = useState(true);
+  const { isAuthenticated, user } = useAuth();
 
   // Generate unique ID for toasts
   const generateId = () => Date.now().toString() + Math.random().toString(36).substr(2, 9);
@@ -72,6 +74,13 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
   // Refresh unread count
   const refreshUnreadCount = async () => {
+    // Only fetch notifications if user is authenticated
+    if (!isAuthenticated || !user) {
+      setUnreadCount(0);
+      setIsConnected(true);
+      return;
+    }
+
     try {
       const count = await notificationService.getUnreadCount();
       setUnreadCount(count);
@@ -84,6 +93,12 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
   // Initialize and setup periodic refresh
   useEffect(() => {
+    // Only setup notifications if user is authenticated
+    if (!isAuthenticated || !user) {
+      setUnreadCount(0);
+      return;
+    }
+
     // Initial load
     refreshUnreadCount();
 
@@ -91,10 +106,14 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
     const interval = setInterval(refreshUnreadCount, 30000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [isAuthenticated, user]); // Depend on authentication status
 
   // Listen for notification events (you can extend this for WebSocket integration)
   useEffect(() => {
+    if (!isAuthenticated || !user) {
+      return;
+    }
+
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'notification_update') {
         refreshUnreadCount();
@@ -103,7 +122,7 @@ export const GlobalNotificationProvider: React.FC<GlobalNotificationProviderProp
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [isAuthenticated, user]);
 
   const value: GlobalNotificationContextType = {
     toasts,
@@ -126,13 +145,13 @@ export const useToast = () => {
   const { addToast } = useGlobalNotifications();
 
   return {
-    success: (title: string, message?: string) => 
+    success: (title: string, message?: string) =>
       addToast({ type: 'success', title, message: message || '' }),
-    error: (title: string, message?: string) => 
+    error: (title: string, message?: string) =>
       addToast({ type: 'error', title, message: message || '' }),
-    warning: (title: string, message?: string) => 
+    warning: (title: string, message?: string) =>
       addToast({ type: 'warning', title, message: message || '' }),
-    info: (title: string, message?: string) => 
+    info: (title: string, message?: string) =>
       addToast({ type: 'info', title, message: message || '' })
   };
 };
