@@ -19,7 +19,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
     const [form, setForm] = useState<ContactForm>({
         name: '',
         email: '',
-        phone: '',
+        phone: '+94 ',
         subject: '',
         message: ''
     });
@@ -40,11 +40,38 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
         if (!form.subject.trim()) newErrors.subject = 'Subject is required';
         if (!form.message.trim()) newErrors.message = 'Message is required';
 
+        // Validate phone number if provided
+        if (form.phone && form.phone.trim() !== '+94 ') {
+            const digits = form.phone.substring(4).replace(/\D/g, '');
+            if (digits.length !== 9) {
+                newErrors.phone = 'Phone number must be exactly 9 digits after +94';
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
 
     const handleInputChange = useCallback((field: keyof ContactForm, value: string) => {
+        if (field === 'phone') {
+            // Ensure phone always starts with +94
+            if (!value.startsWith('+94')) {
+                value = '+94 ' + value.replace(/^\+?94\s*/, '');
+            }
+            // Prevent deletion of +94 prefix
+            if (value.length < 4) {
+                value = '+94 ';
+            }
+            // Limit to exactly 9 digits after +94 (total 13 characters: "+94 " + 9 digits)
+            if (value.length > 4) {
+                const digits = value.substring(4).replace(/\D/g, ''); // Extract only digits
+                if (digits.length > 9) {
+                    value = '+94 ' + digits.substring(0, 9); // Limit to 9 digits
+                } else {
+                    value = '+94 ' + digits;
+                }
+            }
+        }
         setForm(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -55,7 +82,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
         setForm({
             name: '',
             email: '',
-            phone: '',
+            phone: '+94 ',
             subject: '',
             message: ''
         });
@@ -220,10 +247,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                                                     bg-gray-50 dark:bg-gray-800 dark:text-white
                                                     placeholder-gray-500 dark:placeholder-gray-400
                                                     focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                                                    transition-all duration-200 ${
-                                                        errors.name
-                                                            ? 'border-red-500 bg-red-50'
-                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                    transition-all duration-200 ${errors.name
+                                                        ? 'border-red-500 bg-red-50'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                                     }`}
                                                 placeholder="Enter your full name"
                                                 autoComplete="name"
@@ -260,10 +286,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                                                     bg-gray-50 dark:bg-gray-800 dark:text-white
                                                     placeholder-gray-500 dark:placeholder-gray-400
                                                     focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                                                    transition-all duration-200 ${
-                                                        errors.email
-                                                            ? 'border-red-500 bg-red-50'
-                                                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                    transition-all duration-200 ${errors.email
+                                                        ? 'border-red-500 bg-red-50'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                                     }`}
                                                 placeholder="your.email@example.com"
                                                 autoComplete="email"
@@ -296,16 +321,41 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                                                 type="tel"
                                                 value={form.phone}
                                                 onChange={(e) => handleInputChange('phone', e.target.value)}
-                                                className="w-full pl-12 pr-4 py-4 text-base border-2 rounded-xl
+                                                onKeyDown={(e) => {
+                                                    // Prevent deleting the +94 prefix
+                                                    if ((e.key === 'Backspace' || e.key === 'Delete') &&
+                                                        (e.target as HTMLInputElement).selectionStart! <= 4) {
+                                                        e.preventDefault();
+                                                    }
+                                                }}
+                                                onFocus={(e) => {
+                                                    // Set cursor after +94 prefix
+                                                    setTimeout(() => {
+                                                        e.target.setSelectionRange(4, 4);
+                                                    }, 10);
+                                                }}
+                                                className={`w-full pl-12 pr-4 py-4 text-base border-2 rounded-xl
                                                     bg-gray-50 dark:bg-gray-800 dark:text-white
                                                     placeholder-gray-500 dark:placeholder-gray-400
-                                                    border-gray-200 dark:border-gray-700 hover:border-gray-300
                                                     focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                                                    transition-all duration-200"
-                                                placeholder="+94 77 123 4567"
+                                                    transition-all duration-200 ${errors.phone
+                                                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                    }`}
+                                                placeholder="+94 712345678"
                                                 autoComplete="tel"
                                             />
                                         </div>
+                                        {errors.phone && (
+                                            <motion.p
+                                                initial={{ opacity: 0 }}
+                                                animate={{ opacity: 1 }}
+                                                className="text-red-500 text-sm mt-2 flex items-center space-x-1"
+                                            >
+                                                <AlertCircle className="w-4 h-4" />
+                                                <span>{errors.phone}</span>
+                                            </motion.p>
+                                        )}
                                     </motion.div>
 
                                     {/* Subject Field */}
@@ -325,10 +375,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                                                 bg-gray-50 dark:bg-gray-800 dark:text-white
                                                 placeholder-gray-500 dark:placeholder-gray-400
                                                 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                                                transition-all duration-200 ${
-                                                    errors.subject
-                                                        ? 'border-red-500 bg-red-50'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                transition-all duration-200 ${errors.subject
+                                                    ? 'border-red-500 bg-red-50'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                                 }`}
                                             placeholder="What can we help you with?"
                                         />
@@ -361,10 +410,9 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
                                                 bg-gray-50 dark:bg-gray-800 dark:text-white
                                                 placeholder-gray-500 dark:placeholder-gray-400
                                                 focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500
-                                                transition-all duration-200 resize-none ${
-                                                    errors.message
-                                                        ? 'border-red-500 bg-red-50'
-                                                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                                                transition-all duration-200 resize-none ${errors.message
+                                                    ? 'border-red-500 bg-red-50'
+                                                    : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                                                 }`}
                                             placeholder="Tell us more about your inquiry..."
                                         />

@@ -47,7 +47,10 @@ const Profile = ({
         city: profileData.address.split(',')[1]?.trim() || '',
         state: profileData.address.split(',')[2]?.trim() || '',
         zipCode: profileData.address.split(',')[3]?.trim() || '',
-        country: profileData.address.split(',')[4]?.trim() || 'Sri Lanka'
+        country: profileData.address.split(',')[4]?.trim() || (
+          // Only add 'Sri Lanka' if it's not already in the city field
+          profileData.address.includes('Sri Lanka') ? '' : 'Sri Lanka'
+        )
       } : undefined;
 
       const updateData = {
@@ -162,6 +165,9 @@ const Profile = ({
                 userData.address.country
               ].filter(Boolean);
               addressString = parts.join(', ');
+
+              // Remove duplicate "Sri Lanka" if it appears twice
+              addressString = addressString.replace(/,\s*Sri Lanka,\s*Sri Lanka/gi, ', Sri Lanka');
             }
           }
 
@@ -261,8 +267,8 @@ const Profile = ({
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center space-x-2 px-4 py-4 text-sm font-medium border-b-2 whitespace-nowrap transition-all duration-200 ${activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                       }`}
                   >
                     {tab.icon}
@@ -371,8 +377,8 @@ const Profile = ({
                   <div className="flex flex-col space-y-2">
                     {saveMessage && (
                       <div className={`text-sm px-3 py-2 rounded ${saveMessage.includes('Error')
-                          ? 'bg-red-100 text-red-700 border border-red-200'
-                          : 'bg-green-100 text-green-700 border border-green-200'
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'bg-green-100 text-green-700 border border-green-200'
                         }`}>
                         {saveMessage}
                       </div>
@@ -530,8 +536,8 @@ const Profile = ({
                   <div className="flex flex-col space-y-2">
                     {saveMessage && (
                       <div className={`text-sm px-3 py-2 rounded ${saveMessage.includes('Error')
-                          ? 'bg-red-100 text-red-700 border border-red-200'
-                          : 'bg-green-100 text-green-700 border border-green-200'
+                        ? 'bg-red-100 text-red-700 border border-red-200'
+                        : 'bg-green-100 text-green-700 border border-green-200'
                         }`}>
                         {saveMessage}
                       </div>

@@ -10,7 +10,6 @@ import OrderManagement from './pages/OrderManagement';
 import InventoryManagement from './pages/InventoryManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
 import Notifications from './pages/Notifications';
-import SimpleNotifications from './pages/SimpleNotifications';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
 import ContactPage from './pages/ContactPage';
@@ -20,7 +19,6 @@ import UserManagement from './pages/UserManagement';
 import NewUserManagement from './components/UserManagement';
 import CustomerApproval from './pages/CustomerApproval';
 import CustomerMessages from './pages/CustomerMessages';
-import MessageDashboard from './components/MessageDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import ActivitiesPage from './pages/ActivitiesPage';
 import AuditLogs from './pages/AuditLogs';
@@ -31,7 +29,6 @@ import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext
 import { ROLES } from './services/rbacService';
 import ToastContainer from './components/UI/ToastContainer';
 import SimpleAdminGuard from './components/SimpleAdminGuard';
-import ZIndexTest from './pages/ZIndexTest';
 import AuthDebugPage from './pages/AuthDebugPage';
 
 // Loading component
@@ -98,9 +95,7 @@ function AppRoutes() {
         path="/auth/reset-password"
         element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/dashboard" replace />}
       />
-      <Route path="/z-index-test" element={<ZIndexTest />} />
       <Route path="/auth-debug" element={<AuthDebugPage />} />
-      <Route path="/simple-notifications" element={<SimpleNotifications />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -151,7 +146,7 @@ function AppRoutes() {
             path="/admin/messages"
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.CASHIER]} fallback={<Unauthorized />}>
-                <MessageDashboard userRole={user.role} userId={user.id} />
+                <CustomerMessages userRole={user.role} />
               </RoleGuard>
             }
           />

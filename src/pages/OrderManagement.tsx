@@ -209,6 +209,18 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       return;
     }
 
+    // Validate preferred delivery date is not in the past
+    if (formData.preferredDate) {
+      const selectedDate = new Date(formData.preferredDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+      if (selectedDate < today) {
+        alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+        return;
+      }
+    }
+
     if (!validateTimeSlot(formData.preferredTime)) {
       return;
     }

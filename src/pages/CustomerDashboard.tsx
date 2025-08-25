@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  ShoppingCartIcon, 
-  PlusIcon, 
-  TruckIcon, 
-  CalendarIcon, 
-  ClockIcon, 
-  PackageIcon, 
+import {
+  ShoppingCartIcon,
+  PlusIcon,
+  TruckIcon,
+  CalendarIcon,
+  ClockIcon,
+  PackageIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
   XCircleIcon,
@@ -62,9 +62,9 @@ const CustomerDashboard = () => {
   const handleOrderTracking = async (orderId: number) => {
     try {
       const response = await orderApiService.getOrderTracking(orderId);
-      setSelectedOrder({ 
-        ...response.data.order, 
-        tracking: response.data 
+      setSelectedOrder({
+        ...response.data.order,
+        tracking: response.data
       } as OrderWithTracking);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get tracking info');
@@ -73,12 +73,12 @@ const CustomerDashboard = () => {
 
   const handleSubmitFeedback = async () => {
     if (!selectedOrder) return;
-    
+
     try {
       await orderApiService.submitFeedback(
-        selectedOrder.id, 
-        feedback.comment, 
-        feedback.rating, 
+        selectedOrder.id,
+        feedback.comment,
+        feedback.rating,
         feedback.photos
       );
       setShowFeedbackModal(false);
@@ -91,11 +91,21 @@ const CustomerDashboard = () => {
 
   const handleRequestReschedule = async () => {
     if (!selectedOrder) return;
-    
+
+    // Validate that the reschedule date is not in the past
+    const selectedDate = new Date(rescheduleData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+    if (selectedDate < today) {
+      alert('Cannot reschedule delivery to a past date. Please select today or a future date.');
+      return;
+    }
+
     try {
       await orderApiService.requestReschedule(
-        selectedOrder.id, 
-        rescheduleData.date, 
+        selectedOrder.id,
+        rescheduleData.date,
         rescheduleData.reason
       );
       setShowRescheduleModal(false);
@@ -252,7 +262,7 @@ const CustomerDashboard = () => {
                     <TruckIcon className="w-4 h-4" />
                     Track
                   </button>
-                  
+
                   {order.status === 'delivered' && !order.customer_feedback && (
                     <button
                       onClick={() => {
@@ -265,7 +275,7 @@ const CustomerDashboard = () => {
                       Feedback
                     </button>
                   )}
-                  
+
                   {['confirmed', 'ready', 'dispatched'].includes(order.status) && (
                     <button
                       onClick={() => {
@@ -286,11 +296,10 @@ const CustomerDashboard = () => {
                       {[1, 2, 3, 4, 5].map((star) => (
                         <StarIcon
                           key={star}
-                          className={`w-4 h-4 ${
-                            star <= (order.feedback_rating || 0)
+                          className={`w-4 h-4 ${star <= (order.feedback_rating || 0)
                               ? 'text-yellow-400 fill-current'
                               : 'text-gray-300'
-                          }`}
+                            }`}
                         />
                       ))}
                       <span className="text-sm text-gray-600 ml-1">
@@ -311,7 +320,7 @@ const CustomerDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 max-h-96 overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">Order Tracking - {selectedOrder.order_number}</h3>
-            
+
             <div className="space-y-4">
               {selectedOrder.tracking.timeline?.map((event: any, index: number) => (
                 <div key={index} className="flex items-start gap-3">
@@ -355,7 +364,7 @@ const CustomerDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Submit Feedback</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Rating</label>
@@ -367,11 +376,10 @@ const CustomerDashboard = () => {
                       className="focus:outline-none"
                     >
                       <StarIcon
-                        className={`w-6 h-6 ${
-                          star <= feedback.rating
+                        className={`w-6 h-6 ${star <= feedback.rating
                             ? 'text-yellow-400 fill-current'
                             : 'text-gray-300'
-                        }`}
+                          }`}
                       />
                     </button>
                   ))}
@@ -413,7 +421,7 @@ const CustomerDashboard = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-semibold mb-4">Request Reschedule</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">New Delivery Date</label>

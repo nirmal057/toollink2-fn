@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarIcon, TruckIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { createDeliveryTimeSlot } from '../utils/timeUtils';
 
 interface Delivery {
   id: string;
@@ -149,20 +148,20 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   // Check availability
   const isTimeSlotAvailable = (date: string, timeSlot: string, driver: string, district: string, excludeDeliveryId?: string) => {
     const maxDeliveriesPerDistrictPerSlot = 3; // Maximum deliveries allowed per district in a time slot
-    
+
     const deliveriesInSlot = deliveries.filter(
-      d => d.date === date && 
-          d.timeSlot === timeSlot &&
-          d.district === district &&
-          d.id !== excludeDeliveryId
+      d => d.date === date &&
+        d.timeSlot === timeSlot &&
+        d.district === district &&
+        d.id !== excludeDeliveryId
     );
 
     // Check if driver is already booked
     const driverBooked = deliveries.some(
-      d => d.date === date && 
-          d.timeSlot === timeSlot && 
-          d.driver === driver &&
-          d.id !== excludeDeliveryId
+      d => d.date === date &&
+        d.timeSlot === timeSlot &&
+        d.driver === driver &&
+        d.id !== excludeDeliveryId
     );
 
     return !driverBooked && deliveriesInSlot.length < maxDeliveriesPerDistrictPerSlot;
@@ -171,7 +170,17 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   // Add new delivery with validation
   const handleAddDelivery = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
+    // Check if the selected date is in the past
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+    if (selectedDate < today) {
+      alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+      return;
+    }
+
     if (!isTimeSlotAvailable(formData.date, formData.timeSlot, formData.driver, formData.district)) {
       alert('This time slot is not available. Please check:\n- Driver availability\n- Maximum deliveries per district');
       return;
@@ -214,6 +223,16 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
 
     if (!selectedDelivery) return;
 
+    // Check if the selected date is in the past
+    const selectedDate = new Date(formData.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+    if (selectedDate < today) {
+      alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+      return;
+    }
+
     if (!isTimeSlotAvailable(formData.date, formData.timeSlot, formData.driver, formData.district, selectedDelivery.id)) {
       alert('This time slot is not available. Please check:\n- Driver availability\n- Maximum deliveries per district');
       return;
@@ -244,7 +263,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   };
 
   // Check availability
-// Removed unused function
+  // Removed unused function
 
   // Calendar navigation
   const navigateMonth = (direction: number) => {
@@ -273,38 +292,6 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     return days;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedDelivery) {
-      // Update existing delivery
-      setDeliveries(deliveries.map(delivery => 
-        delivery.id === selectedDelivery.id 
-          ? { ...delivery, ...formData }
-          : delivery
-      ));
-    } else {
-      // Create new delivery
-      const newDelivery: Delivery = {
-        id: `DEL-${Math.random().toString(36).substr(2, 9)}`,
-        status: 'Scheduled',
-        ...formData
-      };
-      setDeliveries([...deliveries, newDelivery]);
-    }
-    setShowCreateModal(false);
-    setSelectedDelivery(null);
-    setFormData({
-      orderId: '',
-      customer: '',
-      address: '',
-      date: new Date().toISOString().split('T')[0],
-      timeSlot: TIME_SLOTS[0],
-      driver: DRIVERS[0],
-      notes: '',
-      district: ''
-    });
-  };
-
   const handleStatusUpdate = (deliveryId: string, newStatus: Delivery['status']) => {
     setDeliveries(deliveries.map(delivery =>
       delivery.id === deliveryId
@@ -314,109 +301,18 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   };
 
   const getDeliveryCountForDate = (date: Date) => {
-    return filteredDeliveries.filter(delivery => 
+    return filteredDeliveries.filter(delivery =>
       new Date(delivery.date).toDateString() === date.toDateString()
     ).length;
   };
 
   const days = getDaysInMonth();
 
-  // Calendar View Component
-  const CalendarView: React.FC<{ deliveries: Delivery[] }> = ({ deliveries }) => {
-    return (
-      <div className="grid grid-cols-7 gap-1">
-        {/* Week days header */}
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="p-2 text-center text-sm font-medium text-gray-600">
-            {day}
-          </div>
-        ))}
-        
-        {/* Calendar days */}
-        {days.map((date, i) => (
-          <div
-            key={i}
-            className={`${
-              date
-                ? 'min-h-[120px] p-3 border rounded-lg ' +
-                  (date.toDateString() === new Date().toDateString()
-                    ? 'bg-blue-50 border-blue-200'
-                    : 'bg-white border-gray-200')
-                : ''
-            }`}
-          >
-            {date && (
-              <>
-                <div className="flex justify-between items-center mb-2">
-                  <span className={`text-sm font-medium ${
-                    date.toDateString() === new Date().toDateString()
-                      ? 'text-blue-600'
-                      : 'text-gray-900'
-                  }`}>
-                    {date.getDate()}
-                  </span>
-                  {getDeliveryCountForDate(date) > 0 && (
-                    <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
-                      {getDeliveryCountForDate(date)}
-                    </span>
-                  )}
-                </div>
-                
-                <div className="space-y-1">
-                  {filteredDeliveries
-                    .filter(d => new Date(d.date).toDateString() === date.toDateString())
-                    .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot))
-                    .map(delivery => (
-                      <div
-                        key={delivery.id}
-                        className={`p-2 rounded text-xs cursor-pointer hover:opacity-90 transition-opacity ${
-                          delivery.status === 'Delivered'
-                            ? 'bg-green-100 text-green-800'
-                            : delivery.status === 'In Transit'
-                            ? 'bg-blue-100 text-blue-800'
-                            : delivery.status === 'Cancelled'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-yellow-100 text-yellow-800'
-                        }`}
-                        onClick={() => {
-                          setSelectedDelivery(delivery);
-                          setFormData({
-                            orderId: delivery.orderId,
-                            customer: delivery.customer,
-                            address: delivery.address,
-                            date: delivery.date,
-                            timeSlot: delivery.timeSlot,
-                            driver: delivery.driver,
-                            notes: delivery.notes || '',
-                            district: delivery.district,
-                            status: delivery.status
-                          });
-                          setShowCreateModal(true);
-                        }}
-                      >
-                        <div className="flex items-center gap-1">
-                          <TruckIcon size={12} />
-                          <span className="font-medium truncate">{delivery.orderId}</span>
-                        </div>
-                        <div className="flex justify-between items-center mt-1 text-[10px]">
-                          <span className="truncate">{delivery.customer}</span>
-                          <span>{delivery.timeSlot.split('-')[0]}</span>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
-    return (
+  return (
     <div className="space-y-4 xs:space-y-6 p-4 xs:p-6">
       <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4">
         <h1 className="text-xl xs:text-2xl font-bold text-gray-800 dark:text-white">Delivery Calendar</h1>
-        
+
         <div className="flex items-center gap-2 xs:gap-4">
           {/* Month Navigation */}
           <div className="flex items-center gap-1 xs:gap-2">
@@ -478,21 +374,19 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
           <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
             <button
               onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1 rounded-md ${
-                viewMode === 'calendar'
-                  ? 'bg-white shadow-sm text-[#FF6B35]'
-                  : 'text-gray-600 hover:text-gray-900 '
-              }`}
+              className={`px-3 py-1 rounded-md ${viewMode === 'calendar'
+                ? 'bg-white shadow-sm text-[#FF6B35]'
+                : 'text-gray-600 hover:text-gray-900 '
+                }`}
             >
               <CalendarIcon size={18} />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-md ${
-                viewMode === 'list'
-                  ? 'bg-white shadow-sm text-[#FF6B35]'
-                  : 'text-gray-600 hover:text-gray-900 '
-              }`}
+              className={`px-3 py-1 rounded-md ${viewMode === 'list'
+                ? 'bg-white shadow-sm text-[#FF6B35]'
+                : 'text-gray-600 hover:text-gray-900 '
+                }`}
             >
               <TruckIcon size={18} />
             </button>
@@ -583,8 +477,8 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                         className={`mt-1 text-sm rounded-full px-2.5 py-0.5 border-0 focus:ring-2 focus:ring-offset-0
                           ${delivery.status === 'Delivered' ? 'bg-green-100 text-green-800 focus:ring-green-500' :
                             delivery.status === 'In Transit' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
-                            delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
-                            'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
+                              delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
+                                'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
                           }`}
                       >
                         <option value="Scheduled">Scheduled</option>
@@ -638,35 +532,33 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                 {day}
               </div>
             ))}
-            
+
             {/* Calendar days */}
             {days.map((date, i) => (
               <div
                 key={i}
-                className={`${
-                  date                    ? 'min-h-[120px] p-3 border rounded-lg ' +
-                      (date.toDateString() === new Date().toDateString()
-                        ? 'bg-primary-50 border-primary-200 '
-                        : 'bg-white border-gray-200 ')
-                    : ''
-                }`}
+                className={`${date ? 'min-h-[120px] p-3 border rounded-lg ' +
+                  (date.toDateString() === new Date().toDateString()
+                    ? 'bg-primary-50 border-primary-200 '
+                    : 'bg-white border-gray-200 ')
+                  : ''
+                  }`}
               >
                 {date && (
                   <>
-                    <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${
-                        date.toDateString() === new Date().toDateString()
-                          ? 'text-primary-600 '
-                          : 'text-gray-900 '
+                    <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${date.toDateString() === new Date().toDateString()
+                      ? 'text-primary-600 '
+                      : 'text-gray-900 '
                       }`}>
-                        {date.getDate()}
-                      </span>
+                      {date.getDate()}
+                    </span>
                       {getDeliveryCountForDate(date) > 0 && (
                         <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
                           {getDeliveryCountForDate(date)}
                         </span>
                       )}
                     </div>
-                    
+
                     <div className="space-y-1">
                       {filteredDeliveries
                         .filter(d => new Date(d.date).toDateString() === date.toDateString())
@@ -674,15 +566,14 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                         .map(delivery => (
                           <div
                             key={delivery.id}
-                            className={`p-2 rounded text-xs cursor-pointer hover:opacity-90 transition-opacity ${
-                              delivery.status === 'Delivered'
-                                ? 'bg-green-100 text-green-800 '
-                                : delivery.status === 'In Transit'
+                            className={`p-2 rounded text-xs cursor-pointer hover:opacity-90 transition-opacity ${delivery.status === 'Delivered'
+                              ? 'bg-green-100 text-green-800 '
+                              : delivery.status === 'In Transit'
                                 ? 'bg-blue-100 text-blue-800 '
                                 : delivery.status === 'Cancelled'
-                                ? 'bg-red-100 text-red-800 '
-                                : 'bg-yellow-100 text-yellow-800 '
-                            }`}
+                                  ? 'bg-red-100 text-red-800 '
+                                  : 'bg-yellow-100 text-yellow-800 '
+                              }`}
                             onClick={() => {
                               setSelectedDelivery(delivery);
                               setFormData({
@@ -771,6 +662,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                     type="date"
                     value={formData.date}
                     onChange={e => setFormData({ ...formData, date: e.target.value })}
+                    min={new Date().toISOString().split('T')[0]}
                     className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
                     required
                   />

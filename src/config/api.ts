@@ -86,6 +86,16 @@ export const API_CONFIG = {
       UPDATE: (id: string) => `/api/feedback/${id}`,
       DELETE: (id: string) => `/api/feedback/${id}`,
       RESPOND: (id: string) => `/api/feedback/${id}/respond`
+    },
+    MESSAGES: {
+      LIST: '/api/messages',
+      CONTACT: '/api/messages/contact',
+      CREATE: '/api/messages',
+      GET_BY_ID: (id: string) => `/api/messages/${id}`,
+      UPDATE: (id: string) => `/api/messages/${id}`,
+      DELETE: (id: string) => `/api/messages/${id}`,
+      REPLY: (id: string) => `/api/messages/${id}/reply`,
+      UPDATE_STATUS: (id: string) => `/api/messages/${id}/status`
     }
   },
   TIMEOUT: 10000, // 10 seconds

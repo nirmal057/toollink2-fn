@@ -783,7 +783,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Location</h3>
-              <p className="text-gray-400 mb-2">Colombo, Sri Lanka</p>
+              <p className="text-gray-400 mb-2">Nochchiyagama, Sri Lanka</p>
               <p className="text-gray-500 text-sm">Visit our office</p>
             </motion.div>
           </div>

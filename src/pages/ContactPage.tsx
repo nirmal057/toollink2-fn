@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Clock, MessageCircle, Users, Send, User, AlertCirc
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import DarkModeToggle from '../components/UI/DarkModeToggle';
+import { api, API_CONFIG } from '../config/api';
 
 interface ContactPageProps {
     // Reserved for future role-based customization
@@ -12,7 +13,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
     const [formData, setFormData] = useState({
         name: '',
         email: '',
-        phone: '',
+        phone: '+94 ',
         subject: '',
         message: ''
     });
@@ -33,6 +34,25 @@ const ContactPage: React.FC<ContactPageProps> = () => {
     const [chatInput, setChatInput] = useState('');
 
     const handleInputChange = (field: string, value: string) => {
+        if (field === 'phone') {
+            // Ensure phone always starts with +94
+            if (!value.startsWith('+94')) {
+                value = '+94 ' + value.replace(/^\+?94\s*/, '');
+            }
+            // Prevent deletion of +94 prefix
+            if (value.length < 4) {
+                value = '+94 ';
+            }
+            // Limit to exactly 9 digits after +94 (total 13 characters: "+94 " + 9 digits)
+            if (value.length > 4) {
+                const digits = value.substring(4).replace(/\D/g, ''); // Extract only digits
+                if (digits.length > 9) {
+                    value = '+94 ' + digits.substring(0, 9); // Limit to 9 digits
+                } else {
+                    value = '+94 ' + digits;
+                }
+            }
+        }
         setFormData(prev => ({ ...prev, [field]: value }));
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: '' }));
@@ -51,6 +71,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
         if (!formData.subject.trim()) newErrors.subject = 'Subject is required';
         if (!formData.message.trim()) newErrors.message = 'Message is required';
 
+        // Validate phone number if provided
+        if (formData.phone && formData.phone.trim() !== '+94 ') {
+            const digits = formData.phone.substring(4).replace(/\D/g, '');
+            if (digits.length !== 9) {
+                newErrors.phone = 'Phone number must be exactly 9 digits after +94';
+            }
+        }
+
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
@@ -63,11 +91,23 @@ const ContactPage: React.FC<ContactPageProps> = () => {
         setIsSubmitting(true);
 
         try {
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            setSubmitStatus('success');
-            setFormData({ name: '', email: '', phone: '', subject: '', message: '' });
+            // Send message to backend
+            const response = await api.post(API_CONFIG.ENDPOINTS.MESSAGES.CONTACT, {
+                name: formData.name,
+                email: formData.email,
+                subject: formData.subject,
+                message: formData.message,
+                phone: formData.phone || undefined
+            });
+
+            if (response.data.success) {
+                setSubmitStatus('success');
+                setFormData({ name: '', email: '', phone: '+94 ', subject: '', message: '' });
+            } else {
+                setSubmitStatus('error');
+            }
         } catch (error) {
+            console.error('Error sending message:', error);
             setSubmitStatus('error');
         } finally {
             setIsSubmitting(false);
@@ -162,8 +202,8 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
     const officeInfo = {
         address: 'ToolLink Solutions Pvt Ltd',
-        street: '123 Business District',
-        city: 'Colombo 03, Sri Lanka',
+        street: 'Nikawewa Junction',
+        city: 'Nochchiyagama, Sri Lanka',
         hours: [
             { day: 'Monday - Friday', time: '9:00 AM - 6:00 PM' },
             { day: 'Saturday', time: '9:00 AM - 2:00 PM' },
@@ -435,10 +475,25 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                             type="tel"
                                             value={formData.phone}
                                             onChange={(e) => handleInputChange('phone', e.target.value)}
-                                            className="w-full pl-10 pr-4 py-3 border border-[#2a2d40]/50 hover:border-orange-400/60 rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300"
-                                            placeholder="+94 71 234 5678"
+                                            onKeyDown={(e) => {
+                                                // Prevent deleting the +94 prefix
+                                                if ((e.key === 'Backspace' || e.key === 'Delete') &&
+                                                    (e.target as HTMLInputElement).selectionStart! <= 4) {
+                                                    e.preventDefault();
+                                                }
+                                            }}
+                                            onFocus={(e) => {
+                                                // Set cursor after +94 prefix
+                                                setTimeout(() => {
+                                                    e.target.setSelectionRange(4, 4);
+                                                }, 10);
+                                            }}
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.phone ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                                }`}
+                                            placeholder="+94 712345678"
                                         />
                                     </div>
+                                    {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
                                 </motion.div>
 
                                 <motion.div
@@ -666,8 +721,8 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                 >
                                     <div
                                         className={`max-w-xs px-3 py-2 rounded-lg ${message.isBot
-                                                ? 'bg-[#2a2d40]/50 text-white/90'
-                                                : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
+                                            ? 'bg-[#2a2d40]/50 text-white/90'
+                                            : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
                                             }`}
                                     >
                                         <p className="text-sm">{message.text}</p>

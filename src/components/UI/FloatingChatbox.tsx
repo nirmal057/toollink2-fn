@@ -85,7 +85,7 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
         {
             icon: <MapPin size={16} />,
             label: 'Address',
-            value: 'Colombo, Sri Lanka',
+            value: 'Nikawewa Junction, Nochchiyagama, Sri Lanka',
             subtext: 'Visit our office'
         },
         {
@@ -145,8 +145,8 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
                             <button
                                 onClick={() => setShowContactInfo(false)}
                                 className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${!showContactInfo
-                                        ? 'text-blue-600 border-b-2 border-blue-600'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                     }`}
                             >
                                 Chat
@@ -154,8 +154,8 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
                             <button
                                 onClick={() => setShowContactInfo(true)}
                                 className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${showContactInfo
-                                        ? 'text-blue-600 border-b-2 border-blue-600'
-                                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                                    ? 'text-blue-600 border-b-2 border-blue-600'
+                                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                                     }`}
                             >
                                 Contact Info
@@ -228,8 +228,8 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
                                         >
                                             <div
                                                 className={`max-w-xs px-3 py-2 rounded-lg text-sm ${msg.isUser
-                                                        ? 'bg-blue-600 text-white'
-                                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                                                     }`}
                                             >
                                                 <p>{msg.text}</p>
