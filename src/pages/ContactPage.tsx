@@ -233,10 +233,17 @@ const ContactPage: React.FC<ContactPageProps> = () => {
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#1a1113] to-[#12152c] dark:from-gray-900 dark:to-gray-800 text-white transition-colors duration-300">
+        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-yellow-100 dark:from-gray-900 dark:via-orange-900 dark:to-red-900 text-gray-900 dark:text-white transition-colors duration-300">
+            {/* Floating Background Elements */}
+            <div className="fixed inset-0 overflow-hidden pointer-events-none">
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-300/20 rounded-full blur-3xl animate-float"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-red-300/20 rounded-full blur-3xl animate-float-delayed"></div>
+                <div className="absolute top-3/4 left-1/3 w-48 h-48 bg-yellow-300/20 rounded-full blur-3xl animate-float-slow"></div>
+            </div>
+            
             {/* Navigation Bar */}
             <motion.div
-                className="sticky top-0 z-50 bg-[#1a1113]/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-[#2a2d40]/50 dark:border-gray-700/50"
+                className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-orange-200/50 dark:border-gray-700/50 shadow-lg"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
@@ -250,7 +257,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     >
                         <Link
                             to="/"
-                            className="flex items-center space-x-2 text-white/80 hover:text-white transition-all duration-300 group"
+                            className="flex items-center space-x-2 text-gray-700 dark:text-white/80 hover:text-orange-600 dark:hover:text-white transition-all duration-300 group"
                         >
                             <motion.div
                                 className="p-2 rounded-lg bg-gradient-to-r from-orange-500/20 to-red-500/20 group-hover:from-orange-500/30 group-hover:to-red-500/30 border border-orange-500/30 group-hover:border-orange-400/50 transition-all duration-300"
@@ -259,7 +266,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             >
                                 <Home className="w-5 h-5" />
                             </motion.div>
-                            <span className="font-medium group-hover:text-orange-300 transition-colors duration-300">
+                            <span className="font-medium group-hover:text-orange-600 dark:group-hover:text-orange-300 transition-colors duration-300">
                                 Home
                             </span>
                         </Link>
@@ -273,7 +280,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
-                        <h1 className="text-lg font-semibold text-white/90">Contact Us</h1>
+                        <h1 className="text-lg font-semibold text-gray-800 dark:text-white/90">Contact Us</h1>
                     </motion.div>
 
                     {/* Dark Mode Toggle */}
@@ -287,7 +294,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                 </div>
             </motion.div>
 
-            <div className="max-w-7xl mx-auto p-6 space-y-8">
+            <div className="relative z-10 max-w-7xl mx-auto p-6 space-y-8">
                 {/* Header */}
                 <motion.div
                     className="text-center space-y-4"
@@ -295,10 +302,10 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-orange-100 to-orange-200 bg-clip-text text-transparent">
+                    <h1 className="text-4xl lg:text-6xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-lg">
                         Contact Us
                     </h1>
-                    <p className="text-xl text-white/80 max-w-2xl mx-auto">
+                    <p className="text-xl text-gray-700 dark:text-white/80 max-w-2xl mx-auto">
                         We're here to help! Reach out to us through any of the channels below and our team will get back to you promptly.
                     </p>
                 </motion.div>
@@ -313,32 +320,32 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     {contactMethods.map((method, index) => (
                         <motion.div
                             key={index}
-                            className="bg-[#1a1113]/60 backdrop-blur-md border border-[#2a2d40]/50 rounded-lg shadow-2xl p-6 hover:shadow-orange-500/20 transition-all duration-300 group"
+                            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6 hover:shadow-orange-500/20 transition-all duration-300 group"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
                             whileHover={{ y: -5, scale: 1.02 }}
                         >
-                            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:to-red-500/10 rounded-lg transition-all duration-300"></div>
-                            <div className={`${method.bgColor} text-white p-4 rounded-lg inline-flex mb-4 shadow-lg shadow-orange-500/30 relative z-10`}>
+                            <div className="absolute inset-0 bg-gradient-to-r from-orange-500/0 to-orange-500/0 group-hover:from-orange-500/10 group-hover:to-red-500/10 rounded-3xl transition-all duration-300"></div>
+                            <div className={`${method.bgColor} text-white p-4 rounded-xl inline-flex mb-4 shadow-lg shadow-orange-500/30 relative z-10`}>
                                 {method.icon}
                             </div>
-                            <h3 className="text-xl font-semibold text-white mb-2 relative z-10">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 relative z-10">
                                 {method.title}
                             </h3>
-                            <p className="text-lg font-medium text-white/90 mb-1 relative z-10">
+                            <p className="text-lg font-medium text-orange-600 dark:text-orange-400 mb-1 relative z-10">
                                 {method.primary}
                             </p>
-                            <p className="text-sm text-white/70 mb-3 relative z-10">
+                            <p className="text-sm text-gray-600 dark:text-white/70 mb-3 relative z-10">
                                 {method.secondary}
                             </p>
-                            <p className="text-white/80 mb-4 relative z-10">
+                            <p className="text-gray-700 dark:text-white/80 mb-4 relative z-10">
                                 {method.description}
                             </p>
                             {method.onClick ? (
                                 <motion.button
                                     onClick={method.onClick}
-                                    className={`${method.bgColor} ${method.hoverBg} text-white px-4 py-2 rounded-lg inline-flex items-center transition-all duration-200 shadow-lg hover:shadow-xl relative z-10`}
+                                    className={`${method.bgColor} ${method.hoverBg} text-white px-6 py-3 rounded-xl inline-flex items-center transition-all duration-200 shadow-lg hover:shadow-xl relative z-10 font-semibold`}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
@@ -347,7 +354,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             ) : (
                                 <motion.a
                                     href={method.action}
-                                    className={`${method.bgColor} ${method.hoverBg} text-white px-4 py-2 rounded-lg inline-flex items-center transition-all duration-200 shadow-lg hover:shadow-xl relative z-10`}
+                                    className={`${method.bgColor} ${method.hoverBg} text-white px-6 py-3 rounded-xl inline-flex items-center transition-all duration-200 shadow-lg hover:shadow-xl relative z-10 font-semibold`}
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
@@ -360,7 +367,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                 {/* Contact Form */}
                 <motion.div
-                    className="bg-[#1a1113]/60 backdrop-blur-md border border-[#2a2d40]/50 rounded-lg shadow-2xl p-8"
+                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-8"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
@@ -372,10 +379,10 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.5 }}
                         >
-                            <h2 className="text-3xl font-bold bg-gradient-to-r from-white via-orange-100 to-orange-200 bg-clip-text text-transparent mb-4">
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 bg-clip-text text-transparent mb-4">
                                 Send Us a Message
                             </h2>
-                            <p className="text-white/80">
+                            <p className="text-gray-700 dark:text-white/80">
                                 Fill out the form below and we'll get back to you as soon as possible.
                             </p>
                         </motion.div>
@@ -383,7 +390,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                         {/* Status Messages */}
                         {submitStatus === 'success' && (
                             <motion.div
-                                className="mb-6 p-4 bg-green-500/20 border border-green-400/50 text-green-300 rounded-lg flex items-center space-x-2 backdrop-blur-sm"
+                                className="mb-6 p-4 bg-green-100 dark:bg-green-500/20 border border-green-500/50 text-green-700 dark:text-green-300 rounded-xl flex items-center space-x-2 backdrop-blur-sm"
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.3 }}
@@ -395,7 +402,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                         {submitStatus === 'error' && (
                             <motion.div
-                                className="mb-6 p-4 bg-red-500/20 border border-red-400/50 text-red-300 rounded-lg flex items-center space-x-2 backdrop-blur-sm"
+                                className="mb-6 p-4 bg-red-100 dark:bg-red-500/20 border border-red-500/50 text-red-700 dark:text-red-300 rounded-xl flex items-center space-x-2 backdrop-blur-sm"
                                 initial={{ opacity: 0, scale: 0.9 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.3 }}
@@ -419,21 +426,21 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.7 }}
                                 >
-                                    <label className="block text-sm font-medium text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                                         Name *
                                     </label>
                                     <div className="relative">
-                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => handleInputChange('name', e.target.value)}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.name ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.name ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="Your full name"
                                         />
                                     </div>
-                                    {errors.name && <p className="text-red-400 text-sm mt-1">{errors.name}</p>}
+                                    {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                                 </motion.div>
 
                                 <motion.div
@@ -441,21 +448,21 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.8 }}
                                 >
-                                    <label className="block text-sm font-medium text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                                         Email *
                                     </label>
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
                                         <input
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange('email', e.target.value)}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.email ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.email ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="your.email@example.com"
                                         />
                                     </div>
-                                    {errors.email && <p className="text-red-400 text-sm mt-1">{errors.email}</p>}
+                                    {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                                 </motion.div>
                             </div>
 
@@ -466,11 +473,11 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.9 }}
                                 >
-                                    <label className="block text-sm font-medium text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                                         Phone (Optional)
                                     </label>
                                     <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
                                         <input
                                             type="tel"
                                             value={formData.phone}
@@ -488,12 +495,12 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                                     e.target.setSelectionRange(4, 4);
                                                 }, 10);
                                             }}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.phone ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.phone ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="+94 712345678"
                                         />
                                     </div>
-                                    {errors.phone && <p className="text-red-400 text-sm mt-1">{errors.phone}</p>}
+                                    {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                                 </motion.div>
 
                                 <motion.div
@@ -501,18 +508,18 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 1.0 }}
                                 >
-                                    <label className="block text-sm font-medium text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                                         Subject *
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.subject}
                                         onChange={(e) => handleInputChange('subject', e.target.value)}
-                                        className={`w-full px-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.subject ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                        className={`w-full px-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.subject ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
                                             }`}
                                         placeholder="What can we help you with?"
                                     />
-                                    {errors.subject && <p className="text-red-400 text-sm mt-1">{errors.subject}</p>}
+                                    {errors.subject && <p className="text-red-500 text-sm mt-1">{errors.subject}</p>}
                                 </motion.div>
                             </div>
 
@@ -522,18 +529,18 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 1.1 }}
                             >
-                                <label className="block text-sm font-medium text-white/90 mb-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
                                     Message *
                                 </label>
                                 <textarea
                                     rows={5}
                                     value={formData.message}
                                     onChange={(e) => handleInputChange('message', e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-lg bg-[#1a1113]/60 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 resize-none ${errors.message ? 'border-red-500' : 'border-[#2a2d40]/50 hover:border-orange-400/60'
+                                    className={`w-full px-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 resize-none ${errors.message ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
                                         }`}
                                     placeholder="Tell us how we can help you..."
                                 />
-                                {errors.message && <p className="text-red-400 text-sm mt-1">{errors.message}</p>}
+                                {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
                             </motion.div>
 
                             {/* Submit Button */}
@@ -546,7 +553,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                 <motion.button
                                     type="submit"
                                     disabled={isSubmitting || submitStatus === 'success'}
-                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-500 disabled:to-gray-600 text-white px-8 py-3 rounded-lg font-semibold flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-orange-500/25 disabled:cursor-not-allowed"
+                                    className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 disabled:from-gray-500 disabled:to-gray-600 text-white px-8 py-3 rounded-xl font-semibold flex items-center space-x-2 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-orange-500/25 disabled:cursor-not-allowed"
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
@@ -571,12 +578,12 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                             {/* Form Footer */}
                             <motion.div
-                                className="text-center pt-4 border-t border-[#2a2d40]/50"
+                                className="text-center pt-4 border-t border-orange-200/50 dark:border-gray-600/50"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.5, delay: 1.3 }}
                             >
-                                <p className="text-sm text-white/60">
+                                <p className="text-sm text-gray-600 dark:text-white/60">
                                     We typically respond within 24 hours during business days.
                                 </p>
                             </motion.div>
@@ -593,34 +600,34 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                 >
                     {/* Address & Hours */}
                     <motion.div
-                        className="bg-[#1a1113]/60 backdrop-blur-md border border-[#2a2d40]/50 rounded-lg shadow-2xl p-6"
+                        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.7 }}
                     >
                         <div className="flex items-center mb-4">
                             <MapPin className="w-6 h-6 text-orange-500 mr-3" />
-                            <h3 className="text-xl font-semibold text-white">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                                 Office Location
                             </h3>
                         </div>
                         <div className="space-y-2 mb-6">
-                            <p className="font-medium text-white">{officeInfo.address}</p>
-                            <p className="text-white/80">{officeInfo.street}</p>
-                            <p className="text-white/80">{officeInfo.city}</p>
+                            <p className="font-medium text-gray-900 dark:text-white">{officeInfo.address}</p>
+                            <p className="text-gray-700 dark:text-white/80">{officeInfo.street}</p>
+                            <p className="text-gray-700 dark:text-white/80">{officeInfo.city}</p>
                         </div>
 
                         <div className="flex items-center mb-4">
                             <Clock className="w-6 h-6 text-orange-500 mr-3" />
-                            <h4 className="text-lg font-semibold text-white">
+                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
                                 Business Hours
                             </h4>
                         </div>
                         <div className="space-y-2">
                             {officeInfo.hours.map((hour, index) => (
                                 <div key={index} className="flex justify-between items-center">
-                                    <span className="text-white/80">{hour.day}</span>
-                                    <span className="font-medium text-white">{hour.time}</span>
+                                    <span className="text-gray-700 dark:text-white/80">{hour.day}</span>
+                                    <span className="font-medium text-gray-900 dark:text-white">{hour.time}</span>
                                 </div>
                             ))}
                         </div>
@@ -628,14 +635,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                     {/* Support Teams */}
                     <motion.div
-                        className="bg-[#1a1113]/60 backdrop-blur-md border border-[#2a2d40]/50 rounded-lg shadow-2xl p-6"
+                        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6"
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
                     >
                         <div className="flex items-center mb-4">
                             <Users className="w-6 h-6 text-orange-500 mr-3" />
-                            <h3 className="text-xl font-semibold text-white">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                                 Support Teams
                             </h3>
                         </div>
@@ -643,28 +650,28 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             {supportTeam.map((team, index) => (
                                 <motion.div
                                     key={index}
-                                    className="border-b border-[#2a2d40]/50 pb-4 last:border-b-0"
+                                    className="border-b border-orange-200/50 dark:border-gray-600/50 pb-4 last:border-b-0"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
                                 >
-                                    <h4 className="font-semibold text-white mb-1">
+                                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
                                         {team.name}
                                     </h4>
-                                    <p className="text-sm text-white/80 mb-2">
+                                    <p className="text-sm text-gray-700 dark:text-white/80 mb-2">
                                         {team.role}
                                     </p>
                                     <div className="space-y-1">
                                         <motion.a
                                             href={`mailto:${team.contact}`}
-                                            className="text-orange-400 hover:text-orange-300 text-sm block transition-colors duration-200"
+                                            className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm block transition-colors duration-200"
                                             whileHover={{ scale: 1.02 }}
                                         >
                                             {team.contact}
                                         </motion.a>
                                         <motion.a
                                             href={`tel:${team.phone.replace(/\s/g, '')}`}
-                                            className="text-orange-400 hover:text-orange-300 text-sm block transition-colors duration-200"
+                                            className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm block transition-colors duration-200"
                                             whileHover={{ scale: 1.02 }}
                                         >
                                             {team.phone}
@@ -687,26 +694,26 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     onClick={closeChat}
                 >
                     <motion.div
-                        className="bg-[#1a1113] border border-[#2a2d40]/50 rounded-lg shadow-2xl w-full max-w-md h-96 flex flex-col"
+                        className="bg-white dark:bg-gray-800 border border-orange-200/50 dark:border-gray-700/50 rounded-3xl shadow-2xl w-full max-w-md h-96 flex flex-col"
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Chat Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-[#2a2d40]/50">
+                        <div className="flex items-center justify-between p-4 border-b border-orange-200/50 dark:border-gray-700/50">
                             <div className="flex items-center space-x-3">
                                 <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                                     <Bot className="w-4 h-4 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-white font-semibold">ToolLink Assistant</h3>
-                                    <p className="text-white/60 text-sm">Online now</p>
+                                    <h3 className="text-gray-900 dark:text-white font-semibold">ToolLink Assistant</h3>
+                                    <p className="text-gray-600 dark:text-white/60 text-sm">Online now</p>
                                 </div>
                             </div>
                             <button
                                 onClick={closeChat}
-                                className="text-white/60 hover:text-white transition-colors"
+                                className="text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -720,8 +727,8 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
                                 >
                                     <div
-                                        className={`max-w-xs px-3 py-2 rounded-lg ${message.isBot
-                                            ? 'bg-[#2a2d40]/50 text-white/90'
+                                        className={`max-w-xs px-3 py-2 rounded-xl ${message.isBot
+                                            ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white/90'
                                             : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
                                             }`}
                                     >
@@ -738,18 +745,18 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                         </div>
 
                         {/* Chat Input */}
-                        <form onSubmit={handleChatSubmit} className="p-4 border-t border-[#2a2d40]/50">
+                        <form onSubmit={handleChatSubmit} className="p-4 border-t border-orange-200/50 dark:border-gray-700/50">
                             <div className="flex space-x-2">
                                 <input
                                     type="text"
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
                                     placeholder="Type your message..."
-                                    className="flex-1 px-3 py-2 bg-[#2a2d40]/50 border border-[#3a3d50]/50 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                    className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-orange-200/50 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                                 />
                                 <motion.button
                                     type="submit"
-                                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg hover:from-orange-600 hover:to-red-600 transition-all"
+                                    className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all"
                                     whileHover={{ scale: 1.05 }}
                                     whileTap={{ scale: 0.95 }}
                                 >
