@@ -83,6 +83,43 @@ const initialDeliveries: Delivery[] = [
     driver: 'Nimal Silva',
     notes: 'Heavy machinery delivery, need forklift',
     district: 'Gampaha'
+  },
+  // Past deliveries - these should be read-only
+  {
+    id: 'DEL-003',
+    orderId: 'ORD-7885',
+    customer: 'ABC Construction',
+    address: '78 Negombo Road, Wattala',
+    timeSlot: '10:00-12:00',
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Yesterday
+    status: 'Delivered',
+    driver: 'Mohamed Farook',
+    notes: 'Delivered successfully to site manager',
+    district: 'Gampaha'
+  },
+  {
+    id: 'DEL-004',
+    orderId: 'ORD-7880',
+    customer: 'Prime Developers',
+    address: '156 High Level Road, Nugegoda',
+    timeSlot: '14:00-16:00',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 2 days ago
+    status: 'Delivered',
+    driver: 'Raj Patel',
+    notes: 'Materials delivered for foundation work',
+    district: 'Colombo'
+  },
+  {
+    id: 'DEL-005',
+    orderId: 'ORD-7875',
+    customer: 'Metro Holdings',
+    address: '89 Baseline Road, Colombo 09',
+    timeSlot: '08:00-10:00',
+    date: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 3 days ago
+    status: 'Delivered',
+    driver: 'Samantha Fernando',
+    notes: 'Cement and aggregate delivery completed',
+    district: 'Colombo'
   }
 ];
 
@@ -414,90 +451,125 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
             </div>
           ) : (
             <div className="divide-y divide-gray-200 ">
-              {filteredDeliveries.map(delivery => (
-                <div
-                  key={delivery.id}
-                  className="p-4 hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900 ">
-                        Order #{delivery.orderId}
-                      </h3>
-                      <p className="text-sm text-gray-500 ">{delivery.customer}</p>
+              {filteredDeliveries.map(delivery => {
+                const deliveryDate = new Date(delivery.date);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const isPastDelivery = deliveryDate < today;
+
+                return (
+                  <div
+                    key={delivery.id}
+                    className={`p-4 transition-colors ${isPastDelivery ? 'opacity-60 bg-gray-50' : 'hover:bg-gray-50'}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-medium text-gray-900 ">
+                          Order #{delivery.orderId}
+                          {isPastDelivery && (
+                            <span className="text-sm text-gray-500 ml-2">(Past Delivery)</span>
+                          )}
+                        </h3>
+                        <p className="text-sm text-gray-500 ">{delivery.customer}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            if (isPastDelivery) {
+                              showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
+                              return;
+                            }
+                            setSelectedDelivery(delivery);
+                            setFormData({
+                              orderId: delivery.orderId,
+                              customer: delivery.customer,
+                              address: delivery.address,
+                              date: delivery.date,
+                              timeSlot: delivery.timeSlot,
+                              driver: delivery.driver,
+                              notes: delivery.notes || '',
+                              district: delivery.district
+                            });
+                            setShowCreateModal(true);
+                          }}
+                          className={`p-2 ${isPastDelivery
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-600 hover:text-[#FF6B35]'
+                            }`}
+                          disabled={isPastDelivery}
+                        >
+                          {isPastDelivery ? 'View' : 'Edit'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (isPastDelivery) {
+                              showError('Past Delivery', 'Cannot delete deliveries from past dates.');
+                              return;
+                            }
+                            handleRemoveDelivery(delivery.id);
+                          }}
+                          className={`p-2 ${isPastDelivery
+                            ? 'text-gray-400 cursor-not-allowed'
+                            : 'text-gray-600 hover:text-red-600'
+                            }`}
+                          disabled={isPastDelivery}
+                        >
+                          <TrashIcon size={18} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedDelivery(delivery);
-                          setFormData({
-                            orderId: delivery.orderId,
-                            customer: delivery.customer,
-                            address: delivery.address,
-                            date: delivery.date,
-                            timeSlot: delivery.timeSlot,
-                            driver: delivery.driver,
-                            notes: delivery.notes || '',
-                            district: delivery.district
-                          });
-                          setShowCreateModal(true);
-                        }}
-                        className="p-2 text-gray-600 hover:text-[#FF6B35]"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleRemoveDelivery(delivery.id)}
-                        className="p-2 text-gray-600 hover:text-red-600 "
-                      >
-                        <TrashIcon size={18} />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 ">Date</p>
-                      <p className="mt-1 ">{new Date(delivery.date).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 ">Time Slot</p>
-                      <p className="mt-1 ">{delivery.timeSlot}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 ">Driver</p>
-                      <p className="mt-1 ">{delivery.driver}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 ">District</p>
-                      <p className="mt-1 ">{delivery.district}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-500 ">Status</p>
-                      <select
-                        value={delivery.status}
-                        onChange={(e) => handleStatusUpdate(delivery.id, e.target.value as Delivery['status'])}
-                        className={`mt-1 text-sm rounded-full px-2.5 py-0.5 border-0 focus:ring-2 focus:ring-offset-0
+                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 ">Date</p>
+                        <p className="mt-1 ">{new Date(delivery.date).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 ">Time Slot</p>
+                        <p className="mt-1 ">{delivery.timeSlot}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 ">Driver</p>
+                        <p className="mt-1 ">{delivery.driver}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 ">District</p>
+                        <p className="mt-1 ">{delivery.district}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-500 ">Status</p>
+                        <select
+                          value={delivery.status}
+                          onChange={(e) => {
+                            if (isPastDelivery) {
+                              showError('Past Delivery', 'Cannot change status of past deliveries.');
+                              return;
+                            }
+                            handleStatusUpdate(delivery.id, e.target.value as Delivery['status']);
+                          }}
+                          className={`mt-1 text-sm rounded-full px-2.5 py-0.5 border-0 focus:ring-2 focus:ring-offset-0
                           ${delivery.status === 'Delivered' ? 'bg-green-100 text-green-800 focus:ring-green-500' :
-                            delivery.status === 'In Transit' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
-                              delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
-                                'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
-                          }`}
-                      >
-                        <option value="Scheduled">Scheduled</option>
-                        <option value="In Transit">In Transit</option>
-                        <option value="Delivered">Delivered</option>
-                        <option value="Cancelled">Cancelled</option>
-                      </select>
+                              delivery.status === 'In Transit' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
+                                delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
+                                  'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
+                            }`}
+                          disabled={isPastDelivery}
+                        >
+                          <option value="Scheduled">Scheduled</option>
+                          <option value="In Transit">In Transit</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
                     </div>
+                    {delivery.notes && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-gray-500 ">Notes</p>
+                        <p className="mt-1 text-sm text-gray-600 ">{delivery.notes}</p>
+                      </div>
+                    )}
                   </div>
-                  {delivery.notes && (
-                    <div className="mt-2">
-                      <p className="text-sm font-medium text-gray-500 ">Notes</p>
-                      <p className="mt-1 text-sm text-gray-600 ">{delivery.notes}</p>
-                    </div>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -536,77 +608,114 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
             ))}
 
             {/* Calendar days */}
-            {days.map((date, i) => (
-              <div
-                key={i}
-                className={`${date ? 'min-h-[120px] p-3 border rounded-lg ' +
-                  (date.toDateString() === new Date().toDateString()
-                    ? 'bg-primary-50 border-primary-200 '
-                    : 'bg-white border-gray-200 ')
-                  : ''
-                  }`}
-              >
-                {date && (
-                  <>
-                    <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${date.toDateString() === new Date().toDateString()
-                      ? 'text-primary-600 '
-                      : 'text-gray-900 '
-                      }`}>
-                      {date.getDate()}
-                    </span>
-                      {getDeliveryCountForDate(date) > 0 && (
-                        <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
-                          {getDeliveryCountForDate(date)}
-                        </span>
-                      )}
-                    </div>
+            {days.map((date, i) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const isPastDate = date && date < today;
+              const isToday = date && date.toDateString() === new Date().toDateString();
 
-                    <div className="space-y-1">
-                      {filteredDeliveries
-                        .filter(d => new Date(d.date).toDateString() === date.toDateString())
-                        .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot))
-                        .map(delivery => (
-                          <div
-                            key={delivery.id}
-                            className={`p-2 rounded text-xs cursor-pointer hover:opacity-90 transition-opacity ${delivery.status === 'Delivered'
-                              ? 'bg-green-100 text-green-800 '
-                              : delivery.status === 'In Transit'
-                                ? 'bg-blue-100 text-blue-800 '
-                                : delivery.status === 'Cancelled'
-                                  ? 'bg-red-100 text-red-800 '
-                                  : 'bg-yellow-100 text-yellow-800 '
-                              }`}
-                            onClick={() => {
-                              setSelectedDelivery(delivery);
-                              setFormData({
-                                orderId: delivery.orderId,
-                                customer: delivery.customer,
-                                address: delivery.address,
-                                date: delivery.date,
-                                timeSlot: delivery.timeSlot,
-                                driver: delivery.driver,
-                                notes: delivery.notes || '',
-                                district: delivery.district,
-                                status: delivery.status
-                              });
-                              setShowCreateModal(true);
-                            }}
-                          >
-                            <div className="flex items-center gap-1">
-                              <TruckIcon size={12} />
-                              <span className="font-medium truncate">{delivery.orderId}</span>
-                            </div>
-                            <div className="flex justify-between items-center mt-1 text-[10px]">
-                              <span className="truncate">{delivery.customer}</span>
-                              <span>{delivery.timeSlot.split('-')[0]}</span>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
+              return (
+                <div
+                  key={i}
+                  className={`${date ? 'min-h-[120px] p-3 border rounded-lg ' +
+                    (isToday
+                      ? 'bg-primary-50 border-primary-200 '
+                      : isPastDate
+                        ? 'bg-gray-50 border-gray-300 opacity-80 '
+                        : 'bg-white border-gray-200 ')
+                    : ''
+                    }`}
+                >
+                  {date && (
+                    <>
+                      <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${isToday
+                          ? 'text-primary-600 '
+                          : isPastDate
+                            ? 'text-gray-500 '
+                            : 'text-gray-900 '
+                        }`}>
+                        {date.getDate()}
+                        {isPastDate && (
+                          <span className="text-[10px] text-gray-400 ml-1">(Past)</span>
+                        )}
+                      </span>
+                        {getDeliveryCountForDate(date) > 0 && (
+                          <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
+                            {getDeliveryCountForDate(date)}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        {filteredDeliveries
+                          .filter(d => new Date(d.date).toDateString() === date.toDateString())
+                          .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot))
+                          .map(delivery => {
+                            const deliveryDate = new Date(delivery.date);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const isPastDelivery = deliveryDate < today;
+
+                            return (
+                              <div
+                                key={delivery.id}
+                                className={`p-2 rounded text-xs transition-opacity ${isPastDelivery
+                                    ? 'cursor-not-allowed opacity-60'
+                                    : 'cursor-pointer hover:opacity-90'
+                                  } ${delivery.status === 'Delivered'
+                                    ? 'bg-green-100 text-green-800 '
+                                    : delivery.status === 'In Transit'
+                                      ? 'bg-blue-100 text-blue-800 '
+                                      : delivery.status === 'Cancelled'
+                                        ? 'bg-red-100 text-red-800 '
+                                        : 'bg-yellow-100 text-yellow-800 '
+                                  }`}
+                                onClick={() => {
+                                  const deliveryDate = new Date(delivery.date);
+                                  const today = new Date();
+                                  today.setHours(0, 0, 0, 0);
+
+                                  // Only allow editing if delivery is today or in the future
+                                  if (deliveryDate >= today) {
+                                    setSelectedDelivery(delivery);
+                                    setFormData({
+                                      orderId: delivery.orderId,
+                                      customer: delivery.customer,
+                                      address: delivery.address,
+                                      date: delivery.date,
+                                      timeSlot: delivery.timeSlot,
+                                      driver: delivery.driver,
+                                      notes: delivery.notes || '',
+                                      district: delivery.district,
+                                      status: delivery.status
+                                    });
+                                    setShowCreateModal(true);
+                                  } else {
+                                    // For past deliveries, show read-only view
+                                    showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  <TruckIcon size={12} />
+                                  <span className="font-medium truncate">{delivery.orderId}</span>
+                                  {isPastDelivery && (
+                                    <span className="text-[10px] opacity-70">(Past)</span>
+                                  )}
+                                </div>
+                                <div className="flex justify-between items-center mt-1 text-[10px]">
+                                  <span className="truncate">{delivery.customer}</span>
+                                  <span>{delivery.timeSlot.split('-')[0]}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
