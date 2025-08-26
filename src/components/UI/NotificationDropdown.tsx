@@ -17,9 +17,9 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
   const loadRecentNotifications = async () => {
     try {
       setLoading(true);
-      const response = await notificationService.getNotifications({ 
-        limit: 5, 
-        page: 1 
+      const response = await notificationService.getNotifications({
+        limit: 5,
+        page: 1
       });
       setNotifications(response.notifications);
       setUnreadCount(response.unreadCount);
@@ -42,7 +42,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     };
 
     loadUnreadCount();
-    
+
     // Refresh unread count every 30 seconds
     const interval = setInterval(loadUnreadCount, 30000);
     return () => clearInterval(interval);
@@ -70,9 +70,9 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
   const markAsRead = async (notificationId: string) => {
     try {
       await notificationService.markAsRead(notificationId);
-      setNotifications(prev => 
-        prev.map(notif => 
-          notif._id === notificationId 
+      setNotifications(prev =>
+        prev.map(notif =>
+          notif._id === notificationId
             ? { ...notif, isRead: true, status: 'read' as const }
             : notif
         )
@@ -114,15 +114,15 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Notification Bell Button */}
+      {/* Enhanced Notification Bell Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-white transition-all duration-300 rounded-xl hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-600 hover:shadow-lg hover:scale-105 transform"
         title="Notifications"
       >
-        <BellIcon size={20} />
+        <BellIcon size={20} className={unreadCount > 0 ? 'animate-pulse' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg animate-bounce">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -132,103 +132,107 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
       {isOpen && (
         <>
           {/* Backdrop to catch clicks */}
-          <div 
-            className="fixed inset-0 z-[99998]" 
+          <div
+            className="fixed inset-0 z-[99998]"
             onClick={() => setIsOpen(false)}
           />
-          
-          {/* Dropdown content */}
-          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-[99999]" style={{ zIndex: 99999 }}>
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+
+          {/* Enhanced Dropdown content */}
+          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[99999] overflow-hidden" style={{ zIndex: 99999 }}>
+            {/* Enhanced Header */}
+            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 via-green-50 to-blue-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
+              <h3 className="text-lg font-bold bg-gradient-to-r from-gray-800 via-green-600 to-blue-600 dark:from-white dark:via-green-400 dark:to-blue-400 bg-clip-text text-transparent">
                 Notifications
               </h3>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/50 transition-all duration-200"
               >
                 <XIcon size={18} />
               </button>
             </div>
 
-          {/* Notifications List */}
-          <div className="max-h-96 overflow-y-auto">
-            {loading ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                Loading notifications...
-              </div>
-            ) : notifications.length === 0 ? (
-              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-                <BellIcon className="mx-auto h-8 w-8 text-gray-300 mb-2" />
-                <p>No notifications</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                {notifications.map((notification) => (
-                  <div
-                    key={notification._id}
-                    className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                      !notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="text-lg flex-shrink-0 mt-0.5">
-                        {getIcon(notification.category)}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {notification.title}
-                          </p>
-                          {!notification.isRead && (
-                            <button
-                              onClick={() => markAsRead(notification._id)}
-                              className="ml-2 flex-shrink-0 text-blue-500 hover:text-blue-600"
-                              title="Mark as read"
-                            >
-                              <CheckCircleIcon size={14} />
-                            </button>
-                          )}
+            {/* Notifications List */}
+            <div className="max-h-96 overflow-y-auto">
+              {loading ? (
+                <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+                  Loading notifications...
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-xl flex items-center justify-center">
+                    <BellIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="font-medium">All caught up!</p>
+                  <p className="text-sm mt-1">No new notifications</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification._id}
+                      className={`p-4 hover:bg-gradient-to-r hover:from-slate-50 hover:via-green-50 hover:to-blue-50 dark:hover:from-gray-700 dark:hover:via-gray-600 dark:hover:to-gray-700 transition-all duration-200 ${!notification.isRead ? 'bg-gradient-to-r from-blue-50 via-green-50 to-slate-50 dark:from-blue-900/20 dark:via-green-900/10 dark:to-gray-800 border-l-4 border-blue-500' : ''
+                        }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-xl bg-gradient-to-r from-green-500 to-blue-600 flex items-center justify-center text-white shadow-lg">
+                          <span className="text-sm">
+                            {getIcon(notification.category)}
+                          </span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mt-1">
-                          {notification.message}
-                        </p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {formatDate(notification.createdAt)}
-                          </span>
-                          <span className="text-xs px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full">
-                            {notification.category}
-                          </span>
-                          {notification.priority === 'high' && (
-                            <span className="text-xs px-2 py-1 bg-orange-100 text-orange-600 rounded-full">
-                              High
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-bold text-gray-900 dark:text-white truncate">
+                              {notification.title}
+                            </p>
+                            {!notification.isRead && (
+                              <button
+                                onClick={() => markAsRead(notification._id)}
+                                className="ml-2 flex-shrink-0 text-green-500 hover:text-green-600 p-1 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200"
+                                title="Mark as read"
+                              >
+                                <CheckCircleIcon size={14} />
+                              </button>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 mt-1 leading-relaxed">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center gap-2 mt-3">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                              {formatDate(notification.createdAt)}
                             </span>
-                          )}
-                          {notification.priority === 'critical' && (
-                            <span className="text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">
-                              Critical
+                            <span className="text-xs px-2 py-1 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-600 dark:text-gray-300 rounded-full font-medium">
+                              {notification.category}
                             </span>
-                          )}
+                            {notification.priority === 'high' && (
+                              <span className="text-xs px-2 py-1 bg-gradient-to-r from-orange-400 to-red-400 text-white rounded-full font-medium shadow-sm">
+                                High
+                              </span>
+                            )}
+                            {notification.priority === 'critical' && (
+                              <span className="text-xs px-2 py-1 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full font-medium shadow-sm animate-pulse">
+                                Critical
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                  ))}
+                </div>
+              )}
+            </div>
 
-            {/* Footer */}
+            {/* Enhanced Footer */}
             {notifications.length > 0 && (
-              <div className="p-3 border-t border-gray-200 dark:border-gray-700">
+              <div className="p-3 bg-gradient-to-r from-slate-50 via-green-50 to-blue-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-t border-gray-100 dark:border-gray-600">
                 <a
                   href="/notifications"
-                  className="block text-center text-sm text-blue-500 hover:text-blue-600 transition-colors"
+                  className="block text-center text-sm font-medium bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent hover:from-green-700 hover:to-blue-700 transition-all duration-200 py-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/30"
                   onClick={() => setIsOpen(false)}
                 >
-                  View all notifications
+                  View all notifications →
                 </a>
               </div>
             )}

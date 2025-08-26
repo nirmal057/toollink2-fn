@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './UserManagement.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 const UserManagement = () => {
     const [users, setUsers] = useState([]);
@@ -11,6 +12,7 @@ const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    const { showSuccess, showError } = useNotification();
 
     // Form state
     const [formData, setFormData] = useState({
@@ -111,12 +113,12 @@ const UserManagement = () => {
 
             if (data.success) {
                 fetchUsers(); // Refresh the list
-                alert('User deleted successfully');
+                showSuccess('Success', 'User deleted successfully');
             } else {
-                alert(data.message || 'Failed to delete user');
+                showError('Error', data.message || 'Failed to delete user');
             }
         } catch (err) {
-            alert('Error deleting user: ' + err.message);
+            showError('Error', 'Error deleting user: ' + err.message);
         }
     };
 
@@ -137,7 +139,7 @@ const UserManagement = () => {
             setEditingUser(null);
             setFormData({ name: '', email: '', password: '', role: 'Customer', status: 'Active' });
         } else {
-            alert(result.error);
+            showError('Error', result.error);
         }
 
         setLoading(false);
@@ -149,7 +151,7 @@ const UserManagement = () => {
         if (!file) return;
 
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
-            alert('Please select an Excel file (.xlsx or .xls)');
+            showError('Invalid File', 'Please select an Excel file (.xlsx or .xls)');
             return;
         }
 
@@ -167,13 +169,13 @@ const UserManagement = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert(`Successfully imported ${data.data.inserted} users!`);
+                showSuccess('Import Successful', `Successfully imported ${data.data.inserted} users!`);
                 fetchUsers(); // Refresh the list
             } else {
-                alert(data.message || 'Failed to upload file');
+                showError('Upload Failed', data.message || 'Failed to upload file');
             }
         } catch (err) {
-            alert('Error uploading file: ' + err.message);
+            showError('Upload Error', 'Error uploading file: ' + err.message);
         } finally {
             setUploading(false);
             e.target.value = ''; // Reset file input

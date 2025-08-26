@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CalendarIcon, TruckIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface Delivery {
   id: string;
@@ -98,6 +99,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [selectedDistrict, setSelectedDistrict] = useState<string>('');
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
+  const { showError } = useNotification();
 
   // Group deliveries by orderId
   const deliveriesByOrder = deliveries.reduce((acc, delivery) => {
@@ -177,12 +179,12 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
     if (selectedDate < today) {
-      alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+      showError('Invalid Date', 'Cannot schedule delivery for past dates. Please select today or a future date.');
       return;
     }
 
     if (!isTimeSlotAvailable(formData.date, formData.timeSlot, formData.driver, formData.district)) {
-      alert('This time slot is not available. Please check:\n- Driver availability\n- Maximum deliveries per district');
+      showError('Time Slot Unavailable', 'This time slot is not available. Please check driver availability and maximum deliveries per district.');
       return;
     }
 
@@ -229,12 +231,12 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
     if (selectedDate < today) {
-      alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+      showError('Invalid Date', 'Cannot schedule delivery for past dates. Please select today or a future date.');
       return;
     }
 
     if (!isTimeSlotAvailable(formData.date, formData.timeSlot, formData.driver, formData.district, selectedDelivery.id)) {
-      alert('This time slot is not available. Please check:\n- Driver availability\n- Maximum deliveries per district');
+      showError('Time Slot Unavailable', 'This time slot is not available. Please check driver availability and maximum deliveries per district.');
       return;
     }
 

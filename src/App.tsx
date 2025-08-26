@@ -26,6 +26,7 @@ import SystemReports from './pages/SystemReports';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext';
+import { NotificationProvider } from './contexts/NotificationContext';
 import { ROLES } from './services/rbacService';
 import ToastContainer from './components/UI/ToastContainer';
 import SimpleAdminGuard from './components/SimpleAdminGuard';
@@ -203,6 +204,14 @@ function AppRoutes() {
             }
           />
           <Route
+            path="/admin/messages"
+            element={
+              <SimpleAdminGuard>
+                <CustomerMessages userRole={user.role} />
+              </SimpleAdminGuard>
+            }
+          />
+          <Route
             path="/predictions"
             element={
               <SimpleAdminGuard>
@@ -249,10 +258,12 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <GlobalNotificationProvider>
-          <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <AppRoutes />
-            <ToastContainer />
-          </Router>
+          <NotificationProvider>
+            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <AppRoutes />
+              <ToastContainer />
+            </Router>
+          </NotificationProvider>
         </GlobalNotificationProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   ShoppingCartIcon,
@@ -18,7 +18,10 @@ import {
   ActivityIcon
 } from 'lucide-react';
 import { authService } from '../../services/authService';
+import { notificationService } from '../../services/notificationService';
 import { safeLogoutWithTimeout } from '../../utils/logoutUtils';
+import { useNotification } from '../../contexts/NotificationContext';
+import { CustomerApprovalNotificationService } from '../../services/customerApprovalNotificationService';
 
 interface SidebarProps {
   userRole: 'admin' | 'warehouse' | 'cashier' | 'customer';
@@ -26,7 +29,49 @@ interface SidebarProps {
 }
 
 const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
-  const [isLoggingOut, setIsLoggingOut] = useState(false); const handleLogout = useCallback(async (e: React.MouseEvent) => {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const { showError } = useNotification();
+
+  // Load unread notification count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const count = await notificationService.getUnreadCount();
+        setUnreadCount(count);
+      } catch (error) {
+        console.error('Error loading unread count:', error);
+      }
+    };
+
+    loadUnreadCount();
+
+    // Refresh unread count every 30 seconds
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load pending approval count for admin/cashier
+  useEffect(() => {
+    const loadPendingApprovalCount = async () => {
+      try {
+        const count = await CustomerApprovalNotificationService.getPendingCustomerCount(userRole);
+        setPendingApprovalCount(count);
+      } catch (error) {
+        console.error('Error loading pending approval count:', error);
+      }
+    };
+
+    // Only load for admin/cashier
+    if (['admin', 'cashier'].includes(userRole)) {
+      loadPendingApprovalCount();
+
+      // Refresh pending approval count every 30 seconds
+      const interval = setInterval(loadPendingApprovalCount, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [userRole]); const handleLogout = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
@@ -53,7 +98,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       }
     } catch (error) {
       console.error('Sign out failed:', error);
-      window.alert('Failed to sign out. Please try again.');
+      showError('Sign Out Failed', 'Failed to sign out. Please try again.');
       setIsLoggingOut(false); // Only reset state on error
     }
     // Don't reset isLoggingOut in finally block when using onLogout
@@ -76,7 +121,16 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     // Customer Approval
     ...(['admin', 'cashier'].includes(userRole) ? [{
       to: '/customer-approval',
-      icon: <UserCheckIcon size={20} />,
+      icon: (
+        <div className="relative">
+          <UserCheckIcon size={20} />
+          {pendingApprovalCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium shadow-lg animate-pulse">
+              {pendingApprovalCount > 9 ? '9+' : pendingApprovalCount}
+            </span>
+          )}
+        </div>
+      ),
       label: 'Customer Approval'
     }] : []),
 
@@ -111,10 +165,19 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'Track Deliveries'
     }] : []),
 
-    // Notifications
+    // Notifications (Enhanced with unread count)
     {
       to: '/notifications',
-      icon: <BellIcon size={20} />,
+      icon: (
+        <div className="relative">
+          <BellIcon size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium shadow-lg animate-pulse">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </div>
+      ),
       label: 'Notifications'
     },
 

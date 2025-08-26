@@ -13,6 +13,7 @@ import {
   StarIcon
 } from 'lucide-react';
 import { orderApiService, Order } from '../services/orderApiService';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface OrderWithTracking extends Order {
   tracking?: {
@@ -40,6 +41,7 @@ const CustomerDashboard = () => {
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [feedback, setFeedback] = useState({ rating: 5, comment: '', photos: [] as string[] });
   const [rescheduleData, setRescheduleData] = useState({ date: '', reason: '' });
+  const { showError } = useNotification();
 
   useEffect(() => {
     fetchMyOrders();
@@ -98,7 +100,7 @@ const CustomerDashboard = () => {
     today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
     if (selectedDate < today) {
-      alert('Cannot reschedule delivery to a past date. Please select today or a future date.');
+      showError('Invalid Date', 'Cannot reschedule delivery to a past date. Please select today or a future date.');
       return;
     }
 
@@ -297,8 +299,8 @@ const CustomerDashboard = () => {
                         <StarIcon
                           key={star}
                           className={`w-4 h-4 ${star <= (order.feedback_rating || 0)
-                              ? 'text-yellow-400 fill-current'
-                              : 'text-gray-300'
+                            ? 'text-yellow-400 fill-current'
+                            : 'text-gray-300'
                             }`}
                         />
                       ))}
@@ -377,8 +379,8 @@ const CustomerDashboard = () => {
                     >
                       <StarIcon
                         className={`w-6 h-6 ${star <= feedback.rating
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300'
+                          ? 'text-yellow-400 fill-current'
+                          : 'text-gray-300'
                           }`}
                       />
                     </button>

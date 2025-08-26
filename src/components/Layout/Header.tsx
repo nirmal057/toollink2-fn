@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { rbacService } from '../../services/rbacService';
 import DarkModeToggle from '../UI/DarkModeToggle';
 import NotificationDropdown from '../UI/NotificationDropdown';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface HeaderProps {
   userRole: 'admin' | 'warehouse' | 'cashier' | 'customer' | string;
@@ -16,13 +17,14 @@ const Header = ({ userRole }: HeaderProps) => {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { isAuthenticated, user } = useAuth();
+  const { showError } = useNotification();
 
   // Debug render
-  console.log('Header render', { 
-    showUserMenu, 
+  console.log('Header render', {
+    showUserMenu,
     userRole,
     isAuthenticated,
-    user 
+    user
   });
 
   // Handle menu toggles
@@ -35,22 +37,22 @@ const Header = ({ userRole }: HeaderProps) => {
   // Close menus when clicking outside
   const handleClickOutside = useCallback((event: MouseEvent | TouchEvent) => {
     const target = event.target as HTMLElement;
-    
+
     // Don't close if clicking inside the menus or buttons
     const userMenuContainer = target.closest('.user-menu-container');
     const userMenuButton = target.closest('[data-user-menu-button]');
-    
+
     if (userMenuContainer || userMenuButton) {
       return;
     }
-    
+
     setShowUserMenu(false);
   }, []);
 
   const handleLogout = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
       const confirmed = window.confirm('Are you sure you want to sign out?');
       if (!confirmed) return;
@@ -66,7 +68,7 @@ const Header = ({ userRole }: HeaderProps) => {
       }, 3000);
     } catch (error) {
       console.error('Sign out failed:', error);
-      window.alert('Failed to sign out. Please try again.');
+      showError('Sign Out Failed', 'Failed to sign out. Please try again.');
       setIsLoggingOut(false);
     }
   }, []);
@@ -104,7 +106,7 @@ const Header = ({ userRole }: HeaderProps) => {
             transform: translateY(0) scale(1);
           }
         }
-        
+
         @keyframes connectedPulse {
           0%, 100% {
             opacity: 1;
@@ -115,7 +117,7 @@ const Header = ({ userRole }: HeaderProps) => {
             transform: scale(1.05);
           }
         }
-        
+
         @keyframes signalWave {
           0% {
             transform: scale(0.8);
@@ -126,16 +128,16 @@ const Header = ({ userRole }: HeaderProps) => {
             opacity: 0;
           }
         }
-        
+
         .animate-connected-pulse {
           animation: connectedPulse 2s infinite;
         }
-        
+
         .animate-signal-wave {
           animation: signalWave 1.5s infinite;
         }
       `}</style>
-      
+
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out fixed top-0 left-0 right-0 header-container" style={{ zIndex: 9999 }}>
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -153,7 +155,7 @@ const Header = ({ userRole }: HeaderProps) => {
 
               {/* User Menu */}
               <div className="relative">
-                <button 
+                <button
                   onClick={toggleUserMenu}
                   className="flex items-center p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out transform hover:scale-105"
                   disabled={isLoggingOut}
@@ -174,14 +176,14 @@ const Header = ({ userRole }: HeaderProps) => {
 
       {/* User Menu Dropdown - Fixed position overlay with maximum z-index */}
       {showUserMenu && (
-        <div 
+        <div
           className="fixed inset-0"
           style={{ zIndex: 2147483646 }}
           onClick={() => setShowUserMenu(false)}
         >
-          <div 
+          <div
             className="fixed right-4 sm:right-6 lg:right-8 top-16 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-2xl py-1 border border-gray-200 dark:border-gray-600 animate-in fade-in slide-in-from-top-2 duration-200 user-menu-container"
-            style={{ 
+            style={{
               zIndex: 2147483647,
               transform: 'translateZ(0)',
               backfaceVisibility: 'hidden'
@@ -205,7 +207,7 @@ const Header = ({ userRole }: HeaderProps) => {
                     <div className="border-t border-gray-100 dark:border-gray-600" />
                   </>
                 )}
-                
+
                 <Link
                   to="/profile"
                   className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 ease-in-out"

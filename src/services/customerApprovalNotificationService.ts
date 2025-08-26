@@ -44,6 +44,35 @@ class CustomerApprovalNotificationService {
     return [];
   }
 
+  // Get pending customer approval count
+  static async getPendingCustomerCount(userRole: string): Promise<number> {
+    // Only show to cashiers and admins
+    if (!['admin', 'cashier'].includes(userRole)) {
+      return 0;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return 0;
+
+      const response = await fetch('http://localhost:5000/api/auth/pending-users', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.count || 0;
+      }
+    } catch (error) {
+      console.error('Error fetching pending customer count:', error);
+    }
+
+    return 0;
+  }
+
   // Check if notification has been read
   static isNotificationRead(userId: number): boolean {
     const readNotifications = this.getReadNotifications();

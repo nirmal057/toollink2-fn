@@ -240,7 +240,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                 <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-red-300/20 rounded-full blur-3xl animate-float-delayed"></div>
                 <div className="absolute top-3/4 left-1/3 w-48 h-48 bg-yellow-300/20 rounded-full blur-3xl animate-float-slow"></div>
             </div>
-            
+
             {/* Navigation Bar */}
             <motion.div
                 className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-orange-200/50 dark:border-gray-700/50 shadow-lg"

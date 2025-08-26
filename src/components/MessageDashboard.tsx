@@ -105,7 +105,7 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
 
     const fetchMessages = async () => {
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('accessToken');
             const response = await fetch('http://localhost:5000/api/messages', {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -114,7 +114,7 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
 
             if (response.status === 401 || response.status === 403) {
                 // Token expired or invalid, redirect to login
-                localStorage.removeItem('token');
+                localStorage.removeItem('accessToken');
                 localStorage.removeItem('user');
                 setError('Session expired. Please login again.');
                 window.location.href = '/login';
@@ -205,12 +205,14 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
             setError('Failed to update message');
             console.error('Error updating message:', error);
         }
-    }; const sendReply = async () => {
+    };
+
+    const sendReply = async () => {
         if (!selectedMessage || !replyMessage.trim()) return;
 
         setSendingReply(true);
         try {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem('accessToken');
             const response = await fetch(`http://localhost:5000/api/messages/${selectedMessage._id}/reply`, {
                 method: 'POST',
                 headers: {

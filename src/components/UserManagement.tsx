@@ -5,6 +5,7 @@ import { socketService } from '../services/socketService';
 import RealtimeNotificationContainer, { RealtimeNotification } from './RealtimeNotifications';
 import './UserManagement.css';
 import './RealtimeNotifications.css';
+import { useNotification } from '../contexts/NotificationContext';
 
 interface User {
     _id: string;
@@ -36,6 +37,7 @@ const UserManagement: React.FC = () => {
     const [statusFilter, setStatusFilter] = useState<string>('');
     const [realtimeNotifications, setRealtimeNotifications] = useState<RealtimeNotification[]>([]);
     const [isSocketConnected, setIsSocketConnected] = useState<boolean>(false);
+    const { showError, showSuccess } = useNotification();
 
     // Form state
     const [formData, setFormData] = useState<FormData>({
@@ -207,7 +209,7 @@ const UserManagement: React.FC = () => {
             });
 
             if (response.status === 401) {
-                alert('Authentication required. Please login.');
+                showError('Authentication Required', 'Authentication required. Please login.');
                 return;
             }
 
@@ -215,12 +217,12 @@ const UserManagement: React.FC = () => {
 
             if (data.success) {
                 fetchUsers(); // Refresh the list
-                alert('User deleted successfully');
+                showSuccess('Success', 'User deleted successfully');
             } else {
-                alert(data.message || 'Failed to delete user');
+                showError('Error', data.message || 'Failed to delete user');
             }
         } catch (err: any) {
-            alert('Error deleting user: ' + (err?.message || 'Unknown error'));
+            showError('Error', 'Error deleting user: ' + (err?.message || 'Unknown error'));
         }
     };
 

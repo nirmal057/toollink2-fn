@@ -4,6 +4,7 @@ import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon } from 'lu
 import { Order, OrderFormData, OrderItem } from '../types/order';
 import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
+import { useNotification } from '../contexts/NotificationContext';
 
 const defaultFormData: OrderFormData = {
   customer: '',
@@ -27,6 +28,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchingOrders, setFetchingOrders] = useState(true);
+  const { showError, showSuccess, showWarning } = useNotification();
 
   // Fetch orders and inventory from backend
   useEffect(() => {
@@ -205,7 +207,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
     // Validate phone number
     if (formData.contact.length !== 12) { // +94 + 9 digits = 12 characters
-      alert('Please enter a complete 9-digit mobile number.');
+      showError('Invalid Phone Number', 'Please enter a complete 9-digit mobile number.');
       return;
     }
 
@@ -216,7 +218,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
       if (selectedDate < today) {
-        alert('Cannot schedule delivery for past dates. Please select today or a future date.');
+        showError('Invalid Date', 'Cannot schedule delivery for past dates. Please select today or a future date.');
         return;
       }
     }
@@ -323,7 +325,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         setShowCreateModal(false);
         setSelectedOrder(null);
         setFormData(defaultFormData);
-        alert(`Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+        showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
 
         // Navigate to delivery calendar for scheduling if it's a new order
         if (!selectedOrder) {
@@ -416,8 +418,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   };
 
   const handleRequestChange = (order: Order) => {
-    // For now, just show an alert - could be expanded to a modal
-    alert(`Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
+    // For now, just show a notification - could be expanded to a modal
+    showWarning('Request Changes', `Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
   };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-3 sm:p-4 lg:p-6">

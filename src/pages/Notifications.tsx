@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  BellIcon, 
-  FilterIcon, 
-  MailIcon, 
-  TrashIcon, 
-  EyeIcon, 
-  ShoppingCartIcon, 
-  TruckIcon, 
-  PackageIcon, 
-  UserIcon, 
-  ShieldIcon, 
-  SettingsIcon, 
-  ClockIcon, 
-  StarIcon, 
+import {
+  BellIcon,
+  FilterIcon,
+  MailIcon,
+  TrashIcon,
+  EyeIcon,
+  ShoppingCartIcon,
+  TruckIcon,
+  PackageIcon,
+  UserIcon,
+  ShieldIcon,
+  SettingsIcon,
+  ClockIcon,
+  StarIcon,
   AlertTriangleIcon
 } from 'lucide-react';
 import { notificationService, Notification } from '../services/notificationService';
@@ -43,7 +43,7 @@ const Notifications: React.FC = () => {
   const markAsRead = async (id: string) => {
     try {
       await notificationService.markAsRead(id);
-      setNotifications(notifications.map(notif => 
+      setNotifications(notifications.map(notif =>
         notif._id === id ? { ...notif, isRead: true } : notif
       ));
     } catch (error) {
@@ -72,7 +72,7 @@ const Notifications: React.FC = () => {
   const clearAllNotifications = async () => {
     try {
       // Delete all notifications one by one since there's no clearAll method
-      const deletePromises = notifications.map(notif => 
+      const deletePromises = notifications.map(notif =>
         notificationService.deleteNotification(notif._id)
       );
       await Promise.all(deletePromises);
@@ -92,7 +92,7 @@ const Notifications: React.FC = () => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -146,7 +146,7 @@ const Notifications: React.FC = () => {
                 </p>
               </div>
             </div>
-            
+
             <div className="flex items-center gap-3">
               {notifications.filter(n => !n.isRead).length > 0 && (
                 <button
@@ -156,7 +156,7 @@ const Notifications: React.FC = () => {
                   Mark All Read
                 </button>
               )}
-              
+
               {notifications.length > 0 && (
                 <button
                   onClick={clearAllNotifications}
@@ -182,7 +182,7 @@ const Notifications: React.FC = () => {
             </div>
             <h2 className="text-xl font-bold text-gray-800 dark:text-white">Filter by Category</h2>
           </div>
-          
+
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {[
               { key: 'all', label: 'All', icon: BellIcon, color: 'from-gray-500 to-slate-600' },
@@ -197,11 +197,10 @@ const Notifications: React.FC = () => {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`group flex flex-col items-center space-y-2 p-4 rounded-2xl font-medium transition-all duration-300 hover:scale-105 ${
-                  filter === key
+                className={`group flex flex-col items-center space-y-2 p-4 rounded-2xl font-medium transition-all duration-300 hover:scale-105 ${filter === key
                     ? `bg-gradient-to-r ${color} text-white shadow-lg`
                     : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
+                  }`}
               >
                 <Icon className={`h-5 w-5 ${filter === key ? 'text-white' : ''} group-hover:animate-pulse`} />
                 <span className="text-sm font-medium">{label}</span>
@@ -214,16 +213,15 @@ const Notifications: React.FC = () => {
         <div className="space-y-4">
           {filteredNotifications.map((notification: Notification, index: number) => {
             const CategoryIcon = getCategoryIcon(notification.category);
-            
+
             return (
-              <motion.div 
+              <motion.div
                 key={notification._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1, duration: 0.5 }}
-                className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl ${
-                  !notification.isRead ? 'ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-900/10' : ''
-                }`}
+                className={`relative bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 transition-all duration-300 hover:shadow-xl ${!notification.isRead ? 'ring-2 ring-blue-500/20 bg-blue-50/50 dark:bg-blue-900/10' : ''
+                  }`}
               >
                 {/* Unread Indicator */}
                 {!notification.isRead && (
@@ -231,20 +229,19 @@ const Notifications: React.FC = () => {
                     <div className="w-4 h-4 bg-blue-500 rounded-full shadow-lg"></div>
                   </div>
                 )}
-                
+
                 <div className="flex items-start gap-4">
                   {/* Category Icon */}
-                  <div className={`flex-shrink-0 p-3 rounded-2xl shadow-lg ${
-                    notification.category === 'order' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                    notification.category === 'delivery' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                    notification.category === 'inventory' ? 'bg-gradient-to-r from-orange-500 to-yellow-500' :
-                    notification.category === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                    notification.category === 'security' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-                    'bg-gradient-to-r from-gray-500 to-slate-500'
-                  }`}>
+                  <div className={`flex-shrink-0 p-3 rounded-2xl shadow-lg ${notification.category === 'order' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
+                      notification.category === 'delivery' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                        notification.category === 'inventory' ? 'bg-gradient-to-r from-orange-500 to-yellow-500' :
+                          notification.category === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                            notification.category === 'security' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                              'bg-gradient-to-r from-gray-500 to-slate-500'
+                    }`}>
                     <CategoryIcon className="h-6 w-6 text-white" />
                   </div>
-                  
+
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-4">
@@ -255,25 +252,24 @@ const Notifications: React.FC = () => {
                         <p className="text-gray-600 dark:text-gray-300 leading-relaxed mb-4 line-clamp-3">
                           {notification.message}
                         </p>
-                        
+
                         {/* Meta Information */}
                         <div className="flex flex-wrap items-center gap-3">
                           <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                             <ClockIcon className="h-4 w-4" />
                             <span>{formatDate(notification.createdAt)}</span>
                           </div>
-                          
-                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm ${
-                            notification.category === 'order' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                            notification.category === 'delivery' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                            notification.category === 'inventory' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
-                            notification.category === 'user' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                            notification.category === 'security' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                            'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
-                          }`}>
+
+                          <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm ${notification.category === 'order' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                              notification.category === 'delivery' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                                notification.category === 'inventory' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
+                                  notification.category === 'user' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+                                    notification.category === 'security' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
                             {notification.category}
                           </span>
-                          
+
                           {notification.priority === 'high' && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gradient-to-r from-orange-400 to-red-400 text-white shadow-lg">
                               <StarIcon className="h-3 w-3 mr-1" />
@@ -288,21 +284,21 @@ const Notifications: React.FC = () => {
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Action Buttons */}
                       <div className="flex flex-col gap-2">
                         {!notification.isRead && (
-                          <button 
-                            onClick={() => markAsRead(notification._id)} 
-                            className="p-3 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-300 hover:scale-110 shadow-lg" 
+                          <button
+                            onClick={() => markAsRead(notification._id)}
+                            className="p-3 rounded-xl bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50 transition-all duration-300 hover:scale-110 shadow-lg"
                             title="Mark as read"
                           >
                             <EyeIcon className="h-5 w-5" />
                           </button>
                         )}
-                        <button 
-                          onClick={() => deleteNotification(notification._id)} 
-                          className="p-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-300 hover:scale-110 shadow-lg" 
+                        <button
+                          onClick={() => deleteNotification(notification._id)}
+                          className="p-3 rounded-xl bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-all duration-300 hover:scale-110 shadow-lg"
                           title="Delete notification"
                         >
                           <TrashIcon className="h-5 w-5" />
@@ -314,7 +310,7 @@ const Notifications: React.FC = () => {
               </motion.div>
             );
           })}
-          
+
           {/* Empty State */}
           {filteredNotifications.length === 0 && (
             <motion.div
@@ -332,8 +328,8 @@ const Notifications: React.FC = () => {
                     All caught up!
                   </h3>
                   <p className="text-gray-600 dark:text-gray-400 max-w-sm mx-auto">
-                    {filter === 'all' 
-                      ? "You don't have any notifications right now. We'll let you know when something new comes up!" 
+                    {filter === 'all'
+                      ? "You don't have any notifications right now. We'll let you know when something new comes up!"
                       : `No ${filter} notifications found. Try checking other categories or come back later.`
                     }
                   </p>
