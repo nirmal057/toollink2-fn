@@ -16,7 +16,8 @@ import {
   UserCheckIcon,
   ShieldIcon,
   ActivityIcon,
-  AlertCircleIcon
+  AlertCircleIcon,
+  PlusIcon
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { notificationService } from '../../services/notificationService';
@@ -163,6 +164,13 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'Inventory'
     }] : []),
 
+    // Quick Add Inventory (Warehouse only)
+    ...(['admin', 'warehouse'].includes(userRole) ? [{
+      to: '/inventory/quick-add',
+      icon: <PlusIcon size={20} />,
+      label: 'Quick Add Items'
+    }] : []),
+
     // Deliveries
     ...(['admin', 'warehouse', 'cashier'].includes(userRole) ? [{
       to: '/deliveries',
@@ -224,14 +232,14 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: userRole === 'customer' ? 'Submit Feedback' : 'Feedback'
     },
 
-    // Contact (only for non-admin users)
-    ...(userRole !== 'admin' ? [{
+    // Contact (only for customers)
+    ...(userRole === 'customer' ? [{
       to: '/contact',
       icon: <PhoneIcon size={20} />,
       label: 'Contact Us'
     }] : []),
 
-    // Profile
+    // Profile (accessible to all users)
     {
       to: '/profile',
       icon: <UserIcon size={20} />,

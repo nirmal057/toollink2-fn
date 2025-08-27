@@ -299,12 +299,17 @@ const Profile = ({
                         Full Name
                       </label>
                       <div className="relative">
-                        <UserIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />                  <input type="text" value={profileData.fullName} onChange={e => setProfileData({
-                          ...profileData,
-                          fullName: e.target.value
-                        })}
+                        <UserIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />                  <input
+                          type="text"
+                          value={profileData.fullName}
+                          onChange={e => setProfileData({
+                            ...profileData,
+                            fullName: e.target.value
+                          })}
                           placeholder="e.g., W.A. Saman Kumara Perera"
-                          className="pl-10 block w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50" />
+                          disabled={userRole === 'customer'}
+                          className={`pl-10 block w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 ${userRole === 'customer' ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400' : ''
+                            }`} />
                       </div>
                     </div>
                     <div>
@@ -312,10 +317,16 @@ const Profile = ({
                         Email Address
                       </label>
                       <div className="relative">
-                        <MailIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />                  <input type="email" value={profileData.email} onChange={e => setProfileData({
-                          ...profileData,
-                          email: e.target.value
-                        })} className="pl-10 block w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50" />
+                        <MailIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />                  <input
+                          type="email"
+                          value={profileData.email}
+                          onChange={e => setProfileData({
+                            ...profileData,
+                            email: e.target.value
+                          })}
+                          disabled={userRole === 'customer'}
+                          className={`pl-10 block w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 ${userRole === 'customer' ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400' : ''
+                            }`} />
                       </div>
                     </div>
                     <div>
@@ -341,7 +352,9 @@ const Profile = ({
                           }}
                           placeholder="77 123 4567"
                           maxLength={9}
-                          className="pl-16 pr-4 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                          disabled={userRole === 'customer'}
+                          className={`pl-16 pr-4 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 ${userRole === 'customer' ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400' : ''
+                            }`}
                         />
                       </div>
                     </div>
@@ -351,12 +364,17 @@ const Profile = ({
                       </label>
                       <div className="relative">
                         <MapPinIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />
-                        <input type="text" value={profileData.address} onChange={e => setProfileData({
-                          ...profileData,
-                          address: e.target.value
-                        })}
+                        <input
+                          type="text"
+                          value={profileData.address}
+                          onChange={e => setProfileData({
+                            ...profileData,
+                            address: e.target.value
+                          })}
                           placeholder="e.g., No. 123, Galle Road, Bambalapitiya, Colombo 04"
-                          className="pl-10 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50" />
+                          disabled={userRole === 'customer'}
+                          className={`pl-10 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 ${userRole === 'customer' ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400' : ''
+                            }`} />
                       </div>
                     </div>
                     <div>
@@ -365,12 +383,17 @@ const Profile = ({
                       </label>
                       <div className="relative">
                         <UserIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 " />
-                        <input type="text" value={profileData.company} onChange={e => setProfileData({
-                          ...profileData,
-                          company: e.target.value
-                        })}
+                        <input
+                          type="text"
+                          value={profileData.company}
+                          onChange={e => setProfileData({
+                            ...profileData,
+                            company: e.target.value
+                          })}
                           placeholder="e.g., ABC Construction (Pvt) Ltd"
-                          className="pl-10 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50" />
+                          disabled={userRole === 'customer'}
+                          className={`pl-10 block w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 ${userRole === 'customer' ? 'bg-gray-100 dark:bg-gray-700 cursor-not-allowed text-gray-500 dark:text-gray-400' : ''
+                            }`} />
                       </div>
                     </div>
                   </div>
@@ -383,16 +406,31 @@ const Profile = ({
                         {saveMessage}
                       </div>
                     )}
-                    <div className="flex justify-end">
-                      <button
-                        onClick={saveProfile}
-                        disabled={isSaving}
-                        className="flex items-center px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <SaveIcon size={20} className="mr-2" />
-                        {isSaving ? 'Saving...' : 'Save Changes'}
-                      </button>
-                    </div>
+                    {/* Show save button only for non-customers */}
+                    {userRole !== 'customer' && (
+                      <div className="flex justify-end">
+                        <button
+                          onClick={saveProfile}
+                          disabled={isSaving}
+                          className="flex items-center px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/90 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <SaveIcon size={20} className="mr-2" />
+                          {isSaving ? 'Saving...' : 'Save Changes'}
+                        </button>
+                      </div>
+                    )}
+                    {/* Show read-only message for customers */}
+                    {userRole === 'customer' && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                        <div className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
+                          <ShieldIcon size={18} />
+                          <span className="text-sm font-medium">Profile View Only</span>
+                        </div>
+                        <p className="text-blue-600 dark:text-blue-400 text-sm mt-1">
+                          Your profile information is view-only. Contact administration to update your details.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

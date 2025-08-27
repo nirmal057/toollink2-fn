@@ -8,6 +8,7 @@ import MainLayout from './components/Layout/MainLayout';
 import LandingPage from './pages/LandingPage';
 import OrderManagement from './pages/OrderManagement';
 import InventoryManagement from './pages/InventoryManagement';
+import QuickAddInventory from './pages/QuickAddInventory';
 import DeliveryCalendar from './pages/DeliveryCalendar';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
@@ -125,6 +126,16 @@ function AppRoutes() {
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.USER]} fallback={<Unauthorized />}>
                 <InventoryManagement userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* Quick Add Inventory route - accessible by admin and warehouse */}
+          <Route
+            path="/inventory/quick-add"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <QuickAddInventory userRole={user.role} />
               </RoleGuard>
             }
           />
