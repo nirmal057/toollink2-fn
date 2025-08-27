@@ -59,7 +59,7 @@ const Header = ({ userRole }: HeaderProps) => {
       if (['admin', 'cashier'].includes(userRole)) {
         try {
           const approvalNotifications = await CustomerApprovalNotificationService.getPendingCustomerNotifications(userRole);
-          
+
           // Combine with existing notifications
           setNotifications(prev => {
             // Remove old approval notifications
@@ -74,10 +74,10 @@ const Header = ({ userRole }: HeaderProps) => {
     };
 
     loadApprovalNotifications();
-    
+
     // Refresh notifications every 30 seconds
     const interval = setInterval(loadApprovalNotifications, 30000);
-    
+
     return () => clearInterval(interval);
   }, [userRole]);
 
@@ -99,17 +99,17 @@ const Header = ({ userRole }: HeaderProps) => {
   // Close menus when clicking outside
   const handleClickOutside = useCallback((event: MouseEvent | TouchEvent) => {
     const target = event.target as HTMLElement;
-    
+
     // Don't close if clicking inside the menus or buttons
     const notificationContainer = target.closest('.notifications-container');
     const userMenuContainer = target.closest('.user-menu-container');
     const notificationButton = target.closest('[data-notification-button]');
     const userMenuButton = target.closest('[data-user-menu-button]');
-    
+
     if (notificationContainer || userMenuContainer || notificationButton || userMenuButton) {
       return;
     }
-    
+
     setShowUserMenu(false);
     setShowNotifications(false);
   }, []);
@@ -117,9 +117,9 @@ const Header = ({ userRole }: HeaderProps) => {
   const handleLogout = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     try {
-      const confirmed = window.confirm('Are you sure you want to sign out?');
+      const confirmed = window.confirm('Are you sure you want to logout?');
       if (!confirmed) return;
 
       setIsLoggingOut(true);
@@ -193,7 +193,7 @@ const Header = ({ userRole }: HeaderProps) => {
             <div className="flex items-center space-x-4">
               {/* Notification Button */}
               <div className="relative">
-                <button 
+                <button
                   onClick={toggleNotifications}
                   className="p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 relative transition-all duration-300 ease-in-out transform hover:scale-105"
                   title="View notifications"
@@ -215,7 +215,7 @@ const Header = ({ userRole }: HeaderProps) => {
 
               {/* User Menu */}
               <div className="relative">
-                <button 
+                <button
                   onClick={toggleUserMenu}
                   className="flex items-center p-2 rounded-full text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 ease-in-out transform hover:scale-105"
                   disabled={isLoggingOut}
@@ -236,11 +236,11 @@ const Header = ({ userRole }: HeaderProps) => {
 
       {/* Notification Dropdown - Fixed position overlay */}
       {showNotifications && (
-        <div 
-          className="fixed inset-0 z-[9998]" 
+        <div
+          className="fixed inset-0 z-[9998]"
           onClick={() => setShowNotifications(false)}
         >
-          <div 
+          <div
             className="fixed right-4 sm:right-6 lg:right-8 top-16 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-2xl py-1 border border-gray-200 dark:border-gray-600 z-[9999] animate-in fade-in slide-in-from-top-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >
@@ -261,7 +261,7 @@ const Header = ({ userRole }: HeaderProps) => {
               ) : (
                 notifications.slice(0, 5).map((notification) => {
                   const isApprovalNotification = notification.type === 'customer-approval';
-                  
+
                   if (isApprovalNotification) {
                     return (
                       <Link
@@ -347,11 +347,11 @@ const Header = ({ userRole }: HeaderProps) => {
 
       {/* User Menu Dropdown - Fixed position overlay */}
       {showUserMenu && (
-        <div 
-          className="fixed inset-0 z-[9998]" 
+        <div
+          className="fixed inset-0 z-[9998]"
           onClick={() => setShowUserMenu(false)}
         >
-          <div 
+          <div
             className="fixed right-4 sm:right-6 lg:right-8 top-16 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-2xl py-1 border border-gray-200 dark:border-gray-600 z-[9999] animate-in fade-in slide-in-from-top-2 duration-200"
             onClick={(e) => e.stopPropagation()}
           >

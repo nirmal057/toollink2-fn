@@ -7,7 +7,8 @@ import {
   XIcon,
   Activity,
   Download,
-  Eye
+  Eye,
+  AlertTriangleIcon
 } from 'lucide-react';
 import { userApiService, User, CreateUserData, UpdateUserData } from '../services/userApiService';
 import { adminApiService } from '../services/adminApiService';
@@ -471,6 +472,10 @@ const UserManagement: React.FC = () => {
   const [bulkActionLoading, setBulkActionLoading] = useState(false);
   // Force refresh key to ensure re-renders
   const [refreshKey, setRefreshKey] = useState(0);
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Initialize RBAC and check permissions
   const initializeRBAC = () => {
@@ -639,59 +644,77 @@ const UserManagement: React.FC = () => {
       return;
     }
 
-    const userToDelete = users.find(user => (user.id === userId) || ((user as any)._id === userId));
-    if (!userToDelete) {
+    const user = users.find(user => (user.id === userId) || ((user as any)._id === userId));
+    if (!user) {
       console.error('UserManagement: User not found in local list:', userId);
       showNotification('User not found', 'error');
       return;
     }
 
-    if (window.confirm(`Are you sure you want to PERMANENTLY DELETE user "${userToDelete.fullName || userToDelete.name}" from the database? This cannot be undone!`)) {
-      try {
-        console.log('UserManagement: handleDeleteUser called - permanently removing user from database');
-        console.log('UserManagement: Permanently deleting user from database:', { userId, userToDelete });
+    // Show beautiful delete confirmation modal
+    setUserToDelete(user);
+    setShowDeleteModal(true);
+  };
 
-        // Call API to permanently delete user from database
-        await userApiService.deleteUser(userId);
-        console.log('UserManagement: User permanently deleted from database');
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
 
-        // Immediately refresh to show current database state
-        console.log('UserManagement: Refreshing user list to show current database state');
+    const userId = userToDelete.id || (userToDelete as any)._id;
+
+    setDeleteLoading(true);
+    try {
+      console.log('UserManagement: handleDeleteUser called - permanently removing user from database');
+      console.log('UserManagement: Permanently deleting user from database:', { userId, userToDelete });
+
+      // Call API to permanently delete user from database
+      await userApiService.deleteUser(userId);
+      console.log('UserManagement: User permanently deleted from database');
+
+      // Immediately refresh to show current database state
+      console.log('UserManagement: Refreshing user list to show current database state');
+      await loadUsers();
+
+      // Force a second refresh after a short delay to ensure consistency
+      setTimeout(async () => {
+        console.log('UserManagement: Secondary refresh to ensure database consistency');
         await loadUsers();
+      }, 1000);
 
-        // Force a second refresh after a short delay to ensure consistency
-        setTimeout(async () => {
-          console.log('UserManagement: Secondary refresh to ensure database consistency');
-          await loadUsers();
-        }, 1000);
+      showNotification(
+        `User "${userToDelete.fullName || userToDelete.name}" permanently deleted from database!`,
+        'success'
+      );
 
+      console.log('UserManagement: Delete user from database process completed');
+    } catch (error) {
+      console.error('UserManagement: Failed to delete user from database:', error);
+
+      // Handle different types of errors
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      if (errorMessage.includes('User not found') || errorMessage.includes('404')) {
+        showNotification('User has already been deleted from database', 'info');
+        await loadUsers(); // Refresh to show current state
+      } else if (errorMessage.includes('Cannot delete your own account')) {
+        showNotification('You cannot delete your own account', 'error');
+      } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
+        showNotification('You do not have permission to delete this user', 'error');
+      } else {
         showNotification(
-          `User "${userToDelete.fullName || userToDelete.name}" permanently deleted from database!`,
-          'success'
+          `Failed to delete user from database: ${errorMessage}`,
+          'error'
         );
-
-        console.log('UserManagement: Delete user from database process completed');
-      } catch (error) {
-        console.error('UserManagement: Failed to delete user from database:', error);
-
-        // Handle different types of errors
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-        if (errorMessage.includes('User not found') || errorMessage.includes('404')) {
-          showNotification('User has already been deleted from database', 'info');
-          await loadUsers(); // Refresh to show current state
-        } else if (errorMessage.includes('Cannot delete your own account')) {
-          showNotification('You cannot delete your own account', 'error');
-        } else if (errorMessage.includes('permission') || errorMessage.includes('unauthorized')) {
-          showNotification('You do not have permission to delete this user', 'error');
-        } else {
-          showNotification(
-            `Failed to delete user from database: ${errorMessage}`,
-            'error'
-          );
-        }
       }
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     }
+  };
+
+  const cancelDeleteUser = () => {
+    setShowDeleteModal(false);
+    setUserToDelete(null);
   };
   const handleModalSubmit = (userData: CreateUserData | UpdateUserData) => {
     console.log('UserManagement: handleModalSubmit called with:', userData);
@@ -1174,6 +1197,68 @@ const UserManagement: React.FC = () => {
           }}
           onSubmit={handleModalSubmit}
         />
+
+        {/* Beautiful Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 border border-gray-200 dark:border-gray-700">
+              <div className="p-6 text-center">
+                {/* Warning Icon */}
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 rounded-full flex items-center justify-center">
+                  <AlertTriangleIcon
+                    size={32}
+                    className="text-red-600 dark:text-red-400"
+                  />
+                </div>
+
+                {/* Title */}
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Delete User
+                </h3>
+
+                {/* Message */}
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Are you sure you want to permanently delete{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    "{userToDelete?.fullName || userToDelete?.name}"
+                  </span>
+                  ?<br />
+                  <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                    This action cannot be undone!
+                  </span>
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <button
+                    onClick={cancelDeleteUser}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteUser}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {deleteLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <TrashIcon size={16} />
+                        Delete User
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

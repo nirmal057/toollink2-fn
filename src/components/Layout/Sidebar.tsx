@@ -15,7 +15,8 @@ import {
   UsersIcon,
   UserCheckIcon,
   ShieldIcon,
-  ActivityIcon
+  ActivityIcon,
+  AlertCircleIcon
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { notificationService } from '../../services/notificationService';
@@ -30,6 +31,7 @@ interface SidebarProps {
 
 const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
   const { showError } = useNotification();
@@ -71,15 +73,17 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       const interval = setInterval(loadPendingApprovalCount, 30000);
       return () => clearInterval(interval);
     }
-  }, [userRole]); const handleLogout = useCallback(async (e: React.MouseEvent) => {
+  }, [userRole]);
+
+  const handleLogout = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    setShowLogoutModal(true);
+  }, []);
 
+  const confirmLogout = useCallback(async () => {
     try {
-      // Show confirmation dialog
-      const confirmed = window.confirm('Are you sure you want to sign out? You will need to sign in again to access your account.');
-      if (!confirmed) return;
-
+      setShowLogoutModal(false);
       setIsLoggingOut(true);
 
       if (onLogout) {
@@ -103,7 +107,13 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     }
     // Don't reset isLoggingOut in finally block when using onLogout
     // as the redirect will happen and component will unmount
-  }, [onLogout]); const navItems = [
+  }, [onLogout, showError]);
+
+  const cancelLogout = useCallback(() => {
+    setShowLogoutModal(false);
+  }, []);
+
+  const navItems = [
     // Admin Dashboard (first for admins)
     ...(userRole === 'admin' ? [{
       to: '/admin',
@@ -280,6 +290,50 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           {isLoggingOut ? 'Logging out...' : 'Logout'}
         </button>
       </div>
+
+      {/* Beautiful Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100 animate-in">
+            {/* Modal Header */}
+            <div className="p-6 text-center border-b border-gray-200 dark:border-gray-700">
+              <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-orange-400 to-red-500 mb-4">
+                <AlertCircleIcon className="w-8 h-8 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Confirm Logout
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                Are you sure you want to logout? You will need to sign in again to access your account.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="p-6 flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={cancelLogout}
+                className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 transform hover:scale-[1.02]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                disabled={isLoggingOut}
+                className="flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-600 border border-transparent rounded-xl hover:from-orange-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl"
+              >
+                {isLoggingOut ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                    Logging out...
+                  </div>
+                ) : (
+                  'Yes, Logout'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

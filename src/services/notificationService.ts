@@ -25,6 +25,25 @@ export interface Notification {
   relatedEntityType?: string;
   expiresAt?: string;
   isArchived: boolean;
+  metadata?: {
+    orderId?: string;
+    orderNumber?: string;
+    customerName?: string;
+    amount?: number;
+    inventoryId?: string;
+    itemName?: string;
+    currentStock?: number;
+    minLevel?: number;
+    sku?: string;
+    deliveryId?: string;
+    status?: string;
+    trackingNumber?: string;
+    userId?: string;
+    userName?: string;
+    userEmail?: string;
+    userRole?: string;
+    [key: string]: any;
+  };
 }
 
 export interface NotificationFilters {

@@ -198,8 +198,8 @@ const Notifications: React.FC = () => {
                 key={key}
                 onClick={() => setFilter(key)}
                 className={`group flex flex-col items-center space-y-2 p-4 rounded-2xl font-medium transition-all duration-300 hover:scale-105 ${filter === key
-                    ? `bg-gradient-to-r ${color} text-white shadow-lg`
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  ? `bg-gradient-to-r ${color} text-white shadow-lg`
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
               >
                 <Icon className={`h-5 w-5 ${filter === key ? 'text-white' : ''} group-hover:animate-pulse`} />
@@ -233,11 +233,11 @@ const Notifications: React.FC = () => {
                 <div className="flex items-start gap-4">
                   {/* Category Icon */}
                   <div className={`flex-shrink-0 p-3 rounded-2xl shadow-lg ${notification.category === 'order' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                      notification.category === 'delivery' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
-                        notification.category === 'inventory' ? 'bg-gradient-to-r from-orange-500 to-yellow-500' :
-                          notification.category === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                            notification.category === 'security' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
-                              'bg-gradient-to-r from-gray-500 to-slate-500'
+                    notification.category === 'delivery' ? 'bg-gradient-to-r from-green-500 to-emerald-500' :
+                      notification.category === 'inventory' ? 'bg-gradient-to-r from-orange-500 to-yellow-500' :
+                        notification.category === 'user' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
+                          notification.category === 'security' ? 'bg-gradient-to-r from-red-500 to-orange-500' :
+                            'bg-gradient-to-r from-gray-500 to-slate-500'
                     }`}>
                     <CategoryIcon className="h-6 w-6 text-white" />
                   </div>
@@ -253,6 +253,88 @@ const Notifications: React.FC = () => {
                           {notification.message}
                         </p>
 
+                        {/* Additional Details from Database */}
+                        {notification.metadata && (
+                          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+                            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                              {notification.metadata.orderNumber && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Order:</span>
+                                  <span className="font-mono bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded text-blue-700 dark:text-blue-300">
+                                    {notification.metadata.orderNumber}
+                                  </span>
+                                </div>
+                              )}
+                              {notification.metadata.customerName && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Customer:</span>
+                                  <span>{notification.metadata.customerName}</span>
+                                </div>
+                              )}
+                              {notification.metadata.amount && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Amount:</span>
+                                  <span className="font-semibold text-green-600 dark:text-green-400">Rs. {notification.metadata.amount.toLocaleString()}</span>
+                                </div>
+                              )}
+                              {notification.metadata.itemName && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Item:</span>
+                                  <span>{notification.metadata.itemName}</span>
+                                </div>
+                              )}
+                              {notification.metadata.sku && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">SKU:</span>
+                                  <span className="font-mono bg-orange-100 dark:bg-orange-900/30 px-2 py-1 rounded text-orange-700 dark:text-orange-300">
+                                    {notification.metadata.sku}
+                                  </span>
+                                </div>
+                              )}
+                              {notification.metadata.currentStock !== undefined && notification.metadata.minLevel !== undefined && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Stock:</span>
+                                  <span className={`font-semibold ${notification.metadata.currentStock <= notification.metadata.minLevel ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
+                                    {notification.metadata.currentStock} / {notification.metadata.minLevel} min
+                                  </span>
+                                </div>
+                              )}
+                              {notification.metadata.trackingNumber && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Tracking:</span>
+                                  <span className="font-mono bg-green-100 dark:bg-green-900/30 px-2 py-1 rounded text-green-700 dark:text-green-300">
+                                    {notification.metadata.trackingNumber}
+                                  </span>
+                                </div>
+                              )}
+                              {notification.metadata.status && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Status:</span>
+                                  <span className={`capitalize px-2 py-1 rounded text-sm font-medium ${notification.metadata.status === 'delivered' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                                      notification.metadata.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                        notification.metadata.status === 'in_transit' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                                          'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                    }`}>
+                                    {notification.metadata.status.replace('_', ' ')}
+                                  </span>
+                                </div>
+                              )}
+                              {notification.metadata.userName && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">User:</span>
+                                  <span>{notification.metadata.userName}</span>
+                                </div>
+                              )}
+                              {notification.metadata.userEmail && (
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">Email:</span>
+                                  <span className="text-blue-600 dark:text-blue-400">{notification.metadata.userEmail}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
                         {/* Meta Information */}
                         <div className="flex flex-wrap items-center gap-3">
                           <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
@@ -261,11 +343,11 @@ const Notifications: React.FC = () => {
                           </div>
 
                           <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium shadow-sm ${notification.category === 'order' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                              notification.category === 'delivery' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
-                                notification.category === 'inventory' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
-                                  notification.category === 'user' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                                    notification.category === 'security' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
-                                      'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            notification.category === 'delivery' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' :
+                              notification.category === 'inventory' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300' :
+                                notification.category === 'user' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+                                  notification.category === 'security' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' :
+                                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                             }`}>
                             {notification.category}
                           </span>

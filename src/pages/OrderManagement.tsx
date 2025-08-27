@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon } from 'lucide-react';
 import { Order, OrderFormData, OrderItem } from '../types/order';
 import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
@@ -28,6 +28,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchingOrders, setFetchingOrders] = useState(true);
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const { showError, showSuccess, showWarning } = useNotification();
 
   // Fetch orders and inventory from backend
@@ -373,9 +377,37 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     return matchesSearch && matchesStatus;
   });
   const handleDeleteOrder = (orderId: string) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
-      setOrders(orders.filter(order => order.id !== orderId));
+    const order = orders.find(o => o.id === orderId);
+    if (!order) {
+      showError('Order not found');
+      return;
     }
+
+    // Show beautiful delete confirmation modal
+    setOrderToDelete(order);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToDelete) return;
+
+    setDeleteLoading(true);
+    try {
+      // Call API to delete order from backend or just remove locally for now
+      setOrders(orders.filter(order => order.id !== orderToDelete.id));
+      showSuccess('Order deleted successfully');
+    } catch (err) {
+      showError('Failed to delete order');
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteModal(false);
+      setOrderToDelete(null);
+    }
+  };
+
+  const cancelDeleteOrder = () => {
+    setShowDeleteModal(false);
+    setOrderToDelete(null);
   };
 
   const validateTimeSlot = (time: string): boolean => {
@@ -1139,6 +1171,72 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     </button>
                   </div>
                 </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Beautiful Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 border border-gray-200 dark:border-gray-700">
+              <div className="p-6 text-center">
+                {/* Warning Icon */}
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 rounded-full flex items-center justify-center">
+                  <AlertTriangleIcon
+                    size={32}
+                    className="text-red-600 dark:text-red-400"
+                  />
+                </div>
+
+                {/* Title */}
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  Delete Order
+                </h3>
+
+                {/* Message */}
+                <p className="text-gray-600 dark:text-gray-300 mb-6">
+                  Are you sure you want to permanently delete order{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    "#{orderToDelete?.id}"
+                  </span>{' '}
+                  for customer{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">
+                    "{orderToDelete?.customer}"
+                  </span>
+                  ?<br />
+                  <span className="text-sm text-red-600 dark:text-red-400 font-medium">
+                    This action cannot be undone!
+                  </span>
+                </p>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+                  <button
+                    onClick={cancelDeleteOrder}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmDeleteOrder}
+                    disabled={deleteLoading}
+                    className="flex-1 px-4 py-2.5 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-lg font-medium transition-all duration-200 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {deleteLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Deleting...
+                      </>
+                    ) : (
+                      <>
+                        <TrashIcon size={16} />
+                        Delete Order
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -12,6 +12,10 @@ const UserManagement = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [roleFilter, setRoleFilter] = useState('');
     const [statusFilter, setStatusFilter] = useState('');
+    // Delete confirmation modal state
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [userToDelete, setUserToDelete] = useState(null);
+    const [deleteLoading, setDeleteLoading] = useState(false);
     const { showSuccess, showError } = useNotification();
 
     // Form state
@@ -100,12 +104,23 @@ const UserManagement = () => {
 
     // Delete user
     const deleteUser = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this user?')) {
+        const user = users.find(u => u._id === id);
+        if (!user) {
+            showError('Error', 'User not found');
             return;
         }
 
+        // Show beautiful delete confirmation modal
+        setUserToDelete(user);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDeleteUser = async () => {
+        if (!userToDelete) return;
+
+        setDeleteLoading(true);
         try {
-            const response = await fetch(`${API_BASE}/${id}`, {
+            const response = await fetch(`${API_BASE}/${userToDelete._id}`, {
                 method: 'DELETE',
             });
 
@@ -119,7 +134,16 @@ const UserManagement = () => {
             }
         } catch (err) {
             showError('Error', 'Error deleting user: ' + err.message);
+        } finally {
+            setDeleteLoading(false);
+            setShowDeleteModal(false);
+            setUserToDelete(null);
         }
+    };
+
+    const cancelDeleteUser = () => {
+        setShowDeleteModal(false);
+        setUserToDelete(null);
     };
 
     // Handle form submission
@@ -413,6 +437,81 @@ const UserManagement = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Beautiful Delete Confirmation Modal */}
+            {showDeleteModal && (
+                <div className="modal-overlay" style={{ zIndex: 10000 }}>
+                    <div className="modal" style={{ maxWidth: '400px', textAlign: 'center' }}>
+                        <div className="modal-header">
+                            <div style={{
+                                width: '64px',
+                                height: '64px',
+                                margin: '0 auto 16px',
+                                backgroundColor: '#fef2f2',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}>
+                                <div style={{ color: '#dc2626', fontSize: '32px' }}>⚠️</div>
+                            </div>
+                            <h2 style={{ color: '#dc2626', marginBottom: '8px' }}>Delete User</h2>
+                            <p style={{ color: '#6b7280', fontSize: '14px' }}>
+                                Are you sure you want to permanently delete{' '}
+                                <strong style={{ color: '#111827' }}>
+                                    "{userToDelete?.name}"
+                                </strong>
+                                ?<br />
+                                <span style={{ color: '#dc2626', fontWeight: '600' }}>
+                                    This action cannot be undone!
+                                </span>
+                            </p>
+                        </div>
+                        <div className="modal-footer" style={{ gap: '12px' }}>
+                            <button
+                                onClick={cancelDeleteUser}
+                                disabled={deleteLoading}
+                                className="btn btn-secondary"
+                                style={{ flex: 1 }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDeleteUser}
+                                disabled={deleteLoading}
+                                className="btn btn-danger"
+                                style={{
+                                    flex: 1,
+                                    backgroundColor: deleteLoading ? '#9ca3af' : '#dc2626',
+                                    borderColor: deleteLoading ? '#9ca3af' : '#dc2626',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                {deleteLoading ? (
+                                    <>
+                                        <div style={{
+                                            width: '16px',
+                                            height: '16px',
+                                            border: '2px solid rgba(255,255,255,0.3)',
+                                            borderTop: '2px solid white',
+                                            borderRadius: '50%',
+                                            animation: 'spin 1s linear infinite'
+                                        }}></div>
+                                        Deleting...
+                                    </>
+                                ) : (
+                                    <>
+                                        🗑️ Delete User
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
