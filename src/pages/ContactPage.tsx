@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Phone, Mail, MapPin, Clock, MessageCircle, Users, Send, User, AlertCircle, CheckCircle, Home, X, Bot } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import DarkModeToggle from '../components/UI/DarkModeToggle';
 import { api, API_CONFIG } from '../config/api';
 
@@ -10,6 +10,7 @@ interface ContactPageProps {
 }
 
 const ContactPage: React.FC<ContactPageProps> = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         email: '',
@@ -23,17 +24,24 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
     // Chat state
     const [isChatOpen, setIsChatOpen] = useState(false);
-    const [chatMessages, setChatMessages] = useState<Array<{ id: number, text: string, isBot: boolean, timestamp: Date }>>([
-        {
-            id: 1,
-            text: "Hi! I'm ToolLink Assistant. How can I help you today?",
-            isBot: true,
-            timestamp: new Date()
-        }
-    ]);
+    const [chatMessages, setChatMessages] = useState<any[]>([]);
     const [chatInput, setChatInput] = useState('');
 
-    const handleInputChange = (field: string, value: string) => {
+    // Scroll to top when component mounts
+    useEffect(() => {
+        // Scroll to top immediately
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+
+        // Ensure the page can scroll properly
+        document.body.style.overflow = 'auto';
+        document.documentElement.style.overflow = 'auto';
+
+        return () => {
+            // Cleanup on unmount
+            document.body.style.overflow = '';
+            document.documentElement.style.overflow = '';
+        };
+    }, []); const handleInputChange = (field: string, value: string) => {
         if (field === 'phone') {
             // Ensure phone always starts with +94
             if (!value.startsWith('+94')) {
@@ -121,21 +129,21 @@ const ContactPage: React.FC<ContactPageProps> = () => {
         if (message.includes('hello') || message.includes('hi') || message.includes('hey')) {
             return "Hello! Welcome to ToolLink. How can I assist you today?";
         } else if (message.includes('price') || message.includes('cost') || message.includes('pricing')) {
-            return "For pricing information, please contact our sales team at Toollink1234@gmail.com or call +94 71 418 8903. We'll provide you with a detailed quote!";
+            return "For pricing information, please contact our sales team at toollinksrilanka@gmail.com or call +94 71 418 8903. We'll provide you with a detailed quote!";
         } else if (message.includes('support') || message.includes('help') || message.includes('issue')) {
-            return "I'm here to help! You can reach our technical support team at Toollink1234@gmail.com or call +94 71 418 8903. What specific issue are you facing?";
+            return "I'm here to help! You can reach our technical support team at toollinksrilanka@gmail.com or call +94 71 418 8903. What specific issue are you facing?";
         } else if (message.includes('hours') || message.includes('time') || message.includes('open')) {
             return "Our business hours are Monday-Friday 9AM-6PM and Saturday 9AM-2PM. We're closed on Sundays. How can I help you today?";
         } else if (message.includes('demo') || message.includes('trial')) {
-            return "Great! We'd love to show you ToolLink in action. Please contact our sales team at Toollink1234@gmail.com to schedule a personalized demo.";
+            return "Great! We'd love to show you ToolLink in action. Please contact our sales team at toollinksrilanka@gmail.com to schedule a personalized demo!";
         } else if (message.includes('features') || message.includes('what') || message.includes('about')) {
             return "ToolLink is a comprehensive tool management system with inventory tracking, order management, delivery scheduling, and reporting features. Would you like to know more about any specific feature?";
         } else if (message.includes('contact') || message.includes('reach')) {
-            return "You can reach us at Toollink1234@gmail.com, call +94 71 418 8903, or use this chat! What would you prefer?";
+            return "You can reach us at toollinksrilanka@gmail.com, call +94 71 418 8903, or use this chat! What would you prefer?";
         } else if (message.includes('bye') || message.includes('goodbye') || message.includes('thank')) {
             return "Thank you for contacting ToolLink! If you need further assistance, don't hesitate to reach out. Have a great day!";
         } else {
-            return "I understand you're asking about: '" + userMessage + "'. For detailed assistance, please contact our team at Toollink1234@gmail.com or call +94 71 418 8903. Is there anything specific I can help you with right now?";
+            return "I understand you're asking about: '" + userMessage + "'. For detailed assistance, please contact our team at toollinksrilanka@gmail.com or call +94 71 418 8903. Is there anything specific I can help you with right now?";
         }
     };
 
@@ -178,10 +186,10 @@ const ContactPage: React.FC<ContactPageProps> = () => {
         {
             icon: <Mail className="w-8 h-8" />,
             title: 'Email Support',
-            primary: 'Toollink1234@gmail.com',
+            primary: 'toollinksrilanka@gmail.com',
             secondary: 'We reply within 24 hours',
             description: 'Send us detailed questions via email',
-            action: 'mailto:Toollink1234@gmail.com',
+            action: 'mailto:toollinksrilanka@gmail.com',
             actionText: 'Send Email',
             bgColor: 'bg-gradient-to-r from-orange-500 to-red-500',
             hoverBg: 'hover:from-orange-600 hover:to-red-600'
@@ -215,61 +223,70 @@ const ContactPage: React.FC<ContactPageProps> = () => {
         {
             name: 'Technical Support',
             role: 'For technical issues and system problems',
-            contact: 'Toollink1234@gmail.com',
+            contact: 'toollinksrilanka@gmail.com',
             phone: '+94 71 418 8903'
         },
         {
             name: 'Sales Team',
             role: 'For pricing and product inquiries',
-            contact: 'Toollink1234@gmail.com',
+            contact: 'toollinksrilanka@gmail.com',
             phone: '+94 71 418 8903'
         },
         {
             name: 'Customer Success',
             role: 'For account and billing questions',
-            contact: 'Toollink1234@gmail.com',
+            contact: 'toollinksrilanka@gmail.com',
             phone: '+94 71 418 8903'
         }
     ];
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-orange-50 via-red-50 to-yellow-100 dark:from-gray-900 dark:via-orange-900 dark:to-red-900 text-gray-900 dark:text-white transition-colors duration-300">
+        <div className="min-h-screen bg-gradient-to-b from-[#1a1113] to-[#12152c] dark:from-gray-900 dark:to-gray-800 text-white transition-colors duration-300">
             {/* Floating Background Elements */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-300/20 rounded-full blur-3xl animate-float"></div>
-                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-red-300/20 rounded-full blur-3xl animate-float-delayed"></div>
-                <div className="absolute top-3/4 left-1/3 w-48 h-48 bg-yellow-300/20 rounded-full blur-3xl animate-float-slow"></div>
+                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-orange-300/10 rounded-full blur-3xl animate-float"></div>
+                <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-red-300/10 rounded-full blur-3xl animate-float-delayed"></div>
+                <div className="absolute top-3/4 left-1/3 w-48 h-48 bg-yellow-300/10 rounded-full blur-3xl animate-float-slow"></div>
             </div>
 
             {/* Navigation Bar */}
             <motion.div
-                className="sticky top-0 z-50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-orange-200/50 dark:border-gray-700/50 shadow-lg"
+                className="sticky top-0 z-50 bg-[#1a1113]/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-[#2a2d40]/50 dark:border-gray-700/50 shadow-2xl"
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
             >
-                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+                {/* Dark background effect matching app theme */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#1a1113]/60 via-[#12152c]/40 to-[#1a1113]/60"></div>
+                <div className="absolute inset-0 backdrop-blur-xl bg-gradient-to-r from-[#2a2d40]/40 via-[#12152c]/30 to-[#2a2d40]/40"></div>
+
+                <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between relative z-10">
                     {/* Home Button */}
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
-                        <Link
-                            to="/"
-                            className="flex items-center space-x-2 text-gray-700 dark:text-white/80 hover:text-orange-600 dark:hover:text-white transition-all duration-300 group"
+                        <button
+                            onClick={() => navigate('/')}
+                            className="flex items-center space-x-2 text-white/80 hover:text-white transition-all duration-300 group cursor-pointer"
                         >
                             <motion.div
-                                className="p-2 rounded-lg bg-gradient-to-r from-orange-500/20 to-red-500/20 group-hover:from-orange-500/30 group-hover:to-red-500/30 border border-orange-500/30 group-hover:border-orange-400/50 transition-all duration-300"
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
+                                className="relative bg-gradient-to-br from-orange-500 via-red-500 to-orange-600 w-10 h-10 rounded-2xl flex items-center justify-center shadow-2xl shadow-orange-500/30"
+                                whileHover={{
+                                    scale: 1.1,
+                                    rotate: [0, -5, 5, 0],
+                                    boxShadow: "0 20px 40px rgba(251, 146, 60, 0.4)"
+                                }}
+                                transition={{ type: "spring", stiffness: 300, damping: 10 }}
                             >
-                                <Home className="w-5 h-5" />
+                                <Home className="w-5 h-5 text-white" />
+                                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-600 opacity-20 animate-ping"></div>
                             </motion.div>
-                            <span className="font-medium group-hover:text-orange-600 dark:group-hover:text-orange-300 transition-colors duration-300">
+                            <span className="font-medium bg-gradient-to-r from-white via-orange-100 to-orange-200 bg-clip-text text-transparent">
                                 Home
                             </span>
-                        </Link>
+                        </button>
                     </motion.div>
 
                     {/* Page Title */}
@@ -280,7 +297,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                         transition={{ duration: 0.5, delay: 0.2 }}
                     >
                         <div className="h-8 w-1 bg-gradient-to-b from-orange-500 to-red-500 rounded-full"></div>
-                        <h1 className="text-lg font-semibold text-gray-800 dark:text-white/90">Contact Us</h1>
+                        <h1 className="text-lg font-semibold text-white/90">Contact Us</h1>
                     </motion.div>
 
                     {/* Dark Mode Toggle */}
@@ -302,10 +319,10 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                 >
-                    <h1 className="text-4xl lg:text-6xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 bg-clip-text text-transparent drop-shadow-lg">
+                    <h1 className="text-4xl lg:text-6xl font-black bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 bg-clip-text text-transparent drop-shadow-lg">
                         Contact Us
                     </h1>
-                    <p className="text-xl text-gray-700 dark:text-white/80 max-w-2xl mx-auto">
+                    <p className="text-xl text-white/80 max-w-2xl mx-auto">
                         We're here to help! Reach out to us through any of the channels below and our team will get back to you promptly.
                     </p>
                 </motion.div>
@@ -320,7 +337,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     {contactMethods.map((method, index) => (
                         <motion.div
                             key={index}
-                            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6 hover:shadow-orange-500/20 transition-all duration-300 group"
+                            className="bg-[#1a1113]/80 dark:bg-gray-800/80 backdrop-blur-xl border border-[#2a2d40]/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6 hover:shadow-orange-500/20 transition-all duration-300 group"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: index * 0.1 }}
@@ -330,16 +347,16 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             <div className={`${method.bgColor} text-white p-4 rounded-xl inline-flex mb-4 shadow-lg shadow-orange-500/30 relative z-10`}>
                                 {method.icon}
                             </div>
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 relative z-10">
+                            <h3 className="text-xl font-semibold text-white mb-2 relative z-10">
                                 {method.title}
                             </h3>
-                            <p className="text-lg font-medium text-orange-600 dark:text-orange-400 mb-1 relative z-10">
+                            <p className="text-lg font-medium text-orange-400 mb-1 relative z-10">
                                 {method.primary}
                             </p>
-                            <p className="text-sm text-gray-600 dark:text-white/70 mb-3 relative z-10">
+                            <p className="text-sm text-white/70 mb-3 relative z-10">
                                 {method.secondary}
                             </p>
-                            <p className="text-gray-700 dark:text-white/80 mb-4 relative z-10">
+                            <p className="text-white/80 mb-4 relative z-10">
                                 {method.description}
                             </p>
                             {method.onClick ? (
@@ -367,7 +384,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                 {/* Contact Form */}
                 <motion.div
-                    className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-8"
+                    className="bg-[#1a1113]/80 dark:bg-gray-800/80 backdrop-blur-xl border border-[#2a2d40]/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-8"
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
@@ -379,10 +396,10 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: 0.5 }}
                         >
-                            <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-600 via-red-600 to-yellow-600 bg-clip-text text-transparent mb-4">
+                            <h2 className="text-3xl font-bold bg-gradient-to-r from-orange-400 via-red-400 to-yellow-400 bg-clip-text text-transparent mb-4">
                                 Send Us a Message
                             </h2>
-                            <p className="text-gray-700 dark:text-white/80">
+                            <p className="text-white/80">
                                 Fill out the form below and we'll get back to you as soon as possible.
                             </p>
                         </motion.div>
@@ -426,16 +443,16 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.7 }}
                                 >
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-white/90 mb-2">
                                         Name *
                                     </label>
                                     <div className="relative">
-                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
+                                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
                                         <input
                                             type="text"
                                             value={formData.name}
                                             onChange={(e) => handleInputChange('name', e.target.value)}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.name ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-[#2a2d40]/50 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.name ? 'border-red-500' : 'border-[#3a3d50]/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="Your full name"
                                         />
@@ -448,16 +465,16 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.8 }}
                                 >
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-white/90 mb-2">
                                         Email *
                                     </label>
                                     <div className="relative">
-                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
+                                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
                                         <input
                                             type="email"
                                             value={formData.email}
                                             onChange={(e) => handleInputChange('email', e.target.value)}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.email ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-[#2a2d40]/50 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.email ? 'border-red-500' : 'border-[#3a3d50]/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="your.email@example.com"
                                         />
@@ -473,11 +490,11 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 0.9 }}
                                 >
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-white/90 mb-2">
                                         Phone (Optional)
                                     </label>
                                     <div className="relative">
-                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400 dark:text-white/50" />
+                                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
                                         <input
                                             type="tel"
                                             value={formData.phone}
@@ -495,7 +512,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                                     e.target.setSelectionRange(4, 4);
                                                 }, 10);
                                             }}
-                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.phone ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
+                                            className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-[#2a2d40]/50 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.phone ? 'border-red-500' : 'border-[#3a3d50]/50 hover:border-orange-400/60'
                                                 }`}
                                             placeholder="+94 712345678"
                                         />
@@ -508,14 +525,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ duration: 0.5, delay: 1.0 }}
                                 >
-                                    <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                                    <label className="block text-sm font-medium text-white/90 mb-2">
                                         Subject *
                                     </label>
                                     <input
                                         type="text"
                                         value={formData.subject}
                                         onChange={(e) => handleInputChange('subject', e.target.value)}
-                                        className={`w-full px-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.subject ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
+                                        className={`w-full px-4 py-3 border rounded-xl bg-[#2a2d40]/50 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 ${errors.subject ? 'border-red-500' : 'border-[#3a3d50]/50 hover:border-orange-400/60'
                                             }`}
                                         placeholder="What can we help you with?"
                                     />
@@ -529,14 +546,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ duration: 0.5, delay: 1.1 }}
                             >
-                                <label className="block text-sm font-medium text-gray-700 dark:text-white/90 mb-2">
+                                <label className="block text-sm font-medium text-white/90 mb-2">
                                     Message *
                                 </label>
                                 <textarea
                                     rows={5}
                                     value={formData.message}
                                     onChange={(e) => handleInputChange('message', e.target.value)}
-                                    className={`w-full px-4 py-3 border rounded-xl bg-white/50 dark:bg-gray-800/60 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 resize-none ${errors.message ? 'border-red-500' : 'border-orange-200/50 dark:border-gray-600/50 hover:border-orange-400/60'
+                                    className={`w-full px-4 py-3 border rounded-xl bg-[#2a2d40]/50 backdrop-blur-sm text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all duration-300 resize-none ${errors.message ? 'border-red-500' : 'border-[#3a3d50]/50 hover:border-orange-400/60'
                                         }`}
                                     placeholder="Tell us how we can help you..."
                                 />
@@ -578,12 +595,12 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                             {/* Form Footer */}
                             <motion.div
-                                className="text-center pt-4 border-t border-orange-200/50 dark:border-gray-600/50"
+                                className="text-center pt-4 border-t border-[#3a3d50]/50"
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
                                 transition={{ duration: 0.5, delay: 1.3 }}
                             >
-                                <p className="text-sm text-gray-600 dark:text-white/60">
+                                <p className="text-sm text-white/60">
                                     We typically respond within 24 hours during business days.
                                 </p>
                             </motion.div>
@@ -600,34 +617,34 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                 >
                     {/* Address & Hours */}
                     <motion.div
-                        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6"
+                        className="bg-[#1a1113]/80 backdrop-blur-xl border border-[#2a2d40]/50 rounded-3xl shadow-2xl p-6"
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.7 }}
                     >
                         <div className="flex items-center mb-4">
                             <MapPin className="w-6 h-6 text-orange-500 mr-3" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <h3 className="text-xl font-semibold text-white">
                                 Office Location
                             </h3>
                         </div>
                         <div className="space-y-2 mb-6">
-                            <p className="font-medium text-gray-900 dark:text-white">{officeInfo.address}</p>
-                            <p className="text-gray-700 dark:text-white/80">{officeInfo.street}</p>
-                            <p className="text-gray-700 dark:text-white/80">{officeInfo.city}</p>
+                            <p className="font-medium text-white">{officeInfo.address}</p>
+                            <p className="text-white/80">{officeInfo.street}</p>
+                            <p className="text-white/80">{officeInfo.city}</p>
                         </div>
 
                         <div className="flex items-center mb-4">
                             <Clock className="w-6 h-6 text-orange-500 mr-3" />
-                            <h4 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            <h4 className="text-lg font-semibold text-white">
                                 Business Hours
                             </h4>
                         </div>
                         <div className="space-y-2">
                             {officeInfo.hours.map((hour, index) => (
                                 <div key={index} className="flex justify-between items-center">
-                                    <span className="text-gray-700 dark:text-white/80">{hour.day}</span>
-                                    <span className="font-medium text-gray-900 dark:text-white">{hour.time}</span>
+                                    <span className="text-white/80">{hour.day}</span>
+                                    <span className="font-medium text-white">{hour.time}</span>
                                 </div>
                             ))}
                         </div>
@@ -635,14 +652,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
 
                     {/* Support Teams */}
                     <motion.div
-                        className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl border border-orange-200/50 dark:border-gray-700/30 rounded-3xl shadow-2xl p-6"
+                        className="bg-[#1a1113]/80 backdrop-blur-xl border border-[#2a2d40]/50 rounded-3xl shadow-2xl p-6"
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.5, delay: 0.8 }}
                     >
                         <div className="flex items-center mb-4">
                             <Users className="w-6 h-6 text-orange-500 mr-3" />
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
+                            <h3 className="text-xl font-semibold text-white">
                                 Support Teams
                             </h3>
                         </div>
@@ -650,28 +667,28 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                             {supportTeam.map((team, index) => (
                                 <motion.div
                                     key={index}
-                                    className="border-b border-orange-200/50 dark:border-gray-600/50 pb-4 last:border-b-0"
+                                    className="border-b border-[#3a3d50]/50 pb-4 last:border-b-0"
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ duration: 0.3, delay: 0.9 + index * 0.1 }}
                                 >
-                                    <h4 className="font-semibold text-gray-900 dark:text-white mb-1">
+                                    <h4 className="font-semibold text-white mb-1">
                                         {team.name}
                                     </h4>
-                                    <p className="text-sm text-gray-700 dark:text-white/80 mb-2">
+                                    <p className="text-sm text-white/80 mb-2">
                                         {team.role}
                                     </p>
                                     <div className="space-y-1">
                                         <motion.a
                                             href={`mailto:${team.contact}`}
-                                            className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm block transition-colors duration-200"
+                                            className="text-orange-400 hover:text-orange-300 text-sm block transition-colors duration-200"
                                             whileHover={{ scale: 1.02 }}
                                         >
                                             {team.contact}
                                         </motion.a>
                                         <motion.a
                                             href={`tel:${team.phone.replace(/\s/g, '')}`}
-                                            className="text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 text-sm block transition-colors duration-200"
+                                            className="text-orange-400 hover:text-orange-300 text-sm block transition-colors duration-200"
                                             whileHover={{ scale: 1.02 }}
                                         >
                                             {team.phone}
@@ -694,26 +711,26 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                     onClick={closeChat}
                 >
                     <motion.div
-                        className="bg-white dark:bg-gray-800 border border-orange-200/50 dark:border-gray-700/50 rounded-3xl shadow-2xl w-full max-w-md h-96 flex flex-col"
+                        className="bg-[#1a1113] border border-[#2a2d40]/50 rounded-3xl shadow-2xl w-full max-w-md h-96 flex flex-col"
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Chat Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-orange-200/50 dark:border-gray-700/50">
+                        <div className="flex items-center justify-between p-4 border-b border-[#2a2d40]/50">
                             <div className="flex items-center space-x-3">
                                 <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-red-500 rounded-full flex items-center justify-center">
                                     <Bot className="w-4 h-4 text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="text-gray-900 dark:text-white font-semibold">ToolLink Assistant</h3>
-                                    <p className="text-gray-600 dark:text-white/60 text-sm">Online now</p>
+                                    <h3 className="text-white font-semibold">ToolLink Assistant</h3>
+                                    <p className="text-white/60 text-sm">Online now</p>
                                 </div>
                             </div>
                             <button
                                 onClick={closeChat}
-                                className="text-gray-600 dark:text-white/60 hover:text-gray-900 dark:hover:text-white transition-colors"
+                                className="text-white/60 hover:text-white transition-colors"
                             >
                                 <X className="w-5 h-5" />
                             </button>
@@ -728,7 +745,7 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                                 >
                                     <div
                                         className={`max-w-xs px-3 py-2 rounded-xl ${message.isBot
-                                            ? 'bg-gray-100 dark:bg-gray-700/50 text-gray-900 dark:text-white/90'
+                                            ? 'bg-[#2a2d40]/50 text-white/90'
                                             : 'bg-gradient-to-r from-orange-500 to-red-500 text-white'
                                             }`}
                                     >
@@ -745,14 +762,14 @@ const ContactPage: React.FC<ContactPageProps> = () => {
                         </div>
 
                         {/* Chat Input */}
-                        <form onSubmit={handleChatSubmit} className="p-4 border-t border-orange-200/50 dark:border-gray-700/50">
+                        <form onSubmit={handleChatSubmit} className="p-4 border-t border-[#2a2d40]/50">
                             <div className="flex space-x-2">
                                 <input
                                     type="text"
                                     value={chatInput}
                                     onChange={(e) => setChatInput(e.target.value)}
                                     placeholder="Type your message..."
-                                    className="flex-1 px-3 py-2 bg-gray-100 dark:bg-gray-700/50 border border-orange-200/50 dark:border-gray-600/50 rounded-xl text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+                                    className="flex-1 px-3 py-2 bg-[#2a2d40]/50 border border-[#3a3d50]/50 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all"
                                 />
                                 <motion.button
                                     type="submit"

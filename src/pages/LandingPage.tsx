@@ -765,7 +765,7 @@ const LandingPage = () => {
                 </svg>
               </div>
               <h3 className="text-xl font-semibold text-white mb-2">Email</h3>
-              <p className="text-gray-400 mb-2">support@toollink.lk</p>
+              <p className="text-gray-400 mb-2">toollinksrilanka@gmail.com</p>
               <p className="text-gray-500 text-sm">We reply within 24hrs</p>
             </motion.div>
 

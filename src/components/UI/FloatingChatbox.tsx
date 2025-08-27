@@ -79,7 +79,7 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
         {
             icon: <Mail size={16} />,
             label: 'Email',
-            value: 'support@toollink.lk',
+            value: 'toollinksrilanka@gmail.com',
             subtext: 'We reply within 24hrs'
         },
         {
@@ -198,7 +198,7 @@ const FloatingChatbox: React.FC<FloatingChatboxProps> = () => {
                                             <span>Call Now</span>
                                         </a>
                                         <a
-                                            href="mailto:support@toollink.lk"
+                                            href="mailto:toollinksrilanka@gmail.com"
                                             className="flex items-center space-x-2 p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-sm"
                                         >
                                             <Mail size={14} />
