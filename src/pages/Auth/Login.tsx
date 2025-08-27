@@ -352,7 +352,7 @@ const Login = () => {
             </p>
           </motion.div>
 
-          {/* Demo Credentials */}
+          {/* Login Information */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -360,11 +360,8 @@ const Login = () => {
             className="mt-6 pt-4 border-t border-[#2a2d40] text-center"
           >
             <div className="text-xs text-gray-500">
-              <p className="mb-1">Demo Credentials:</p>
-              <div className="space-y-1">
-                <p>Admin: admin@toollink.com / admin123</p>
-                <p>Customer: customer@toollink.com / customer123</p>
-              </div>
+              <p className="mb-1">Please use your registered credentials to log in.</p>
+              <p>Contact your administrator if you need assistance.</p>
             </div>
           </motion.div>
         </motion.div>

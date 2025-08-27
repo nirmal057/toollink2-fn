@@ -17,8 +17,8 @@ const Login = () => {
   // Enhanced animation variants for smoother transitions
   const pageVariants = {
     initial: { opacity: 0, scale: 0.95 },
-    animate: { 
-      opacity: 1, 
+    animate: {
+      opacity: 1,
       scale: 1,
       transition: {
         duration: 0.6,
@@ -27,8 +27,8 @@ const Login = () => {
         delayChildren: 0.2
       }
     },
-    exit: { 
-      opacity: 0, 
+    exit: {
+      opacity: 0,
       scale: 0.95,
       transition: { duration: 0.3, ease: [0.4, 0, 1, 1] }
     }
@@ -36,8 +36,8 @@ const Login = () => {
 
   const formVariants = {
     initial: { opacity: 0, y: 20 },
-    animate: { 
-      opacity: 1, 
+    animate: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.4,
@@ -50,9 +50,9 @@ const Login = () => {
 
   const inputVariants = {
     initial: { opacity: 0, x: -20, scale: 0.95 },
-    animate: { 
-      opacity: 1, 
-      x: 0, 
+    animate: {
+      opacity: 1,
+      x: 0,
       scale: 1,
       transition: {
         duration: 0.4,
@@ -64,7 +64,7 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    
+
     try {
       const result = await login(email, password);
       if (result.success) {
@@ -78,7 +78,7 @@ const Login = () => {
   };
 
   return (
-    <motion.div 
+    <motion.div
       variants={pageVariants}
       initial="initial"
       animate="animate"
@@ -105,7 +105,7 @@ const Login = () => {
         <Link
           to="/"
           className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 lg:w-12 lg:h-12 bg-[#2a2d40] dark:bg-gray-700 hover:bg-[#3a3d50] dark:hover:bg-gray-600
-                     rounded-full border border-[#3a3d50] dark:border-gray-600 hover:border-orange-500 
+                     rounded-full border border-[#3a3d50] dark:border-gray-600 hover:border-orange-500
                      transition-all duration-200 group"
         >
           <HomeIcon className="w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 text-gray-300 group-hover:text-orange-500 transition-colors duration-200" />
@@ -158,12 +158,12 @@ const Login = () => {
                 </div>
               </motion.div>
             )}
-            
-            <motion.form 
+
+            <motion.form
               variants={formVariants}
               initial="initial"
               animate="animate"
-              className="space-y-6" 
+              className="space-y-6"
               onSubmit={handleSubmit}
             >
               {/* Email Input */}
@@ -180,7 +180,7 @@ const Login = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="block w-full pl-10 pr-3 py-3 bg-[#2a2d40] border border-[#3a3d50] rounded-lg
-                             focus:ring-2 focus:ring-orange-500 focus:border-orange-500 
+                             focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                              text-white placeholder-gray-400 transition-all duration-200
                              hover:border-[#4a4d60]"
                     placeholder="Enter your email"
@@ -203,7 +203,7 @@ const Login = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="block w-full pl-10 pr-12 py-3 bg-[#2a2d40] border border-[#3a3d50] rounded-lg
-                             focus:ring-2 focus:ring-orange-500 focus:border-orange-500 
+                             focus:ring-2 focus:ring-orange-500 focus:border-orange-500
                              text-white placeholder-gray-400 transition-all duration-200
                              hover:border-[#4a4d60]"
                     placeholder="Enter your password"
@@ -251,7 +251,7 @@ const Login = () => {
                   disabled={isLoading}
                   className="w-full flex justify-center items-center py-3 px-4 border border-transparent rounded-lg
                            text-sm font-medium text-white bg-gradient-to-r from-orange-500 to-red-500
-                           hover:from-orange-600 hover:to-red-600 focus:outline-none focus:ring-2 
+                           hover:from-orange-600 hover:to-red-600 focus:outline-none focus:ring-2
                            focus:ring-offset-2 focus:ring-orange-500 transition-all duration-200
                            disabled:opacity-50 disabled:cursor-not-allowed
                            shadow-lg hover:shadow-xl transform hover:scale-[1.02] active:scale-[0.98]"
@@ -286,7 +286,7 @@ const Login = () => {
               </p>
             </motion.div>
 
-            {/* Demo Credentials */}
+            {/* Login Information */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -294,11 +294,8 @@ const Login = () => {
               className="mt-6 pt-4 border-t border-[#2a2d40] text-center"
             >
               <div className="text-xs text-gray-500">
-                <p className="mb-1">Demo Credentials:</p>
-                <div className="space-y-1">
-                  <p>Admin: admin@toollink.com / admin123</p>
-                  <p>Customer: customer@toollink.com / customer123</p>
-                </div>
+                <p className="mb-1">Please use your registered credentials to log in.</p>
+                <p>Contact your administrator if you need assistance.</p>
               </div>
             </motion.div>
           </motion.div>
