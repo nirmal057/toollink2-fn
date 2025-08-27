@@ -17,7 +17,8 @@ import {
   ShieldIcon,
   ActivityIcon,
   AlertCircleIcon,
-  PlusIcon
+  PlusIcon,
+  TruckIcon
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { notificationService } from '../../services/notificationService';
@@ -181,6 +182,13 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       to: '/deliveries',
       icon: <CalendarIcon size={20} />,
       label: 'Track Deliveries'
+    }] : []),
+
+    // Driver Management (Admin & Warehouse only)
+    ...(['admin', 'warehouse'].includes(userRole) ? [{
+      to: '/driver-management',
+      icon: <TruckIcon size={20} />,
+      label: 'Driver Management'
     }] : []),
 
     // Notifications (Enhanced with unread count)

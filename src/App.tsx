@@ -9,6 +9,8 @@ import LandingPage from './pages/LandingPage';
 import OrderManagement from './pages/OrderManagement';
 import InventoryManagement from './pages/InventoryManagement';
 import QuickAddInventory from './pages/QuickAddInventory';
+import DriverPortal from './pages/DriverPortal';
+import DriverManagement from './pages/DriverManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
 import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
@@ -31,7 +33,6 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { ROLES } from './services/rbacService';
 import ToastContainer from './components/UI/ToastContainer';
 import SimpleAdminGuard from './components/SimpleAdminGuard';
-import AuthDebugPage from './pages/AuthDebugPage';
 
 // Loading component
 function LoadingSpinner() {
@@ -97,7 +98,6 @@ function AppRoutes() {
         path="/auth/reset-password"
         element={!isAuthenticated ? <ResetPassword /> : <Navigate to="/dashboard" replace />}
       />
-      <Route path="/auth-debug" element={<AuthDebugPage />} />
       <Route path="/contact" element={<ContactPage />} />
       <Route path="/unauthorized" element={<Unauthorized />} />
 
@@ -138,6 +138,22 @@ function AppRoutes() {
                 <QuickAddInventory userRole={user.role} />
               </RoleGuard>
             }
+          />
+
+          {/* Driver Management route - accessible by admin and warehouse */}
+          <Route
+            path="/driver-management"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <DriverManagement userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* Driver Portal route - accessible by drivers only */}
+          <Route
+            path="/driver-portal"
+            element={<DriverPortal />}
           />
 
           {/* Delivery routes - accessible by admin, warehouse, cashier */}

@@ -20,14 +20,6 @@ const Header = ({ userRole }: HeaderProps) => {
   const { isAuthenticated, user } = useAuth();
   const { showError } = useNotification();
 
-  // Debug render
-  console.log('Header render', {
-    showUserMenu,
-    userRole,
-    isAuthenticated,
-    user
-  });
-
   // Handle menu toggles
   const toggleUserMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

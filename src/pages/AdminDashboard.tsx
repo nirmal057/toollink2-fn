@@ -20,13 +20,16 @@ import {
   ArrowDownRight,
   Globe,
   Zap,
-  Bell
+  Bell,
+  Search,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { adminApiService, AdminDashboard as DashboardData } from '../services/adminApiService';
 import { rbacService, PERMISSIONS } from '../services/rbacService';
 import { useAuth } from '../hooks/useAuth';
 import { activityService, Activity } from '../services/activityService';
-import DebugAuth from '../components/DebugAuth';
+import { inventoryService, InventoryItem } from '../services/inventoryService';
 
 const AdminDashboard: React.FC = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
@@ -36,12 +39,34 @@ const AdminDashboard: React.FC = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
   const navigate = useNavigate();
 
+  // Quick inventory management state
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [loadingInventory, setLoadingInventory] = useState(false);
+
   useEffect(() => {
     loadDashboard();
     loadActivities();
+    loadInventoryItems();
   }, []);
 
-  const loadActivities = async () => {
+  const loadInventoryItems = async () => {
+    try {
+      setLoadingInventory(true);
+      const result = await inventoryService.getAllItems({ limit: 5 });
+      setInventoryItems(result.items.slice(0, 5)); // Show only first 5 items for quick access
+    } catch (error) {
+      console.error('Failed to load inventory items:', error);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  // Filter items based on search
+  const filteredItems = inventoryItems.filter(item =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
+  ); const loadActivities = async () => {
     try {
       // Log some sample activities first time
       await logSampleActivities();
@@ -246,19 +271,6 @@ const AdminDashboard: React.FC = () => {
 
   const hasAccess = checkAdminAccess();
 
-  // Debug logging
-  console.log('AdminDashboard Debug:', {
-    isAuthenticated,
-    user,
-    userRole: user?.role,
-    rbacUser: rbacService.getCurrentUser(),
-    rbacHasAdminRole: rbacService.hasRole('admin'),
-    rbacHasFullAccess: rbacService.hasPermission(PERMISSIONS.FULL_SYSTEM_ACCESS),
-    hasAccess,
-    localStorageUser: localStorage.getItem('user'),
-    accessToken: !!localStorage.getItem('accessToken')
-  });
-
   if (!hasAccess) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -266,9 +278,6 @@ const AdminDashboard: React.FC = () => {
           <Shield className="mx-auto h-12 w-12 text-red-500 mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Access Denied</h1>
           <p className="text-gray-600 dark:text-gray-400">You don't have permission to access the admin dashboard.</p>
-          <div className="mt-6">
-            <DebugAuth />
-          </div>
           <button
             onClick={() => {
               // Force refresh user data
@@ -580,7 +589,87 @@ const AdminDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Inventory View */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <Package className="h-6 w-6 text-green-500" />
+              Quick Inventory View
+            </h3>
+            <button
+              onClick={loadInventoryItems}
+              className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <RefreshCw className={`h-4 w-4 ${loadingInventory ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
+
+          {/* Inventory Items View Only */}
+          <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                <Package className="h-5 w-5 text-blue-500" />
+                Current Inventory
+              </h4>
+              <div className="relative">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search items..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {loadingInventory ? (
+                <div className="flex items-center justify-center py-8">
+                  <RefreshCw className="h-6 w-6 animate-spin text-gray-400" />
+                </div>
+              ) : filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <div key={item.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-medium text-gray-900 dark:text-white truncate">{item.name}</h5>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{item.category} • {item.quantity} {item.unit}</p>
+                        {item.quantity <= item.threshold && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <AlertTriangle className="h-3 w-3 text-orange-500" />
+                            <span className="text-xs text-orange-600 dark:text-orange-400">Low stock</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* View-only status indicator */}
+                      <div className="flex items-center gap-2 ml-3">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white min-w-[3rem] text-center bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">
+                          {item.quantity}
+                        </span>
+                        <div className={`w-2 h-2 rounded-full ${item.quantity > item.threshold ? 'bg-green-500' : 'bg-orange-500'}`} title={item.quantity > item.threshold ? 'In stock' : 'Low stock'}></div>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  {searchTerm ? 'No items found' : 'No inventory items yet'}
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+              <button
+                onClick={() => navigate('/inventory')}
+                className="w-full text-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm"
+              >
+                View Full Inventory →
+              </button>
+            </div>
+          </div>
+        </div>        {/* Quick Actions */}
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h3>
 
