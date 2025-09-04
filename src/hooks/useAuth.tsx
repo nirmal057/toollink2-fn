@@ -1,6 +1,7 @@
 import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { authService } from '../services/authService';
 import { rbacService, Role, Permission } from '../services/rbacService';
+import { AuthTokenManager } from '../utils/authTokenManager';
 
 interface User {
   id: string;
@@ -34,33 +35,43 @@ interface AuthProviderProps {
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Enhanced authentication check with fallback
   const isAuthenticated = React.useMemo(() => {
     // Check multiple sources for authentication state
     const hasUser = !!user;
     const hasToken = authService.isAuthenticated();
     const localUser = authService.getCurrentUser();
-    
+
     return hasUser || (hasToken && localUser !== null);
   }, [user]);
-  
+
   // Enhanced user sync with localStorage and RBAC service
   const syncUserState = React.useCallback(() => {
     try {
+      // Use the token manager to validate state
+      if (!AuthTokenManager.validateAndCleanAuthState()) {
+        if (user) {
+          console.log('Auth: Clearing invalid user state');
+          setUser(null);
+          rbacService.setCurrentUser(null);
+        }
+        return false;
+      }
+
       const storedUser = authService.getCurrentUser();
       const token = localStorage.getItem('accessToken');
-      
+
       if (storedUser && token) {
         // Update state if user is different
         if (!user || user.id !== storedUser.id || user.role !== storedUser.role) {
           console.log('Auth: Syncing user state:', storedUser);
           setUser(storedUser);
         }
-        
+
         // Always ensure RBAC is synced
         rbacService.setCurrentUser({ role: storedUser.role as Role });
-        
+
         return true;
       } else if (user) {
         // Clear user if no stored data
@@ -73,9 +84,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       console.error('Auth: Error syncing user state:', error);
       setUser(null);
       rbacService.setCurrentUser(null);
+      AuthTokenManager.clearAuthData();
       return false;
     }
-    
+
     return false;
   }, [user]);
 
@@ -94,10 +106,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     // Initial sync
     syncUserState();
-    
+
     // Set up periodic sync to handle navigation and session restoration
     const syncInterval = setInterval(syncUserState, 500); // Check every 500ms
-    
+
     // Listen for storage events (cross-tab synchronization)
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'user' || e.key === 'accessToken') {
@@ -105,23 +117,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
         syncUserState();
       }
     };
-    
+
+    // Listen for force logout events
+    const handleForceLogout = () => {
+      console.log('Auth: Force logout event received');
+      setUser(null);
+      rbacService.setCurrentUser(null);
+    };
+
     window.addEventListener('storage', handleStorageChange);
-    
+    window.addEventListener('auth:forceLogout', handleForceLogout);
+
     return () => {
       clearInterval(syncInterval);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('auth:forceLogout', handleForceLogout);
     };
   }, [syncUserState]);// Initialize auth state
   useEffect(() => {
     const initializeAuth = async () => {
       try {
         const currentUser = authService.getCurrentUser();
-          if (currentUser && authService.isAuthenticated()) {
+        if (currentUser && authService.isAuthenticated()) {
           setUser(currentUser);
           // Set current user in RBAC service
           rbacService.setCurrentUser({ role: currentUser.role as Role });
-          
+
           // Try to refresh user data from server
           try {
             const serverUser = await authService.getCurrentUserFromServer();
@@ -174,25 +195,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       const result = await authService.login({ email, password });
-      
+
       if (result.success && result.user) {
         setUser(result.user);
         // Set current user in RBAC service for permission checking
         rbacService.setCurrentUser({ role: result.user.role as Role });
         return { success: true };
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         error: result.error,
         errorType: result.errorType,
         remainingAttempts: result.remainingAttempts
       };
     } catch (error) {
       console.error('Login error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Login failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Login failed'
       };
     } finally {
       setIsLoading(false);
@@ -203,24 +224,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(true);
     try {
       const result = await authService.register(userData);
-      
+
       if (result.success) {
         // Only set user if they don't require approval
         if (result.user && !result.requiresApproval) {
           setUser(result.user);
         }
-        return { 
-          success: true, 
-          requiresApproval: result.requiresApproval 
+        return {
+          success: true,
+          requiresApproval: result.requiresApproval
         };
       }
-      
+
       return { success: false, error: result.error };
     } catch (error) {
       console.error('Registration error:', error);
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Registration failed' 
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Registration failed'
       };
     } finally {
       setIsLoading(false);
@@ -244,7 +265,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshUser = async () => {
     try {
       console.log('useAuth: Starting user refresh...');
-      
+
       // Add timeout to prevent hanging
       const timeoutPromise = new Promise<null>((_, reject) => {
         setTimeout(() => reject(new Error('User refresh timeout')), 3000);
@@ -252,7 +273,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       const refreshPromise = authService.getCurrentUserFromServer();
       const serverUser = await Promise.race([refreshPromise, timeoutPromise]);
-      
+
       if (serverUser && typeof serverUser === 'object' && 'role' in serverUser) {
         console.log('useAuth: User refresh successful:', serverUser);
         setUser(serverUser);

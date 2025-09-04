@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarIcon, TruckIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon } from 'lucide-react';
+import { CalendarIcon, TruckIcon, PlusIcon, ChevronLeftIcon, ChevronRightIcon, TrashIcon, UserIcon, PhoneIcon } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useNotification } from '../contexts/NotificationContext';
 
@@ -12,8 +12,27 @@ interface Delivery {
   date: string;
   status: 'Scheduled' | 'In Transit' | 'Delivered' | 'Cancelled';
   driver: string;
+  driverId?: string;
   notes?: string;
   district: string;
+}
+
+interface Driver {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  licenseNumber: string;
+  vehicleInfo: {
+    type: string;
+    plateNumber: string;
+    capacity: string;
+  };
+  status: 'active' | 'inactive' | 'suspended';
+  totalDeliveries: number;
+  rating: number;
+  isAvailable?: boolean;
+  currentDeliveries?: number;
 }
 
 interface DeliveryFormData {
@@ -23,6 +42,7 @@ interface DeliveryFormData {
   date: string;
   timeSlot: string;
   driver: string;
+  driverId: string;
   notes: string;
   district: string;
   status?: 'Scheduled' | 'In Transit' | 'Delivered' | 'Cancelled';
@@ -47,15 +67,6 @@ const TIME_SLOTS = [
   '13:00-15:00',
   '15:00-17:00',
   '17:00-19:00'
-];
-
-// Local drivers
-const DRIVERS = [
-  'Kumara Perera',
-  'Nimal Silva',
-  'Mohamed Farook',
-  'Raj Patel',
-  'Samantha Fernando'
 ];
 
 // Sample delivery data
@@ -130,6 +141,8 @@ interface DeliveryCalendarProps {
 const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   const { state } = useLocation();
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [loadingDrivers, setLoadingDrivers] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -164,10 +177,79 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     address: '',
     date: new Date().toISOString().split('T')[0],
     timeSlot: TIME_SLOTS[0],
-    driver: DRIVERS[0],
+    driver: '',
+    driverId: '',
     notes: '',
     district: ''
   });
+
+  // Load drivers with availability checking
+  const loadDrivers = async (checkDate?: string, checkTimeSlot?: string) => {
+    try {
+      setLoadingDrivers(true);
+      const token = localStorage.getItem('accessToken');
+
+      // Use current form data or provided values
+      const dateToCheck = checkDate || formData.date;
+      const timeSlotToCheck = checkTimeSlot || formData.timeSlot;
+
+      let url = 'http://localhost:5000/api/drivers';
+
+      // If we have date and time slot, check availability
+      if (dateToCheck && timeSlotToCheck) {
+        url = `http://localhost:5000/api/drivers/availability?date=${dateToCheck}&timeSlot=${encodeURIComponent(timeSlotToCheck)}`;
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          const activeDrivers = data.drivers.filter((driver: Driver & { isAvailable?: boolean }) =>
+            driver.status === 'active'
+          );
+          setDrivers(activeDrivers);
+
+          // Set default driver if none selected
+          if (activeDrivers.length > 0 && !formData.driverId) {
+            // Prefer available drivers
+            const availableDrivers = activeDrivers.filter((d: Driver & { isAvailable?: boolean }) =>
+              d.isAvailable !== false
+            );
+            const defaultDriver = availableDrivers.length > 0 ? availableDrivers[0] : activeDrivers[0];
+
+            setFormData(prev => ({
+              ...prev,
+              driver: defaultDriver.fullName,
+              driverId: defaultDriver.id
+            }));
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading drivers:', error);
+      showError('Error', 'Failed to load drivers. Please try again.');
+    } finally {
+      setLoadingDrivers(false);
+    }
+  };
+
+  // Load drivers on component mount
+  useEffect(() => {
+    loadDrivers();
+  }, []);
+
+  // Refresh driver availability when date or time slot changes
+  useEffect(() => {
+    if (formData.date && formData.timeSlot && showCreateModal) {
+      loadDrivers(formData.date, formData.timeSlot);
+    }
+  }, [formData.date, formData.timeSlot, showCreateModal]);
 
   // Check for auto-scheduling from order creation
   useEffect(() => {
@@ -288,13 +370,15 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
 
   // Reset form
   const resetForm = () => {
+    const defaultDriver = drivers.length > 0 ? drivers[0] : null;
     setFormData({
       orderId: '',
       customer: '',
       address: '',
       date: new Date().toISOString().split('T')[0],
       timeSlot: TIME_SLOTS[0],
-      driver: DRIVERS[0],
+      driver: defaultDriver?.fullName || '',
+      driverId: defaultDriver?.id || '',
       notes: '',
       district: ''
     });
@@ -487,6 +571,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                               date: delivery.date,
                               timeSlot: delivery.timeSlot,
                               driver: delivery.driver,
+                              driverId: delivery.driverId || '',
                               notes: delivery.notes || '',
                               district: delivery.district
                             });
@@ -629,10 +714,10 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                   {date && (
                     <>
                       <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${isToday
-                          ? 'text-primary-600 '
-                          : isPastDate
-                            ? 'text-gray-500 '
-                            : 'text-gray-900 '
+                        ? 'text-primary-600 '
+                        : isPastDate
+                          ? 'text-gray-500 '
+                          : 'text-gray-900 '
                         }`}>
                         {date.getDate()}
                         {isPastDate && (
@@ -660,8 +745,8 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                               <div
                                 key={delivery.id}
                                 className={`p-2 rounded text-xs transition-opacity ${isPastDelivery
-                                    ? 'cursor-not-allowed opacity-60'
-                                    : 'cursor-pointer hover:opacity-90'
+                                  ? 'cursor-not-allowed opacity-60'
+                                  : 'cursor-pointer hover:opacity-90'
                                   } ${delivery.status === 'Delivered'
                                     ? 'bg-green-100 text-green-800 '
                                     : delivery.status === 'In Transit'
@@ -685,6 +770,7 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                                       date: delivery.date,
                                       timeSlot: delivery.timeSlot,
                                       driver: delivery.driver,
+                                      driverId: delivery.driverId || '',
                                       notes: delivery.notes || '',
                                       district: delivery.district,
                                       status: delivery.status
@@ -799,18 +885,114 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Assign Driver
                   </label>
-                  <select
-                    value={formData.driver}
-                    onChange={e => setFormData({ ...formData, driver: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  >
-                    {DRIVERS.map(driver => (
-                      <option key={driver} value={driver}>
-                        {driver}
-                      </option>
-                    ))}
-                  </select>
+                  {loadingDrivers ? (
+                    <div className="w-full rounded-lg border-gray-300 p-3 text-gray-500 text-center bg-gray-50">
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        Loading drivers...
+                      </div>
+                    </div>
+                  ) : drivers.length > 0 ? (
+                    <div className="space-y-2">
+                      <select
+                        value={formData.driverId}
+                        onChange={e => {
+                          const selectedDriver = drivers.find(d => d.id === e.target.value);
+                          setFormData({
+                            ...formData,
+                            driverId: e.target.value,
+                            driver: selectedDriver?.fullName || ''
+                          });
+                        }}
+                        className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                        required
+                      >
+                        <option value="">Select Driver</option>
+                        {drivers.map(driver => (
+                          <option
+                            key={driver.id}
+                            value={driver.id}
+                            disabled={driver.isAvailable === false}
+                          >
+                            {driver.fullName} - {driver.vehicleInfo.type} ({driver.vehicleInfo.plateNumber})
+                            {driver.isAvailable === false ? ' - BUSY' : ' - AVAILABLE'}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Driver Availability Summary */}
+                      {formData.date && formData.timeSlot && (
+                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                          📅 {formData.date} • ⏰ {formData.timeSlot} •
+                          Available: {drivers.filter(d => d.isAvailable !== false).length}/
+                          {drivers.length} drivers
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="w-full rounded-lg border border-red-300 bg-red-50 p-3 text-red-600 text-center">
+                      No active drivers available
+                    </div>
+                  )}
+
+                  {/* Driver Info Display */}
+                  {formData.driverId && drivers.find(d => d.id === formData.driverId) && (
+                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      {(() => {
+                        const selectedDriver = drivers.find(d => d.id === formData.driverId);
+                        return selectedDriver ? (
+                          <div className="text-sm">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <UserIcon size={16} className="text-blue-600" />
+                                <span className="font-medium text-blue-800">{selectedDriver.fullName}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {selectedDriver.isAvailable === false ? (
+                                  <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">
+                                    BUSY
+                                  </span>
+                                ) : (
+                                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                                    AVAILABLE
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="flex items-center gap-1">
+                                <PhoneIcon size={12} className="text-blue-600" />
+                                <span className="text-blue-700">{selectedDriver.phone}</span>
+                              </div>
+                              <div className="text-blue-700">
+                                <span className="font-medium">Rating:</span> ⭐ {selectedDriver.rating}/5.0
+                              </div>
+                              <div className="text-blue-700">
+                                <span className="font-medium">Vehicle:</span> {selectedDriver.vehicleInfo.type}
+                              </div>
+                              <div className="text-blue-700">
+                                <span className="font-medium">Plate:</span> {selectedDriver.vehicleInfo.plateNumber}
+                              </div>
+                              <div className="text-blue-700">
+                                <span className="font-medium">Capacity:</span> {selectedDriver.vehicleInfo.capacity}
+                              </div>
+                              {selectedDriver.currentDeliveries !== undefined && (
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Today:</span> {selectedDriver.currentDeliveries} deliveries
+                                </div>
+                              )}
+                            </div>
+                            {selectedDriver.isAvailable === false && (
+                              <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                                ⚠️ This driver is already assigned to another delivery in this time slot.
+                                Consider selecting a different time slot or driver.
+                              </div>
+                            )}
+                          </div>
+                        ) : null;
+                      })()}
+                    </div>
+                  )}
                 </div>
                 <div className="col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">

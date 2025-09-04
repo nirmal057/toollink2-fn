@@ -33,6 +33,7 @@ import { NotificationProvider } from './contexts/NotificationContext';
 import { ROLES } from './services/rbacService';
 import ToastContainer from './components/UI/ToastContainer';
 import SimpleAdminGuard from './components/SimpleAdminGuard';
+import { AuthDebugPanel } from './components/AuthDebugPanel';
 
 // Loading component
 function LoadingSpinner() {
@@ -289,6 +290,7 @@ function App() {
             <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <AppRoutes />
               <ToastContainer />
+              <AuthDebugPanel />
             </Router>
           </NotificationProvider>
         </GlobalNotificationProvider>

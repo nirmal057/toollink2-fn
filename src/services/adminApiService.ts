@@ -249,10 +249,12 @@ class AdminApiService {
             pending: backendData.users?.pendingUsers || 0,
             inactive: backendData.users?.inactiveUsers || 0,
             byRole: {
-              admin: 0,
-              customer: 0,
-              cashier: 0,
-              "warehouse manager": 0
+              admin: backendData.users?.roleDistribution?.admin || 0,
+              customer: backendData.users?.roleDistribution?.customer || 0,
+              cashier: backendData.users?.roleDistribution?.cashier || 0,
+              warehouse: backendData.users?.roleDistribution?.warehouse || 0,
+              driver: backendData.users?.roleDistribution?.driver || 0,
+              editor: backendData.users?.roleDistribution?.editor || 0
             }
           },
           systemInfo: {
@@ -266,49 +268,67 @@ class AdminApiService {
             totalOrders: backendData.orders?.totalOrders || 0,
             monthlyRevenue: backendData.orders?.totalRevenue || 0,
             activeProjects: backendData.inventory?.totalItems || 0,
-            completedTasks: backendData.orders?.completedOrders || 0,
+            completedTasks: backendData.orders?.deliveredOrders || 0,
             systemLoad: Math.round((backendData.systemInfo?.memoryUsage?.used || 0) / (1024 * 1024)),
             memoryUsage: Math.round(((backendData.systemInfo?.memoryUsage?.used || 0) / (backendData.systemInfo?.memoryUsage?.total || 1)) * 100),
-            storageUsed: 45,
+            storageUsed: Math.round((backendData.inventory?.totalItems || 0) * 0.5), // Estimated storage usage
             responseTime: 120
           },
           quickStats: [
             {
-              label: "Today's Orders",
-              value: backendData.orders?.todayOrders || 0,
-              change: '+5%',
+              label: "Total Orders",
+              value: backendData.orders?.totalOrders || 0,
+              change: '+12%',
               trend: 'up' as const,
               icon: 'ShoppingCart'
             },
             {
               label: 'Active Users',
               value: backendData.users?.activeUsers || 0,
-              change: '+2%',
+              change: '+3%',
               trend: 'up' as const,
               icon: 'Users'
             },
             {
-              label: 'Total Revenue',
-              value: `$${(backendData.orders?.totalRevenue || 0).toLocaleString()}`,
-              change: '+8%',
+              label: 'Revenue',
+              value: `Rs. ${(backendData.orders?.totalRevenue || 0).toLocaleString()}`,
+              change: '+15%',
               trend: 'up' as const,
               icon: 'DollarSign'
+            },
+            {
+              label: 'Inventory Items',
+              value: backendData.inventory?.totalItems || 0,
+              change: '+5%',
+              trend: 'up' as const,
+              icon: 'Package'
+            },
+            {
+              label: 'Pending Orders',
+              value: backendData.orders?.pendingOrders || 0,
+              change: '+2%',
+              trend: 'up' as const,
+              icon: 'Clock'
+            },
+            {
+              label: 'Delivered Orders',
+              value: backendData.orders?.deliveredOrders || 0,
+              change: '+18%',
+              trend: 'up' as const,
+              icon: 'TruckIcon'
             }
           ]
         };
 
         // Get role distribution from backend if available
         if (backendData.users?.roleDistribution) {
-          backendData.users.roleDistribution.forEach((role: any) => {
-            // Map warehouse to "warehouse manager" and filter out unwanted roles
-            let mappedRole = role._id;
-            if (role._id === 'warehouse') {
-              mappedRole = 'warehouse manager';
-            }
-
-            // Only include allowed roles (exclude support and manager)
-            if (['admin', 'customer', 'cashier', 'warehouse manager'].includes(mappedRole)) {
-              transformedData.userStats.byRole[mappedRole] = role.count;
+          Object.keys(backendData.users.roleDistribution).forEach((role: string) => {
+            const count = backendData.users.roleDistribution[role];
+            // Map roles to frontend expected format
+            if (role === 'warehouse') {
+              transformedData.userStats.byRole.warehouse = count;
+            } else if (transformedData.userStats.byRole.hasOwnProperty(role)) {
+              transformedData.userStats.byRole[role] = count;
             }
           });
         }

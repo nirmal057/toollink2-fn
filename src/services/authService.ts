@@ -1,5 +1,6 @@
 import { API_CONFIG, createApiHeaders } from '../config/api';
 import { rbacService } from './rbacService';
+import { AuthTokenManager } from '../utils/authTokenManager';
 
 interface LoginCredentials {
   email: string;
@@ -308,10 +309,8 @@ class AuthService {
         }
       }
 
-      // Clear local storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Use token manager to clear all authentication data
+      AuthTokenManager.clearAuthData();
 
       // Clear RBAC service
       rbacService.setCurrentUser(null);
@@ -324,10 +323,8 @@ class AuthService {
       });
     } catch (error) {
       console.error('Logout error:', error);
-      // Still clear local storage even if server call fails
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Still clear authentication data even if server call fails
+      AuthTokenManager.clearAuthData();
       // Clear RBAC service
       rbacService.setCurrentUser(null);
     }
@@ -371,6 +368,13 @@ class AuthService {
         return null;
       }
 
+      // Check if token is expired before making the request
+      if (AuthTokenManager.isTokenExpired(token)) {
+        console.log('Token is expired, clearing auth data');
+        AuthTokenManager.clearAuthData();
+        return null;
+      }
+
       const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.ME}`;
 
       const response = await fetch(url, {
@@ -387,9 +391,18 @@ class AuthService {
         return data.user;
       }
 
+      // Handle authentication errors
+      if (response.status === 401) {
+        console.log('Server returned 401, clearing auth data');
+        AuthTokenManager.clearAuthData();
+        return null;
+      }
+
       return null;
     } catch (error) {
       console.error('Get current user error:', error);
+      // If it's a network error, don't clear auth data
+      // If it's an auth error, the server would have returned 401
       return null;
     }
   }
@@ -447,11 +460,16 @@ class AuthService {
   }
 
   isAuthenticated(): boolean {
-    const token = localStorage.getItem('accessToken');
-    return !!token;
+    // Use the token manager to validate authentication state
+    return AuthTokenManager.validateAndCleanAuthState();
   }
 
   getCurrentUser(): User | null {
+    // First validate the authentication state
+    if (!AuthTokenManager.validateAndCleanAuthState()) {
+      return null;
+    }
+
     const userStr = localStorage.getItem('user');
     if (!userStr) return null;
 
@@ -459,6 +477,7 @@ class AuthService {
       return JSON.parse(userStr);
     } catch (error) {
       console.error('Error parsing user data:', error);
+      AuthTokenManager.clearAuthData();
       return null;
     }
   }
