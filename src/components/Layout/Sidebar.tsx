@@ -165,13 +165,6 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'Inventory'
     }] : []),
 
-    // Quick Add Inventory (Warehouse only)
-    ...(['admin', 'warehouse'].includes(userRole) ? [{
-      to: '/inventory/quick-add',
-      icon: <PlusIcon size={20} />,
-      label: 'Quick Add Items'
-    }] : []),
-
     // Deliveries
     ...(['admin', 'warehouse', 'cashier'].includes(userRole) ? [{
       to: '/deliveries',
