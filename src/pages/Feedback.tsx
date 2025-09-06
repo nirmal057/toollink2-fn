@@ -114,7 +114,7 @@ const Feedback = ({
         priority: newFeedback.rating <= 2 ? 'high' : 'medium'
       };
 
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch('http://localhost:5001/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -210,7 +210,7 @@ const Feedback = ({
         priority: newMessage.priority
       };
 
-      const response = await fetch('http://localhost:5000/api/messages', {
+      const response = await fetch('http://localhost:5001/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -669,3 +669,4 @@ const Feedback = ({
 };
 
 export default Feedback;
+

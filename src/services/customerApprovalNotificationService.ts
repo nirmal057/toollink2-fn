@@ -13,7 +13,7 @@ class CustomerApprovalNotificationService {
       const token = localStorage.getItem('accessToken');
       if (!token) return [];
 
-      const response = await fetch('http://localhost:5000/api/auth/pending-users', {
+      const response = await fetch('http://localhost:5001/api/auth/pending-users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -55,7 +55,7 @@ class CustomerApprovalNotificationService {
       const token = localStorage.getItem('accessToken');
       if (!token) return 0;
 
-      const response = await fetch('http://localhost:5000/api/auth/pending-users', {
+      const response = await fetch('http://localhost:5001/api/auth/pending-users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

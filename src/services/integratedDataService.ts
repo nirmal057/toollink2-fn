@@ -77,7 +77,7 @@ interface IntegratedData {
 }
 
 class IntegratedDataService {
-    private static baseUrl = 'http://localhost:5000/api';
+    private static baseUrl = 'http://localhost:5001/api';
 
     /**
      * Get authentication headers
@@ -95,9 +95,12 @@ class IntegratedDataService {
      */
     static async fetchIntegratedData(): Promise<IntegratedData> {
         try {
+            console.log('🔄 IntegratedDataService: Starting data fetch...');
             const headers = this.getAuthHeaders();
+            console.log('🔑 Headers prepared:', { hasAuth: !!headers.Authorization });
 
             // Fetch all data in parallel
+            console.log('📡 Fetching data from APIs...');
             const [usersResponse, inventoryResponse, ordersResponse, deliveriesResponse] = await Promise.all([
                 fetch(`${this.baseUrl}/users`, { headers }),
                 fetch(`${this.baseUrl}/inventory`, { headers }),
@@ -105,24 +108,49 @@ class IntegratedDataService {
                 fetch(`${this.baseUrl}/delivery`, { headers })
             ]);
 
+            console.log('📊 API Responses received:', {
+                users: usersResponse.status,
+                inventory: inventoryResponse.status,
+                orders: ordersResponse.status,
+                deliveries: deliveriesResponse.status
+            });
+
             // Parse responses
             const usersData = await usersResponse.json();
             const inventoryData = await inventoryResponse.json();
             const ordersData = await ordersResponse.json();
             const deliveriesData = await deliveriesResponse.json();
 
-            // Extract actual data arrays
-            const users = usersData.users || usersData.data || [];
-            const inventory = inventoryData.inventory || inventoryData.data || [];
-            const orders = ordersData.orders || ordersData.data || [];
-            const deliveries = deliveriesData.deliveries || deliveriesData.data || [];
+            console.log('🔍 Raw API data:', {
+                usersData: { success: usersData.success, count: usersData.data?.length },
+                inventoryData: { success: inventoryData.success, count: inventoryData.data?.items?.length },
+                ordersData: { success: ordersData.success, count: ordersData.data?.length },
+                deliveriesData: { success: deliveriesData.success, count: deliveriesData.data?.length }
+            });
+
+            // Extract actual data arrays - fix field mapping
+            const users = usersData.data || [];
+            const inventory = inventoryData.data?.items || inventoryData.items || [];
+            const orders = ordersData.data || [];
+            const deliveries = deliveriesData.data || [];
+
+            console.log('📋 Extracted arrays:', {
+                users: users.length,
+                inventory: inventory.length,
+                orders: orders.length,
+                deliveries: deliveries.length
+            });
 
             // Create relationships and calculate analytics
             const enrichedData = this.createRelationships(users, inventory, orders, deliveries);
 
+            console.log('✅ IntegratedDataService: Data processing complete!', {
+                analytics: enrichedData.analytics
+            });
+
             return enrichedData;
         } catch (error) {
-            console.error('Error fetching integrated data:', error);
+            console.error('❌ IntegratedDataService Error:', error);
             throw new Error('Failed to fetch integrated data');
         }
     }
@@ -154,35 +182,35 @@ class IntegratedDataService {
         // Enrich inventory with order usage
         const enrichedInventory: InventoryItem[] = inventory.map(item => {
             const itemOrders = orders.filter(order =>
-                order.items?.some((orderItem: any) => orderItem.inventoryId === (item._id || item.id))
+                order.items?.some((orderItem: any) => orderItem.inventory?._id === (item._id || item.id) || orderItem.inventoryId === (item._id || item.id))
             );
 
             return {
                 id: item._id || item.id,
                 name: item.name,
                 category: item.category,
-                currentStock: item.stock?.currentQuantity || item.currentStock || 0,
-                minimumStock: item.stock?.minimumQuantity || item.minimumStock || 0,
-                unitPrice: item.price || item.unitPrice || 0,
-                totalValue: (item.stock?.currentQuantity || 0) * (item.price || 0),
-                lastUpdated: item.updatedAt || item.lastUpdated || new Date().toISOString(),
+                currentStock: item.current_stock || item.quantity || 0,
+                minimumStock: item.min_stock_level || item.threshold || 0,
+                unitPrice: item.selling_price || item.cost || 0,
+                totalValue: (item.current_stock || item.quantity || 0) * (item.selling_price || item.cost || 0),
+                lastUpdated: item.updated_at || item.updatedAt || new Date().toISOString(),
                 ordersUsingThis: itemOrders.length
             };
         });
 
         // Enrich orders with customer and delivery information
         const enrichedOrders: Order[] = orders.map(order => {
-            const customer = users.find(user => (user._id || user.id) === order.customerId);
+            const customer = users.find(user => (user._id || user.id) === (order.customer?._id || order.customerId));
             const delivery = deliveries.find(del => del.orderId === (order._id || order.id));
 
             return {
                 id: order._id || order.id,
                 orderNumber: order.orderNumber,
-                customerId: order.customerId,
-                customerName: customer?.fullName || 'Unknown Customer',
+                customerId: order.customer?._id || order.customerId || '',
+                customerName: order.customer?.fullName || customer?.fullName || 'Unknown Customer',
                 items: order.items || [],
                 status: order.status,
-                totalAmount: order.totalAmount || order.finalAmount || 0,
+                totalAmount: order.finalAmount || order.totalAmount || 0,
                 createdAt: order.createdAt,
                 deliveryId: delivery?.id
             };
@@ -191,19 +219,19 @@ class IntegratedDataService {
         // Enrich deliveries with order and driver information
         const enrichedDeliveries: Delivery[] = deliveries.map(delivery => {
             const order = orders.find(ord => (ord._id || ord.id) === delivery.orderId);
-            const driver = users.find(user => (user._id || user.id) === delivery.driverId);
+            const driver = users.find(user => (user._id || user.id) === delivery.driver || user.fullName === delivery.driver);
 
             return {
                 id: delivery._id || delivery.id,
                 orderId: delivery.orderId,
-                driverId: delivery.driverId,
-                driverName: driver?.fullName || 'Unassigned',
-                customerName: delivery.customerName || order?.customerInfo?.name || 'Unknown',
-                deliveryAddress: delivery.deliveryAddress || delivery.address || '',
+                driverId: delivery.driver || delivery.driverId,
+                driverName: typeof delivery.driver === 'string' ? delivery.driver : driver?.fullName || 'Unassigned',
+                customerName: delivery.customer || order?.customer?.fullName || 'Unknown',
+                deliveryAddress: delivery.address || '',
                 status: delivery.status,
                 scheduledDate: delivery.scheduledDate,
                 deliveredDate: delivery.deliveredDate,
-                createdAt: delivery.createdAt
+                createdAt: delivery.createdAt || new Date().toISOString()
             };
         });
 

@@ -28,46 +28,6 @@ interface User {
 class AuthService {
   private static instance: AuthService;
 
-  // Mock users for development when backend is not available
-  private mockUsers = [
-    {
-      id: '1',
-      email: 'admin@toollink.com',
-      password: 'admin123',
-      name: 'Admin User',
-      role: 'admin',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '2',
-      email: 'user@toollink.com',
-      password: 'user123',
-      name: 'Regular User',
-      role: 'customer',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '3',
-      email: 'warehouse@toollink.com',
-      password: 'warehouse123',
-      name: 'Warehouse Manager',
-      role: 'warehouse',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    },
-    {
-      id: '4',
-      email: 'cashier@toollink.com',
-      password: 'cashier123',
-      name: 'Cashier User',
-      role: 'cashier',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    }
-  ];
-
   private constructor() { }
 
   public static getInstance(): AuthService {
@@ -143,54 +103,22 @@ class AuthService {
     } catch (error) {
       console.error('Login error:', error);
 
-      // Fall back to mock authentication in development
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('Backend not available, using mock authentication');
-        return this.mockLogin(credentials);
-      }
+      // Log detailed error for debugging
+      console.error('Authentication server connection failed:', {
+        error: error,
+        message: error instanceof Error ? error.message : 'Unknown error',
+        url: `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.LOGIN}`
+      });
 
       return {
         success: false,
-        error: 'Could not connect to authentication server',
+        error: 'Could not connect to authentication server. Please check if the backend server is running on http://localhost:5001',
         errorType: 'connection'
       };
     }
   }
 
-  private mockLogin(credentials: LoginCredentials): { success: boolean; user?: User; error?: string; errorType?: string } {
-    console.log('Using mock authentication for development');
-
-    // Find user in mock data
-    const mockUser = this.mockUsers.find(u =>
-      u.email === credentials.email && u.password === credentials.password
-    );
-
-    if (mockUser) {
-      const { password, ...userWithoutPassword } = mockUser;
-      const user = userWithoutPassword as User;
-
-      // Generate mock tokens
-      const accessToken = 'mock-access-token-' + Date.now();
-      const refreshToken = 'mock-refresh-token-' + Date.now();
-
-      // Store tokens and user data
-      localStorage.setItem('accessToken', accessToken);
-      localStorage.setItem('refreshToken', refreshToken);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      // Set current user in RBAC service
-      rbacService.setCurrentUser({ role: user.role as any });
-
-      console.log('Mock login successful, user stored:', user);
-      return { success: true, user };
-    }
-
-    return {
-      success: false,
-      error: 'Invalid email or password',
-      errorType: 'invalid_credentials'
-    };
-  } async register(userData: RegisterData): Promise<{ success: boolean; user?: User; error?: string; errorType?: string; requiresApproval?: boolean }> {
+  async register(userData: RegisterData): Promise<{ success: boolean; user?: User; error?: string; errorType?: string; requiresApproval?: boolean }> {
     try {
       // First try the backend API
       const url = `${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.AUTH.REGISTER}`;
@@ -236,57 +164,14 @@ class AuthService {
         };
       }
 
-      // If backend failed, fall back to mock registration
-      return this.mockRegister(userData);
-
     } catch (error) {
-      console.warn('Backend not available, using mock registration:', error);
-      // Fall back to mock registration
-      return this.mockRegister(userData);
-    }
-  }
-
-  private mockRegister(userData: RegisterData): { success: boolean; user?: User; error?: string; errorType?: string } {
-    console.log('Using mock registration for development');
-
-    // Check if email already exists
-    const existingUser = this.mockUsers.find(u => u.email === userData.email);
-    if (existingUser) {
+      console.error('Registration error:', error);
       return {
         success: false,
-        error: 'Email already registered',
-        errorType: 'duplicate_email'
+        error: 'Could not connect to registration server. Please check if the backend server is running.',
+        errorType: 'connection'
       };
-    }    // Create new user
-    const newUser: User = {
-      id: (this.mockUsers.length + 1).toString(),
-      email: userData.email,
-      name: userData.fullName,
-      role: userData.role || 'customer',
-      isActive: true,
-      createdAt: new Date().toISOString()
-    };
-
-    // Add to mock users (for this session)
-    this.mockUsers.push({
-      ...newUser,
-      password: userData.password
-    });
-
-    // Generate mock tokens
-    const accessToken = 'mock-access-token-' + Date.now();
-    const refreshToken = 'mock-refresh-token-' + Date.now();
-
-    // Store tokens and user data
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-
-    // Set current user in RBAC service
-    rbacService.setCurrentUser({ role: newUser.role as any });
-
-    console.log('Mock registration successful, user stored:', newUser);
-    return { success: true, user: newUser };
+    }
   }
 
   async logout(): Promise<void> {

@@ -13,7 +13,7 @@ import {
 import { useNotification } from '../contexts/NotificationContext';
 
 // API Configuration
-const API_BASE = 'http://localhost:5000';
+const API_BASE = 'http://localhost:5001';
 
 // Simple interfaces for the new implementation
 interface CustomerMessage {
@@ -456,3 +456,4 @@ const CustomerMessages: React.FC<CustomerMessagesProps> = () => {
 };
 
 export default CustomerMessages;
+

@@ -99,7 +99,7 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
         setSubmitStatus('idle');
 
         try {
-            const response = await fetch('http://localhost:5000/api/messages/contact', {
+            const response = await fetch('http://localhost:5001/api/messages/contact', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -488,3 +488,4 @@ const ContactModal: React.FC<ContactModalProps> = ({ isOpen, onClose }) => {
 };
 
 export default ContactModal;
+

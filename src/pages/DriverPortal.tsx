@@ -42,7 +42,7 @@ const DriverPortal: React.FC = () => {
             setError(null);
             const token = localStorage.getItem('accessToken');
 
-            const response = await fetch(`http://localhost:5000/api/deliveries/driver/${user?.id}`, {
+            const response = await fetch(`http://localhost:5001/api/deliveries/driver/${user?.id}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -70,7 +70,7 @@ const DriverPortal: React.FC = () => {
             setError(null);
             const token = localStorage.getItem('accessToken');
 
-            const response = await fetch(`http://localhost:5000/api/deliveries/${deliveryId}/status`, {
+            const response = await fetch(`http://localhost:5001/api/deliveries/${deliveryId}/status`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -362,3 +362,4 @@ const DriverPortal: React.FC = () => {
 };
 
 export default DriverPortal;
+

@@ -46,8 +46,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       setFetchingOrders(true);
       setError(null);
 
-      // Get admin token (use available admin credentials) - Use correct port 5000
-      const authResponse = await fetch('http://localhost:5000/api/auth/login', {
+      // Get admin token (use available admin credentials) - Use correct port 5001
+      const authResponse = await fetch('http://localhost:5001/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       localStorage.setItem('token', token);
 
       // Fetch orders with authentication - Use correct port 5000
-      const ordersResponse = await fetch('http://localhost:5000/api/orders?limit=50', {
+      const ordersResponse = await fetch('http://localhost:5001/api/orders?limit=50', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -125,7 +125,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       let token = localStorage.getItem('token');
 
       if (!token) {
-        const authResponse = await fetch('http://localhost:5000/api/auth/login', {
+        const authResponse = await fetch('http://localhost:5001/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email: 'admin@toollink.com', password: 'admin123' })
@@ -139,7 +139,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       }
 
       if (token) {
-        const response = await fetch('http://localhost:5000/api/inventory?limit=100', {
+        const response = await fetch('http://localhost:5001/api/inventory?limit=100', {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -285,7 +285,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
       if (!token) {
         // Authenticate if no token
-        const authResponse = await fetch('http://localhost:5000/api/auth/login', {
+        const authResponse = await fetch('http://localhost:5001/api/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -311,7 +311,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       }
 
       // Send to backend with authentication and correct port
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch('http://localhost:5001/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

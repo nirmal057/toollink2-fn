@@ -35,7 +35,7 @@ export const AuthDebugPanel: React.FC = () => {
         // Test server connectivity
         let serverReachable = false;
         try {
-            const response = await fetch('http://localhost:5000/health', {
+            const response = await fetch('http://localhost:5001/health', {
                 method: 'GET',
                 timeout: 5000
             } as any);
@@ -231,3 +231,4 @@ export const AuthDebugPanel: React.FC = () => {
         </div>
     );
 };
+

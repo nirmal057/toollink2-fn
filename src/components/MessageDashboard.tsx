@@ -106,7 +106,7 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
     const fetchMessages = async () => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('http://localhost:5000/api/messages', {
+            const response = await fetch('http://localhost:5001/api/messages', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -183,7 +183,7 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
                 payload.assignedTo = userId;
             }
 
-            const response = await fetch(`http://localhost:5000/api/messages/${messageId}`, {
+            const response = await fetch(`http://localhost:5001/api/messages/${messageId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -213,7 +213,7 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
         setSendingReply(true);
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`http://localhost:5000/api/messages/${selectedMessage._id}/reply`, {
+            const response = await fetch(`http://localhost:5001/api/messages/${selectedMessage._id}/reply`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -609,3 +609,4 @@ const MessageDashboard: React.FC<MessageDashboardProps> = ({ userRole, userId })
 };
 
 export default MessageDashboard;
+

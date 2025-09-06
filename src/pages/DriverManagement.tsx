@@ -289,7 +289,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const loadDrivers = async () => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('http://localhost:5000/api/drivers', {
+            const response = await fetch('http://localhost:5001/api/drivers', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -310,7 +310,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const loadDeliveries = async () => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('http://localhost:5000/api/deliveries/unassigned', {
+            const response = await fetch('http://localhost:5001/api/deliveries/unassigned', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -331,7 +331,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const assignDelivery = async (deliveryId: string, driverId: string) => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`http://localhost:5000/api/deliveries/${deliveryId}/assign`, {
+            const response = await fetch(`http://localhost:5001/api/deliveries/${deliveryId}/assign`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -364,7 +364,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const sendDriverNotification = async (driverId: string, deliveryId: string) => {
         try {
             const token = localStorage.getItem('accessToken');
-            await fetch(`http://localhost:5000/api/notifications/driver-assignment`, {
+            await fetch(`http://localhost:5001/api/notifications/driver-assignment`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -404,7 +404,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
                 emailVerified: true
             };
 
-            const response = await fetch('http://localhost:5000/api/users', {
+            const response = await fetch('http://localhost:5001/api/users', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -761,3 +761,4 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
 };
 
 export default DriverManagement;
+

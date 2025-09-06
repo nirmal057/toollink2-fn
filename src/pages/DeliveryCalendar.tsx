@@ -193,11 +193,11 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
       const dateToCheck = checkDate || formData.date;
       const timeSlotToCheck = checkTimeSlot || formData.timeSlot;
 
-      let url = 'http://localhost:5000/api/drivers';
+      let url = 'http://localhost:5001/api/drivers';
 
       // If we have date and time slot, check availability
       if (dateToCheck && timeSlotToCheck) {
-        url = `http://localhost:5000/api/drivers/availability?date=${dateToCheck}&timeSlot=${encodeURIComponent(timeSlotToCheck)}`;
+        url = `http://localhost:5001/api/drivers/availability?date=${dateToCheck}&timeSlot=${encodeURIComponent(timeSlotToCheck)}`;
       }
 
       const response = await fetch(url, {
@@ -1050,3 +1050,4 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
 };
 
 export default DeliveryCalendar;
+
