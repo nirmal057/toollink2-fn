@@ -170,7 +170,7 @@ const AdminDashboard: React.FC = () => {
     const now = new Date();
     const time = new Date(timestamp);
     const diffInMinutes = Math.floor((now.getTime() - time.getTime()) / (1000 * 60));
-    
+
     if (diffInMinutes < 1) return 'Just now';
     if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
     if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
@@ -252,7 +252,7 @@ const AdminDashboard: React.FC = () => {
       };
 
       setDashboardData(mockData);
-      
+
     } catch (error) {
       console.error('AdminDashboard: Error loading dashboard:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
@@ -304,7 +304,7 @@ const AdminDashboard: React.FC = () => {
             {/* Decorative background elements */}
             <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-indigo-300/30 rounded-full blur-3xl -z-10 transform translate-x-32 -translate-y-32"></div>
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-orange-200/30 to-red-300/30 rounded-full blur-3xl -z-10 transform -translate-x-16 translate-y-16"></div>
-            
+
             <div className="flex items-center justify-between relative z-10">
               <div className="space-y-4">
                 <div className="flex items-center space-x-4">
@@ -316,7 +316,7 @@ const AdminDashboard: React.FC = () => {
                       <CheckCircle className="h-4 w-4 text-white" />
                     </div>
                   </div>
-                  
+
                   <div>
                     <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent">
                       Welcome to ToolLink Dashboard
@@ -326,7 +326,7 @@ const AdminDashboard: React.FC = () => {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center space-x-6">
                   <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
                     <div className="flex items-center space-x-2">
@@ -334,7 +334,7 @@ const AdminDashboard: React.FC = () => {
                       <span className="text-gray-700 dark:text-gray-300 font-semibold">✨ Ready</span>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
                     <Clock className="h-5 w-5 text-orange-500" />
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
@@ -346,7 +346,7 @@ const AdminDashboard: React.FC = () => {
                       })}
                     </span>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
                     <Users className="h-5 w-5 text-blue-500" />
                     <span className="text-gray-700 dark:text-gray-300 font-medium">
@@ -355,7 +355,7 @@ const AdminDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
+
               {/* Right side stats preview */}
               <div className="hidden xl:flex items-center space-x-6">
                 <div className="text-center group transform hover:scale-105 transition-transform duration-200">
@@ -365,7 +365,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">System Active</div>
                   <div className="text-xs text-green-600 dark:text-green-400">All services running</div>
                 </div>
-                
+
                 <div className="text-center group transform hover:scale-105 transition-transform duration-200">
                   <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-4 shadow-xl border border-blue-200">
                     <Server className="h-10 w-10 mx-auto mb-2 text-white" />
@@ -373,7 +373,7 @@ const AdminDashboard: React.FC = () => {
                   <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">Version 2.1.0</div>
                   <div className="text-xs text-blue-600 dark:text-blue-400">Latest release</div>
                 </div>
-                
+
                 <div className="text-center group transform hover:scale-105 transition-transform duration-200">
                   <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl p-4 shadow-xl border border-orange-200">
                     <Globe className="h-10 w-10 mx-auto mb-2 text-white" />
@@ -409,24 +409,23 @@ const AdminDashboard: React.FC = () => {
             ];
 
             return (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`group relative bg-gradient-to-br ${bgClasses[index]} rounded-3xl p-6 shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden`}
               >
                 <div className="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full blur-xl transform translate-x-6 -translate-y-6 group-hover:scale-125 transition-transform duration-500"></div>
                 <div className="absolute bottom-0 left-0 w-16 h-16 bg-white/5 rounded-full blur-lg transform -translate-x-4 translate-y-4 group-hover:scale-125 transition-transform duration-500"></div>
-                
+
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-4">
                     <div className={`p-4 bg-gradient-to-br ${gradientClasses[index]} rounded-2xl shadow-2xl group-hover:rotate-6 transition-transform duration-500`}>
                       <IconComponent className="h-8 w-8 text-white group-hover:scale-110 transition-transform duration-300" />
                     </div>
-                    
-                    <div className={`flex items-center px-3 py-2 rounded-full text-sm font-semibold shadow-lg ${
-                      stat.trend === 'up'
+
+                    <div className={`flex items-center px-3 py-2 rounded-full text-sm font-semibold shadow-lg ${stat.trend === 'up'
                         ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
                         : 'bg-gradient-to-r from-red-400 to-red-500 text-white'
-                    }`}>
+                      }`}>
                       {stat.trend === 'up' ? (
                         <ArrowUpRight className="h-4 w-4 mr-1" />
                       ) : (
@@ -435,7 +434,7 @@ const AdminDashboard: React.FC = () => {
                       {stat.change}
                     </div>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-3xl font-bold text-gray-800 dark:text-white mb-2">
                       {stat.value}
@@ -455,7 +454,7 @@ const AdminDashboard: React.FC = () => {
           {/* Beautiful User Analytics */}
           <div className="lg:col-span-2 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 dark:from-gray-800 dark:via-blue-900/10 dark:to-indigo-900/20 rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-indigo-300/20 rounded-full blur-3xl transform translate-x-16 -translate-y-16"></div>
-            
+
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center space-x-4">
@@ -529,30 +528,30 @@ const AdminDashboard: React.FC = () => {
                   </div>
                   <span>Role Distribution</span>
                 </h4>
-                
+
                 <div className="grid md:grid-cols-3 gap-6">
                   {['Admin', 'Driver', 'Customer'].map((role, index) => {
                     const roleCount = dashboardData?.userStats?.byRole?.[role.toLowerCase()] || 0;
                     const colors = [
                       'from-purple-500 to-indigo-600',
-                      'from-green-500 to-emerald-600', 
+                      'from-green-500 to-emerald-600',
                       'from-blue-500 to-cyan-600'
                     ];
                     const icons = [Shield, Truck, User];
                     const Icon = icons[index];
-                    
+
                     return (
-                      <div 
-                        key={role} 
+                      <div
+                        key={role}
                         className="group relative bg-white/70 dark:bg-gray-800/70 rounded-2xl p-6 backdrop-blur-sm shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden"
                       >
                         <div className={`absolute inset-0 bg-gradient-to-br ${colors[index]} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
-                        
+
                         <div className="relative z-10">
                           <div className={`w-16 h-16 bg-gradient-to-br ${colors[index]} rounded-2xl flex items-center justify-center mb-4 shadow-xl group-hover:rotate-6 transition-transform duration-500`}>
                             <Icon className="h-8 w-8 text-white" />
                           </div>
-                          
+
                           <div className="space-y-2">
                             <h4 className="text-lg font-bold text-gray-900 dark:text-white">
                               {role}s
@@ -564,15 +563,15 @@ const AdminDashboard: React.FC = () => {
                               Active {role.toLowerCase()}s
                             </p>
                           </div>
-                          
+
                           <div className="mt-4 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full bg-gradient-to-r ${colors[index]} rounded-full transform transition-all duration-1000 ease-out`}
                               style={{ width: `${Math.min((roleCount / 50) * 100, 100)}%` }}
                             ></div>
                           </div>
                         </div>
-                        
+
                         <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${colors[index]} opacity-10 rounded-bl-full group-hover:scale-125 transition-transform duration-500`}></div>
                       </div>
                     );
@@ -586,7 +585,7 @@ const AdminDashboard: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-gradient-to-br from-white via-purple-50/30 to-pink-50/50 dark:from-gray-800 dark:via-purple-900/10 dark:to-pink-900/20 rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-48 h-48 bg-gradient-to-br from-purple-200/20 to-pink-300/20 rounded-full blur-3xl transform -translate-x-8 -translate-y-8"></div>
-              
+
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center space-x-4">
@@ -598,7 +597,7 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-gray-600 dark:text-gray-400">Latest system events</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center space-x-2 bg-white/70 dark:bg-gray-800/70 rounded-xl px-4 py-2 backdrop-blur-sm shadow-lg">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Live Updates</span>
@@ -610,21 +609,21 @@ const AdminDashboard: React.FC = () => {
                     const IconComponent = getActivityIconComponent(activity);
                     const colorClass = getActivityColor(activity);
                     const timeAgo = formatTimeAgo(activity.timestamp);
-                    
+
                     return (
-                      <div 
+                      <div
                         key={activity.id}
                         onClick={() => handleActivityClick(activity)}
                         className="group relative bg-white/60 dark:bg-gray-800/60 rounded-2xl p-5 backdrop-blur-sm border border-white/30 dark:border-gray-700/30 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] cursor-pointer"
                         style={{ animationDelay: `${index * 100}ms` }}
                       >
                         <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-purple-500 to-pink-500 rounded-r-full group-hover:w-2 transition-all duration-300"></div>
-                        
+
                         <div className="flex items-start space-x-4 ml-4">
                           <div className={`p-3 rounded-2xl shadow-lg ${colorClass} group-hover:scale-110 transition-transform duration-300`}>
                             <IconComponent className="h-5 w-5 text-white" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-2">
                               <p className="text-sm font-bold text-gray-900 dark:text-white">
@@ -638,7 +637,7 @@ const AdminDashboard: React.FC = () => {
                                 {activity.severity}
                               </div>
                             </div>
-                            
+
                             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 flex items-center space-x-2">
                               <Clock className="h-3 w-3" />
                               <span>{timeAgo} • {activity.user.name}</span>
@@ -648,9 +647,9 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     );
                   })}
-                  
+
                   <div className="pt-4 text-center">
-                    <button 
+                    <button
                       onClick={() => navigate('/admin/activities')}
                       className="group inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white font-semibold rounded-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
                     >
