@@ -5,6 +5,7 @@ import {
   CheckCircle, RefreshCw, AlertCircle, Clock, Globe, ArrowUpRight, ArrowDownRight, ArrowRight,
   Eye, UserCheck, UserX, AlertTriangle, BarChart3, Truck, User, Settings
 } from 'lucide-react';
+import { RealDashboardService } from '../services/realDashboardService';
 
 interface DashboardData {
   userStats: {
@@ -423,8 +424,8 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className={`flex items-center px-3 py-2 rounded-full text-sm font-semibold shadow-lg ${stat.trend === 'up'
-                        ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
-                        : 'bg-gradient-to-r from-red-400 to-red-500 text-white'
+                      ? 'bg-gradient-to-r from-green-400 to-emerald-500 text-white'
+                      : 'bg-gradient-to-r from-red-400 to-red-500 text-white'
                       }`}>
                       {stat.trend === 'up' ? (
                         <ArrowUpRight className="h-4 w-4 mr-1" />
