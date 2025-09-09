@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Package, ShoppingCart, Shield, Activity as ActivityIcon, Server, Bell, Search,
-  CheckCircle, RefreshCw, AlertCircle, Clock, Globe, ArrowUpRight, ArrowDownRight, ArrowRight,
+  Users, Package, ShoppingCart, Shield, Activity as ActivityIcon, Bell, Search,
+  CheckCircle, RefreshCw, AlertCircle, Clock, ArrowUpRight, ArrowDownRight, ArrowRight,
   Eye, UserCheck, UserX, AlertTriangle, BarChart3, Truck, User, Settings
 } from 'lucide-react';
 import { RealDashboardService } from '../services/realDashboardService';
@@ -71,12 +71,9 @@ const AdminDashboard: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const navigate = useNavigate();
 
   // Mock user for demo
-  const user = { name: 'Admin User', role: 'admin' };
   const isAuthenticated = true;
 
   // Inventory management state
@@ -203,25 +200,6 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Manual refresh function
-  const refreshDashboard = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      await Promise.all([
-        loadIntegratedDashboard(),
-        loadActivities(),
-        loadInventoryItems()
-      ]);
-      setLastRefresh(new Date());
-    } catch (error) {
-      console.error('Error refreshing dashboard:', error);
-      setError('Failed to refresh dashboard data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     if (isAuthenticated) {
       loadIntegratedDashboard();
@@ -229,17 +207,6 @@ const AdminDashboard: React.FC = () => {
       loadInventoryItems();
     }
   }, [isAuthenticated]);
-
-  // Auto-refresh every 30 seconds
-  useEffect(() => {
-    if (!autoRefresh || !isAuthenticated) return;
-
-    const interval = setInterval(() => {
-      refreshDashboard();
-    }, 30000); // 30 seconds
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, isAuthenticated]);
 
   if (loading) {
     return (
@@ -270,125 +237,6 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        {/* Beautiful Welcome Header */}
-        <div className="mb-8 relative overflow-hidden">
-          <div className="bg-gradient-to-r from-white via-blue-50 to-indigo-50 dark:from-gray-800 dark:via-blue-900/20 dark:to-indigo-900/20 rounded-3xl p-8 shadow-xl border border-gray-100 dark:border-gray-700 relative">
-            {/* Decorative background elements */}
-            <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-blue-200/30 to-indigo-300/30 rounded-full blur-3xl -z-10 transform translate-x-32 -translate-y-32"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-orange-200/30 to-red-300/30 rounded-full blur-3xl -z-10 transform -translate-x-16 translate-y-16"></div>
-
-            <div className="flex items-center justify-between relative z-10">
-              <div className="space-y-4">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <div className="w-16 h-16 bg-gradient-to-br from-blue-600 via-purple-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-2xl">
-                      <Shield className="h-8 w-8 text-white" />
-                    </div>
-                    <div className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg">
-                      <CheckCircle className="h-4 w-4 text-white" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <h1 className="text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-700 to-indigo-800 dark:from-white dark:via-blue-200 dark:to-indigo-200 bg-clip-text text-transparent">
-                      Welcome to ToolLink Dashboard
-                    </h1>
-                    <p className="text-lg text-gray-600 dark:text-gray-300 mt-2">
-                      Comprehensive system management and analytics
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-6">
-                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full animate-pulse"></div>
-                      <span className="text-gray-700 dark:text-gray-300 font-semibold">✨ Ready</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
-                    <Clock className="h-5 w-5 text-orange-500" />
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      {new Date().toLocaleDateString('en-US', {
-                        weekday: 'long',
-                        month: 'long',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </span>
-                  </div>
-
-                  {/* Refresh Controls */}
-                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-4 py-3 backdrop-blur-sm shadow-lg border border-white/20">
-                    <button
-                      onClick={refreshDashboard}
-                      disabled={loading}
-                      className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-colors"
-                    >
-                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                      <span className="text-sm font-medium">Refresh</span>
-                    </button>
-                    <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
-                    <button
-                      onClick={() => setAutoRefresh(!autoRefresh)}
-                      className={`flex items-center space-x-2 transition-colors ${autoRefresh
-                        ? 'text-green-600 hover:text-green-700'
-                        : 'text-gray-500 hover:text-gray-600'
-                        }`}
-                    >
-                      <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
-                      <span className="text-sm font-medium">Auto</span>
-                    </button>
-                  </div>
-
-                  {/* Last Refresh Time */}
-                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-4 py-3 backdrop-blur-sm shadow-lg border border-white/20">
-                    <Globe className="h-4 w-4 text-gray-500" />
-                    <span className="text-xs text-gray-600 dark:text-gray-400">
-                      Updated: {lastRefresh.toLocaleTimeString()}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-2 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-6 py-3 backdrop-blur-sm shadow-lg border border-white/20">
-                    <Users className="h-5 w-5 text-blue-500" />
-                    <span className="text-gray-700 dark:text-gray-300 font-medium">
-                      {user?.name || 'Admin User'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Right side stats preview */}
-              <div className="hidden xl:flex items-center space-x-6">
-                <div className="text-center group transform hover:scale-105 transition-transform duration-200">
-                  <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl p-4 shadow-xl border border-green-200">
-                    <ActivityIcon className="h-10 w-10 mx-auto mb-2 text-white" />
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">System Active</div>
-                  <div className="text-xs text-green-600 dark:text-green-400">All services running</div>
-                </div>
-
-                <div className="text-center group transform hover:scale-105 transition-transform duration-200">
-                  <div className="bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl p-4 shadow-xl border border-blue-200">
-                    <Server className="h-10 w-10 mx-auto mb-2 text-white" />
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">Version 2.1.0</div>
-                  <div className="text-xs text-blue-600 dark:text-blue-400">Latest release</div>
-                </div>
-
-                <div className="text-center group transform hover:scale-105 transition-transform duration-200">
-                  <div className="bg-gradient-to-br from-orange-400 to-red-500 rounded-2xl p-4 shadow-xl border border-orange-200">
-                    <Globe className="h-10 w-10 mx-auto mb-2 text-white" />
-                  </div>
-                  <div className="text-sm text-gray-600 dark:text-gray-400 font-semibold">Global Access</div>
-                  <div className="text-xs text-orange-600 dark:text-orange-400">Worldwide ready</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* Beautiful Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {dashboardData?.quickStats?.map((stat, index) => {

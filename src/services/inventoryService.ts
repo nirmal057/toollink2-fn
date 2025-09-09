@@ -57,14 +57,14 @@ class InventoryService {  // Map backend inventory item to frontend format
       quantity: backendItem.stock?.currentQuantity || backendItem.current_stock || backendItem.quantity || 0,
       unit: backendItem.stock?.unit || backendItem.unit || 'pieces',
       threshold: backendItem.stock?.minimumQuantity || backendItem.min_stock_level || backendItem.threshold || 0,
-      location: backendItem.location?.warehouse ? 
+      location: backendItem.location?.warehouse ?
         `${backendItem.location.warehouse}${backendItem.location.zone ? ' - ' + backendItem.location.zone : ''}` :
         backendItem.location || '',
-      lastUpdated: backendItem.updatedAt || backendItem.updated_at 
-        ? new Date(backendItem.updatedAt || backendItem.updated_at).toISOString().split('T')[0] 
-        : backendItem.createdAt || backendItem.created_at 
-        ? new Date(backendItem.createdAt || backendItem.created_at).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0],
+      lastUpdated: backendItem.updatedAt || backendItem.updated_at
+        ? new Date(backendItem.updatedAt || backendItem.updated_at).toISOString().split('T')[0]
+        : backendItem.createdAt || backendItem.created_at
+          ? new Date(backendItem.createdAt || backendItem.created_at).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0],
       description: backendItem.description || '',
       sku: backendItem.sku || '',
       current_stock: backendItem.stock?.currentQuantity || backendItem.current_stock,
@@ -82,7 +82,7 @@ class InventoryService {  // Map backend inventory item to frontend format
   // Map frontend item to backend format
   private mapFrontendToBackend(frontendItem: CreateInventoryItem | UpdateInventoryItem): any {
     const sku = frontendItem.sku || this.generateTempSku(frontendItem.category || '');
-    
+
     return {
       name: frontendItem.name,
       category: frontendItem.category,
@@ -129,7 +129,7 @@ class InventoryService {  // Map backend inventory item to frontend format
   }): Promise<{ items: InventoryItem[]; pagination?: any }> {
     try {
       const params = new URLSearchParams();
-      
+
       if (filters?.category && filters.category !== 'all') {
         params.append('category', filters.category);
       }
@@ -151,14 +151,14 @@ class InventoryService {  // Map backend inventory item to frontend format
 
       const queryString = params.toString();
       const url = `${API_CONFIG.ENDPOINTS.INVENTORY.LIST}${queryString ? `?${queryString}` : ''}`;
-      
+
       const response = await api.get(url);
-      
+
       if (response.data.success) {
-        const items = Array.isArray(response.data.items) 
+        const items = Array.isArray(response.data.items)
           ? response.data.items.map(this.mapBackendToFrontend)
           : [];
-        
+
         return {
           items,
           pagination: response.data.pagination
@@ -176,7 +176,7 @@ class InventoryService {  // Map backend inventory item to frontend format
   async getItemById(id: string): Promise<InventoryItem> {
     try {
       const response = await api.get(API_CONFIG.ENDPOINTS.INVENTORY.GET_BY_ID(id));
-      
+
       if (response.data.success) {
         return this.mapBackendToFrontend(response.data.item);
       } else {
@@ -193,7 +193,7 @@ class InventoryService {  // Map backend inventory item to frontend format
     try {
       const backendData = this.mapFrontendToBackend(itemData);
       const response = await api.post(API_CONFIG.ENDPOINTS.INVENTORY.CREATE, backendData);
-      
+
       if (response.data.success) {
         return this.mapBackendToFrontend(response.data.item);
       } else {
@@ -210,7 +210,7 @@ class InventoryService {  // Map backend inventory item to frontend format
     try {
       const backendData = this.mapFrontendToBackend({ ...itemData, id } as UpdateInventoryItem);
       const response = await api.put(API_CONFIG.ENDPOINTS.INVENTORY.UPDATE(id), backendData);
-      
+
       if (response.data.success) {
         return this.mapBackendToFrontend(response.data.item);
       } else {
@@ -226,7 +226,7 @@ class InventoryService {  // Map backend inventory item to frontend format
   async deleteItem(id: string): Promise<void> {
     try {
       const response = await api.delete(API_CONFIG.ENDPOINTS.INVENTORY.DELETE(id));
-      
+
       if (!response.data.success) {
         throw new Error(response.data.error || 'Failed to delete inventory item');
       }
@@ -239,10 +239,23 @@ class InventoryService {  // Map backend inventory item to frontend format
   // Get inventory statistics
   async getStats(): Promise<InventoryStats> {
     try {
+      console.log('Fetching inventory stats from:', API_CONFIG.ENDPOINTS.INVENTORY.STATS);
       const response = await api.get(API_CONFIG.ENDPOINTS.INVENTORY.STATS);
-      
+      console.log('Full response:', response.data);
+
       if (response.data.success) {
-        return response.data.stats;
+        // Map backend stats to frontend format
+        const backendStats = response.data.data;
+        console.log('Backend stats:', backendStats);
+        const mappedStats = {
+          total: backendStats.totalItems || 0,
+          active: backendStats.activeItems || 0,
+          inactive: backendStats.inactiveItems || 0,
+          low_stock: backendStats.lowStockItems || 0,
+          categories: backendStats.categories || 0
+        };
+        console.log('Mapped stats:', mappedStats);
+        return mappedStats;
       } else {
         throw new Error(response.data.error || 'Failed to fetch inventory statistics');
       }
@@ -263,9 +276,9 @@ class InventoryService {  // Map backend inventory item to frontend format
   async getLowStockItems(): Promise<InventoryItem[]> {
     try {
       const response = await api.get(API_CONFIG.ENDPOINTS.INVENTORY.LOW_STOCK);
-      
+
       if (response.data.success) {
-        return Array.isArray(response.data.items) 
+        return Array.isArray(response.data.items)
           ? response.data.items.map(this.mapBackendToFrontend)
           : [];
       } else {
@@ -285,7 +298,7 @@ class InventoryService {  // Map backend inventory item to frontend format
         adjustment_type: adjustmentType,
         reason: reason || 'Manual adjustment'
       });
-      
+
       if (response.data.success) {
         return this.mapBackendToFrontend(response.data.item);
       } else {

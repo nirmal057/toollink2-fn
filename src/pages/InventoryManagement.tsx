@@ -422,7 +422,9 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
 
   const loadStats = async () => {
     try {
+      console.log('Loading inventory stats...');
       const statsData = await inventoryService.getStats();
+      console.log('Received stats data:', statsData);
       if (statsData) {
         setStats(statsData);
       }
