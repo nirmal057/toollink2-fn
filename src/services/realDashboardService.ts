@@ -10,6 +10,31 @@ export class RealDashboardService {
         };
     }
 
+    // Fetch admin dashboard data (most efficient)
+    static async fetchAdminDashboard() {
+        try {
+            console.log('🔍 Fetching admin dashboard from:', `${this.baseURL}/admin/dashboard`);
+            const headers = this.getHeaders();
+            console.log('🔑 Headers:', headers);
+
+            const response = await fetch(`${this.baseURL}/admin/dashboard`, {
+                headers: headers
+            });
+
+            console.log('📡 Response status:', response.status);
+            const data = await response.json();
+            console.log('📊 Admin dashboard raw data:', data);
+
+            if (data.success) {
+                return data.data;
+            }
+            throw new Error(data.error || 'Failed to fetch admin dashboard');
+        } catch (error) {
+            console.error('❌ Error fetching admin dashboard:', error);
+            throw error;
+        }
+    }
+
     // Fetch real users data
     static async fetchUsers() {
         try {
@@ -69,123 +94,222 @@ export class RealDashboardService {
     // Calculate real dashboard analytics for Sri Lankan hardware store
     static async getRealDashboardData() {
         try {
-            // Fetch all real data in parallel
-            const [users, inventory, orders, deliveries] = await Promise.all([
-                this.fetchUsers(),
-                this.fetchInventory(),
-                this.fetchOrders(),
-                this.fetchDeliveries()
-            ]);
+            // Try to fetch from admin dashboard endpoint first (more efficient)
+            try {
+                const adminData = await this.fetchAdminDashboard();
 
-            // Calculate real user statistics
-            const userStats = {
-                total: users.length,
-                active: users.filter((user: any) => user.isActive !== false).length,
-                pending: users.filter((user: any) => user.status === 'pending').length,
-                inactive: users.filter((user: any) => user.isActive === false).length,
-                byRole: {
-                    admin: users.filter((user: any) => user.role === 'admin').length,
-                    driver: users.filter((user: any) => user.role === 'driver').length,
-                    customer: users.filter((user: any) => user.role === 'customer').length,
-                    warehouse: users.filter((user: any) => user.role === 'warehouse').length
-                }
-            };
+                // Transform admin endpoint data to our format
+                const userStats = {
+                    total: adminData.users.totalUsers || 0,
+                    active: adminData.users.activeUsers || 0,
+                    pending: adminData.users.pendingUsers || 0,
+                    inactive: adminData.users.inactiveUsers || 0,
+                    byRole: adminData.users.roleDistribution ?
+                        adminData.users.roleDistribution.reduce((acc: any, role: any) => {
+                            acc[role._id] = role.count;
+                            return acc;
+                        }, {}) : {}
+                };
 
-            // Calculate real inventory statistics
-            const inventoryStats = {
-                totalItems: inventory.length,
-                lowStock: inventory.filter((item: any) => item.quantity <= (item.minStock || item.threshold || 5)).length,
-                outOfStock: inventory.filter((item: any) => item.quantity === 0).length,
-                categories: [...new Set(inventory.map((item: any) => item.category))].length,
-                totalValue: inventory.reduce((sum: number, item: any) =>
-                    sum + ((item.price || 0) * (item.quantity || 0)), 0
-                )
-            };
+                const inventoryStats = {
+                    totalItems: adminData.inventory.totalItems || 0,
+                    lowStock: adminData.inventory.lowStockItems || 0,
+                    outOfStock: adminData.inventory.outOfStockItems || 0,
+                    categories: adminData.inventory.categories || 0,
+                    totalValue: adminData.inventory.totalValue || 0
+                };
 
-            // Calculate real order statistics
-            const orderStats = {
-                total: orders.length,
-                pending: orders.filter((order: any) => order.status === 'pending').length,
-                processing: orders.filter((order: any) => order.status === 'processing' || order.status === 'confirmed').length,
-                completed: orders.filter((order: any) => order.status === 'completed' || order.status === 'delivered').length,
-                cancelled: orders.filter((order: any) => order.status === 'cancelled').length,
-                revenue: orders
-                    .filter((order: any) => order.status === 'completed' || order.status === 'delivered')
-                    .reduce((sum: number, order: any) => sum + (order.totalAmount || order.total || 0), 0)
-            };
+                const orderStats = {
+                    total: adminData.orders.totalOrders || 0,
+                    pending: adminData.orders.pendingOrders || 0,
+                    processing: adminData.orders.processingOrders || 0,
+                    completed: adminData.orders.deliveredOrders || 0,
+                    cancelled: adminData.orders.cancelledOrders || 0,
+                    revenue: adminData.orders.totalRevenue || 0
+                };
 
-            // Calculate real delivery statistics
-            const deliveryStats = {
-                total: deliveries.length,
-                pending: deliveries.filter((delivery: any) => delivery.status === 'pending').length,
-                inTransit: deliveries.filter((delivery: any) => delivery.status === 'in_transit' || delivery.status === 'shipped').length,
-                delivered: deliveries.filter((delivery: any) => delivery.status === 'delivered').length,
-                delayed: deliveries.filter((delivery: any) => delivery.status === 'delayed').length
-            };
+                // Default delivery stats if not available from admin endpoint
+                const deliveryStats = {
+                    total: orderStats.total,
+                    pending: orderStats.pending,
+                    inTransit: orderStats.processing,
+                    delivered: orderStats.completed,
+                    delayed: 0
+                };
 
-            // Create real quick stats based on actual data
-            const quickStats = [
-                {
-                    icon: 'Users',
-                    label: 'Total Users',
-                    value: userStats.total.toString(),
-                    change: `${userStats.active} Active`,
-                    trend: 'up' as const
-                },
-                {
-                    icon: 'Package',
-                    label: 'Inventory Items',
-                    value: inventoryStats.totalItems.toString(),
-                    change: `${inventoryStats.lowStock} Low Stock`,
-                    trend: inventoryStats.lowStock > 0 ? 'down' as const : 'up' as const
-                },
-                {
-                    icon: 'ShoppingCart',
-                    label: 'Total Orders',
-                    value: orderStats.total.toString(),
-                    change: `${orderStats.pending} Pending`,
-                    trend: 'up' as const
-                },
-                {
-                    icon: 'Truck',
-                    label: 'Deliveries',
-                    value: deliveryStats.total.toString(),
-                    change: `${deliveryStats.inTransit} In Transit`,
-                    trend: 'up' as const
-                }
-            ];
+                // Create quick stats based on admin data
+                const quickStats = [
+                    {
+                        icon: 'Users',
+                        label: 'Total Users',
+                        value: userStats.total.toString(),
+                        change: `${userStats.active} Active`,
+                        trend: 'up' as const
+                    },
+                    {
+                        icon: 'Package',
+                        label: 'Inventory Items',
+                        value: inventoryStats.totalItems.toString(),
+                        change: `${inventoryStats.lowStock} Low Stock`,
+                        trend: inventoryStats.lowStock > 0 ? 'down' as const : 'up' as const
+                    },
+                    {
+                        icon: 'ShoppingCart',
+                        label: 'Total Orders',
+                        value: orderStats.total.toString(),
+                        change: `${orderStats.pending} Pending`,
+                        trend: 'up' as const
+                    },
+                    {
+                        icon: 'Truck',
+                        label: 'Revenue (LKR)',
+                        value: this.formatCurrency(orderStats.revenue),
+                        change: `${orderStats.completed} Completed`,
+                        trend: 'up' as const
+                    }
+                ];
 
-            // Real system info
-            const systemInfo = {
-                version: '2.1.0',
-                uptime: this.getSystemUptime(),
-                lastBackup: new Date().toLocaleDateString('en-LK')
-            };
+                // System info from admin endpoint
+                const systemInfo = {
+                    version: '2.1.0',
+                    uptime: adminData.systemInfo ? `${Math.floor(adminData.systemInfo.uptime / 3600)}h ${Math.floor((adminData.systemInfo.uptime % 3600) / 60)}m` : this.getSystemUptime(),
+                    lastBackup: new Date().toLocaleDateString('en-LK')
+                };
 
-            return {
-                userStats,
-                inventoryStats,
-                orderStats,
-                deliveryStats,
-                quickStats,
-                systemInfo,
-                recentOrders: orders
-                    .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
-                    .slice(0, 5),
-                lowStockItems: inventory
-                    .filter((item: any) => item.quantity <= (item.minStock || item.threshold || 5))
-                    .sort((a: any, b: any) => a.quantity - b.quantity)
-                    .slice(0, 5),
-                topProducts: inventory
-                    .sort((a: any, b: any) => (b.sold || 0) - (a.sold || 0))
-                    .slice(0, 5),
-                rawData: {
-                    users,
-                    inventory,
-                    orders,
-                    deliveries
-                }
-            };
+                return {
+                    userStats,
+                    inventoryStats,
+                    orderStats,
+                    deliveryStats,
+                    quickStats,
+                    systemInfo,
+                    recentOrders: [],
+                    lowStockItems: [],
+                    topProducts: [],
+                    rawData: adminData
+                };
+
+            } catch (adminError) {
+                console.warn('Admin dashboard endpoint failed, falling back to individual API calls:', adminError);
+
+                // Fallback to individual API calls
+                const [users, inventory, orders, deliveries] = await Promise.all([
+                    this.fetchUsers(),
+                    this.fetchInventory(),
+                    this.fetchOrders(),
+                    this.fetchDeliveries()
+                ]);
+
+                // Calculate real user statistics
+                const userStats = {
+                    total: users.length,
+                    active: users.filter((user: any) => user.isActive !== false).length,
+                    pending: users.filter((user: any) => user.status === 'pending').length,
+                    inactive: users.filter((user: any) => user.isActive === false).length,
+                    byRole: {
+                        admin: users.filter((user: any) => user.role === 'admin').length,
+                        driver: users.filter((user: any) => user.role === 'driver').length,
+                        customer: users.filter((user: any) => user.role === 'customer').length,
+                        warehouse: users.filter((user: any) => user.role === 'warehouse').length
+                    }
+                };
+
+                // Calculate real inventory statistics
+                const inventoryStats = {
+                    totalItems: inventory.length,
+                    lowStock: inventory.filter((item: any) => item.quantity <= (item.minStock || item.threshold || 5)).length,
+                    outOfStock: inventory.filter((item: any) => item.quantity === 0).length,
+                    categories: [...new Set(inventory.map((item: any) => item.category))].length,
+                    totalValue: inventory.reduce((sum: number, item: any) =>
+                        sum + ((item.price || 0) * (item.quantity || 0)), 0
+                    )
+                };
+
+                // Calculate real order statistics
+                const orderStats = {
+                    total: orders.length,
+                    pending: orders.filter((order: any) => order.status === 'pending').length,
+                    processing: orders.filter((order: any) => order.status === 'processing' || order.status === 'confirmed').length,
+                    completed: orders.filter((order: any) => order.status === 'completed' || order.status === 'delivered').length,
+                    cancelled: orders.filter((order: any) => order.status === 'cancelled').length,
+                    revenue: orders
+                        .filter((order: any) => order.status === 'completed' || order.status === 'delivered')
+                        .reduce((sum: number, order: any) => sum + (order.totalAmount || order.total || 0), 0)
+                };
+
+                // Calculate real delivery statistics
+                const deliveryStats = {
+                    total: deliveries.length,
+                    pending: deliveries.filter((delivery: any) => delivery.status === 'pending').length,
+                    inTransit: deliveries.filter((delivery: any) => delivery.status === 'in_transit' || delivery.status === 'shipped').length,
+                    delivered: deliveries.filter((delivery: any) => delivery.status === 'delivered').length,
+                    delayed: deliveries.filter((delivery: any) => delivery.status === 'delayed').length
+                };
+
+                // Create real quick stats based on actual data
+                const quickStats = [
+                    {
+                        icon: 'Users',
+                        label: 'Total Users',
+                        value: userStats.total.toString(),
+                        change: `${userStats.active} Active`,
+                        trend: 'up' as const
+                    },
+                    {
+                        icon: 'Package',
+                        label: 'Inventory Items',
+                        value: inventoryStats.totalItems.toString(),
+                        change: `${inventoryStats.lowStock} Low Stock`,
+                        trend: inventoryStats.lowStock > 0 ? 'down' as const : 'up' as const
+                    },
+                    {
+                        icon: 'ShoppingCart',
+                        label: 'Total Orders',
+                        value: orderStats.total.toString(),
+                        change: `${orderStats.pending} Pending`,
+                        trend: 'up' as const
+                    },
+                    {
+                        icon: 'Truck',
+                        label: 'Deliveries',
+                        value: deliveryStats.total.toString(),
+                        change: `${deliveryStats.inTransit} In Transit`,
+                        trend: 'up' as const
+                    }
+                ];
+
+                // Real system info
+                const systemInfo = {
+                    version: '2.1.0',
+                    uptime: this.getSystemUptime(),
+                    lastBackup: new Date().toLocaleDateString('en-LK')
+                };
+
+                return {
+                    userStats,
+                    inventoryStats,
+                    orderStats,
+                    deliveryStats,
+                    quickStats,
+                    systemInfo,
+                    recentOrders: orders
+                        .sort((a: any, b: any) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime())
+                        .slice(0, 5),
+                    lowStockItems: inventory
+                        .filter((item: any) => item.quantity <= (item.minStock || item.threshold || 5))
+                        .sort((a: any, b: any) => a.quantity - b.quantity)
+                        .slice(0, 5),
+                    topProducts: inventory
+                        .sort((a: any, b: any) => (b.sold || 0) - (a.sold || 0))
+                        .slice(0, 5),
+                    rawData: {
+                        users,
+                        inventory,
+                        orders,
+                        deliveries
+                    }
+                };
+            }
         } catch (error) {
             console.error('Error getting real dashboard data:', error);
             throw error;

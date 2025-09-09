@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Users, Package, ShoppingCart, Shield, Activity as ActivityIcon, Server, Zap, Bell, Search,
+  Users, Package, ShoppingCart, Shield, Activity as ActivityIcon, Server, Bell, Search,
   CheckCircle, RefreshCw, AlertCircle, Clock, Globe, ArrowUpRight, ArrowDownRight, ArrowRight,
   Eye, UserCheck, UserX, AlertTriangle, BarChart3, Truck, User, Settings
 } from 'lucide-react';
@@ -72,6 +72,8 @@ const AdminDashboard: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [autoRefresh, setAutoRefresh] = useState(true);
   const navigate = useNavigate();
 
   // Mock user for demo
@@ -92,15 +94,24 @@ const AdminDashboard: React.FC = () => {
   const loadInventoryItems = async () => {
     setLoadingInventory(true);
     try {
-      // Mock inventory data
-      const mockItems: InventoryItem[] = [
-        { id: '1', name: 'Product A', category: 'Category 1', quantity: 50, unit: 'pcs', threshold: 10 },
-        { id: '2', name: 'Product B', category: 'Category 2', quantity: 5, unit: 'pcs', threshold: 10 },
-        { id: '3', name: 'Product C', category: 'Category 1', quantity: 100, unit: 'pcs', threshold: 20 }
-      ];
-      setInventoryItems(mockItems);
+      // Fetch real inventory data from backend
+      const realInventory = await RealDashboardService.fetchInventory();
+
+      // Transform real inventory data to match our interface
+      const transformedItems: InventoryItem[] = realInventory.map((item: any) => ({
+        id: item._id || item.id,
+        name: item.name || item.itemName || 'Unknown Item',
+        category: item.category || 'Uncategorized',
+        quantity: item.quantity || item.current_stock || 0,
+        unit: item.unit || 'pcs',
+        threshold: item.threshold || item.min_stock_level || 10
+      }));
+
+      setInventoryItems(transformedItems);
     } catch (error) {
       console.error('Failed to load inventory items:', error);
+      // Fallback to empty array if real data fails
+      setInventoryItems([]);
     } finally {
       setLoadingInventory(false);
     }
@@ -108,30 +119,13 @@ const AdminDashboard: React.FC = () => {
 
   const loadActivities = async () => {
     try {
-      // Mock activities data
-      const mockActivities: Activity[] = [
-        {
-          id: '1',
-          type: 'system_login',
-          message: 'Admin user logged into the system',
-          timestamp: new Date().toISOString(),
-          severity: 'low',
-          user: { name: 'Admin User' },
-          metadata: { source: 'admin_dashboard' }
-        },
-        {
-          id: '2',
-          type: 'data_access',
-          message: 'Dashboard data loaded successfully',
-          timestamp: new Date(Date.now() - 300000).toISOString(),
-          severity: 'low',
-          user: { name: 'System' },
-          metadata: { source: 'integrated_service' }
-        }
-      ];
-      setActivities(mockActivities);
+      // Fetch real activities from backend
+      const realActivities = await RealDashboardService.getRealActivities();
+      setActivities(realActivities);
     } catch (error) {
       console.error('Failed to load activities:', error);
+      // Fallback to empty array if real data fails
+      setActivities([]);
     }
   };
 
@@ -183,80 +177,47 @@ const AdminDashboard: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      // Mock dashboard data
-      const mockData: DashboardData = {
-        userStats: {
-          total: 150,
-          active: 120,
-          pending: 15,
-          inactive: 15,
-          byRole: {
-            admin: 5,
-            driver: 25,
-            customer: 120
-          }
-        },
-        inventoryStats: {
-          totalItems: 500,
-          lowStock: 12,
-          categories: 25,
-          totalValue: 125000
-        },
-        orderStats: {
-          total: 1250,
-          pending: 45,
-          processing: 32,
-          completed: 1173,
-          revenue: 87500
-        },
-        deliveryStats: {
-          total: 1100,
-          pending: 25,
-          inTransit: 35,
-          delivered: 1040
-        },
-        quickStats: [
-          {
-            icon: 'ShoppingCart',
-            label: 'Total Orders',
-            value: '1,250',
-            change: '+12%',
-            trend: 'up'
-          },
-          {
-            icon: 'Users',
-            label: 'Active Users',
-            value: '120',
-            change: '+8%',
-            trend: 'up'
-          },
-          {
-            icon: 'Truck',
-            label: 'Deliveries',
-            value: '1,100',
-            change: '+15%',
-            trend: 'up'
-          },
-          {
-            icon: 'CheckCircle',
-            label: 'Completed',
-            value: '1,173',
-            change: '+5%',
-            trend: 'up'
-          }
-        ],
-        systemInfo: {
-          version: '2.1.0',
-          uptime: '99.9%',
-          lastBackup: new Date().toISOString()
-        }
+      // Fetch real dashboard data from backend
+      const realData = await RealDashboardService.getRealDashboardData();
+
+      // Debug log to verify data
+      console.log('🔍 Real Dashboard Data:', realData);
+
+      // Transform real data to match our interface
+      const transformedData: DashboardData = {
+        userStats: realData.userStats,
+        inventoryStats: realData.inventoryStats,
+        orderStats: realData.orderStats,
+        deliveryStats: realData.deliveryStats,
+        quickStats: realData.quickStats,
+        systemInfo: realData.systemInfo
       };
 
-      setDashboardData(mockData);
+      console.log('✅ Transformed Dashboard Data:', transformedData);
+      setDashboardData(transformedData);
 
     } catch (error) {
       console.error('AdminDashboard: Error loading dashboard:', error);
       setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manual refresh function
+  const refreshDashboard = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      await Promise.all([
+        loadIntegratedDashboard(),
+        loadActivities(),
+        loadInventoryItems()
+      ]);
+      setLastRefresh(new Date());
+    } catch (error) {
+      console.error('Error refreshing dashboard:', error);
+      setError('Failed to refresh dashboard data');
     } finally {
       setLoading(false);
     }
@@ -269,6 +230,17 @@ const AdminDashboard: React.FC = () => {
       loadInventoryItems();
     }
   }, [isAuthenticated]);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    if (!autoRefresh || !isAuthenticated) return;
+
+    const interval = setInterval(() => {
+      refreshDashboard();
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, isAuthenticated]);
 
   if (loading) {
     return (
@@ -345,6 +317,37 @@ const AdminDashboard: React.FC = () => {
                         day: 'numeric',
                         year: 'numeric'
                       })}
+                    </span>
+                  </div>
+
+                  {/* Refresh Controls */}
+                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-4 py-3 backdrop-blur-sm shadow-lg border border-white/20">
+                    <button
+                      onClick={refreshDashboard}
+                      disabled={loading}
+                      className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 disabled:opacity-50 transition-colors"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                      <span className="text-sm font-medium">Refresh</span>
+                    </button>
+                    <div className="w-px h-4 bg-gray-300 dark:bg-gray-600"></div>
+                    <button
+                      onClick={() => setAutoRefresh(!autoRefresh)}
+                      className={`flex items-center space-x-2 transition-colors ${autoRefresh
+                          ? 'text-green-600 hover:text-green-700'
+                          : 'text-gray-500 hover:text-gray-600'
+                        }`}
+                    >
+                      <div className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}></div>
+                      <span className="text-sm font-medium">Auto</span>
+                    </button>
+                  </div>
+
+                  {/* Last Refresh Time */}
+                  <div className="flex items-center space-x-3 bg-white/50 dark:bg-gray-800/50 rounded-2xl px-4 py-3 backdrop-blur-sm shadow-lg border border-white/20">
+                    <Globe className="h-4 w-4 text-gray-500" />
+                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                      Updated: {lastRefresh.toLocaleTimeString()}
                     </span>
                   </div>
 
