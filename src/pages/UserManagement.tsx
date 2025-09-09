@@ -841,7 +841,7 @@ const UserManagement: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 space-y-4 xs:space-y-6 p-4 xs:p-6 relative">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 space-y-4 xs:space-y-6 p-4 xs:p-6 relative">
       {/* Beautiful background pattern */}
       <div className="absolute inset-0 opacity-5 dark:opacity-5">
         <div className="absolute inset-0" style={{
@@ -873,14 +873,15 @@ const UserManagement: React.FC = () => {
         )}      {/* Header */}
         <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4">
           <div>
-            <h1 className="text-xl xs:text-2xl font-bold text-gray-800 dark:text-white">
+            <h1 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-indigo-600 dark:from-white dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent">
               User Management
             </h1>
+            <p className="text-gray-600 dark:text-gray-400 mt-2">Manage user accounts, roles, and permissions</p>
             {isAdmin && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+              <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
                 Total: {users.length} users • Refresh #{refreshKey}
                 {selectedUsers.size > 0 && (
-                  <span className="ml-2 text-primary-600 dark:text-primary-400">
+                  <span className="ml-2 text-blue-600 dark:text-blue-400">
                     • {selectedUsers.size} selected
                   </span>
                 )}
@@ -894,17 +895,21 @@ const UserManagement: React.FC = () => {
                 {canViewAuditLogs && (
                   <button
                     onClick={() => window.location.href = '/admin/audit-logs'}
-                    className="flex items-center px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600"
+                    className="flex items-center px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl
+                               hover:bg-gray-200 dark:hover:bg-gray-600 transition-all duration-200 shadow-lg hover:shadow-xl
+                               focus:outline-none focus:ring-2 focus:ring-gray-500/20"
                   >
-                    <Activity size={16} className="mr-2" />
+                    <Activity size={18} className="mr-2" />
                     Audit Logs
                   </button>
                 )}
                 <button
                   onClick={exportUsers}
-                  className="flex items-center px-3 py-2 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800"
+                  className="flex items-center px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl
+                             hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 shadow-lg hover:shadow-xl
+                             focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 >
-                  <Download size={16} className="mr-2" />
+                  <Download size={18} className="mr-2" />
                   Export
                 </button>
                 <button
@@ -912,10 +917,12 @@ const UserManagement: React.FC = () => {
                     console.log('Manual refresh clicked');
                     loadUsers();
                   }}
-                  className="flex items-center px-3 py-2 text-sm bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-200 dark:hover:bg-green-800"
+                  className="flex items-center px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl
+                             hover:from-green-600 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl
+                             focus:outline-none focus:ring-2 focus:ring-green-500/20"
                   title="Refresh user list from database"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
                     <polyline points="23 4 23 10 17 10"></polyline>
                     <polyline points="1 20 1 14 7 14"></polyline>
                     <path d="m3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
@@ -929,9 +936,11 @@ const UserManagement: React.FC = () => {
                 setSelectedUser(undefined);
                 setShowModal(true);
               }}
-              className="flex items-center justify-center px-3 xs:px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm xs:text-base"
+              className="flex items-center px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-xl
+                         hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
             >
-              <PlusIcon size={18} className="mr-2" />
+              <PlusIcon size={20} className="mr-2" />
               Add User
             </button>
           </div>
@@ -939,10 +948,11 @@ const UserManagement: React.FC = () => {
 
         {/* Bulk Actions Bar */}
         {isAdmin && canBulkOperations && selectedUsers.size > 0 && (
-          <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-4">
+          <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-900/20 dark:via-indigo-900/20 dark:to-purple-900/20 
+                          border border-blue-200 dark:border-blue-800 rounded-xl p-6 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-primary-700 dark:text-primary-300">
+                <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
                   {selectedUsers.size} users selected
                 </span>
                 <div className="flex items-center space-x-2">
@@ -953,7 +963,8 @@ const UserManagement: React.FC = () => {
                       }
                       e.target.value = '';
                     }}
-                    className="text-xs px-2 py-1 border border-primary-300 dark:border-primary-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="text-sm px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 
+                               text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/20"
                     disabled={bulkActionLoading}
                   >
                     <option key="status-default" value="">Change Status</option>
@@ -967,7 +978,8 @@ const UserManagement: React.FC = () => {
                       }
                       e.target.value = '';
                     }}
-                    className="text-xs px-2 py-1 border border-primary-300 dark:border-primary-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    className="text-sm px-3 py-2 border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-gray-700 
+                               text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/20"
                     disabled={bulkActionLoading}
                   >
                     <option key="role-default" value="">Change Role</option>
@@ -979,9 +991,10 @@ const UserManagement: React.FC = () => {
                   <button
                     onClick={handleBulkDelete}
                     disabled={bulkActionLoading}
-                    className="flex items-center px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50"
+                    className="flex items-center px-3 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg 
+                               hover:from-red-600 hover:to-red-700 disabled:opacity-50 shadow-lg transition-all duration-200"
                   >
-                    <TrashIcon size={14} className="mr-1" />
+                    <TrashIcon size={16} className="mr-1" />
                     Delete
                   </button>
                 </div>
@@ -997,21 +1010,25 @@ const UserManagement: React.FC = () => {
         )}
 
         {/* Search and Filters */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           <div>
             <input
               type="text"
               placeholder="Search users..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 
+                         text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+                         transition-all duration-200"
             />
           </div>
           <div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value as User['role'] | 'all')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 
+                         text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+                         transition-all duration-200"
             >
               <option key="filter-role-all" value="all">All Roles</option>
               <option key="filter-role-admin" value="admin">Admin</option>
@@ -1024,7 +1041,9 @@ const UserManagement: React.FC = () => {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as User['status'] | 'all')}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 
+                         text-gray-900 dark:text-white shadow-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 
+                         transition-all duration-200"
             >
               <option key="filter-status-all" value="all">All Status</option>
               <option key="filter-status-active" value="active">Active</option>
@@ -1035,7 +1054,7 @@ const UserManagement: React.FC = () => {
         </div>
 
         {/* Users Table */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           {loading ? (
             <div className="p-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
@@ -1130,15 +1149,16 @@ const UserManagement: React.FC = () => {
                       {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-3">
                         {isAdmin && (
                           <button
                             key={`audit-${user.id || (user as any)._id || user.email || `user-${index}`}`}
                             onClick={() => window.location.href = `/admin/user/${user.id || (user as any)._id}/audit`}
-                            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-600"
+                            className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 
+                                       rounded-lg transition-all duration-200"
                             title="View user activity"
                           >
-                            <Eye size={16} />
+                            <Eye size={18} />
                           </button>
                         )}
                         <button
@@ -1148,10 +1168,11 @@ const UserManagement: React.FC = () => {
                             setSelectedUser(user);
                             setShowModal(true);
                           }}
-                          className="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-600"
+                          className="p-2 text-indigo-600 hover:text-indigo-700 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 
+                                     rounded-lg transition-all duration-200"
                           title="Edit user"
                         >
-                          <EditIcon size={16} />
+                          <EditIcon size={18} />
                         </button>
                         {isAdmin && (
                           <button
@@ -1166,10 +1187,11 @@ const UserManagement: React.FC = () => {
                                 showNotification('Cannot delete user: Invalid user ID', 'error');
                               }
                             }}
-                            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-600"
+                            className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 
+                                       rounded-lg transition-all duration-200"
                             title="Delete user"
                           >
-                            <TrashIcon size={16} />
+                            <TrashIcon size={18} />
                           </button>
                         )}
                       </div>
