@@ -124,8 +124,7 @@ export class RealDashboardService {
                     pending: adminData.orders.pendingOrders || 0,
                     processing: adminData.orders.processingOrders || 0,
                     completed: adminData.orders.deliveredOrders || 0,
-                    cancelled: adminData.orders.cancelledOrders || 0,
-                    revenue: adminData.orders.totalRevenue || 0
+                    cancelled: adminData.orders.cancelledOrders || 0
                 };
 
                 // Default delivery stats if not available from admin endpoint
@@ -162,9 +161,9 @@ export class RealDashboardService {
                     },
                     {
                         icon: 'Truck',
-                        label: 'Revenue (LKR)',
-                        value: this.formatCurrency(orderStats.revenue),
-                        change: `${orderStats.completed} Completed`,
+                        label: 'Deliveries',
+                        value: deliveryStats.total.toString(),
+                        change: `${deliveryStats.delivered} Delivered`,
                         trend: 'up' as const
                     }
                 ];
@@ -231,10 +230,7 @@ export class RealDashboardService {
                     pending: orders.filter((order: any) => order.status === 'pending').length,
                     processing: orders.filter((order: any) => order.status === 'processing' || order.status === 'confirmed').length,
                     completed: orders.filter((order: any) => order.status === 'completed' || order.status === 'delivered').length,
-                    cancelled: orders.filter((order: any) => order.status === 'cancelled').length,
-                    revenue: orders
-                        .filter((order: any) => order.status === 'completed' || order.status === 'delivered')
-                        .reduce((sum: number, order: any) => sum + (order.totalAmount || order.total || 0), 0)
+                    cancelled: orders.filter((order: any) => order.status === 'cancelled').length
                 };
 
                 // Calculate real delivery statistics
