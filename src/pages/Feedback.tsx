@@ -46,6 +46,7 @@ const Feedback = ({
     if (filter === 'pending') return matchesSearch && !item.replied;
     return matchesSearch;
   });
+
   const handleReply = (feedbackId: number) => {
     const selectedItem = feedback.find(f => f.id === feedbackId);
     if (selectedItem) {
@@ -56,32 +57,69 @@ const Feedback = ({
 
   const submitReply = () => {
     if (selectedFeedback && replyText.trim()) {
-      FeedbackService.markAsReplied(selectedFeedback.id);
-      setFeedback(FeedbackService.getAllFeedback());
-      setShowReplyModal(false);
+      const updatedFeedback = FeedbackService.addReply(selectedFeedback.id, replyText);
+      setFeedback(prev => prev.map(f => f.id === selectedFeedback.id ? updatedFeedback : f));
       setReplyText('');
+      setShowReplyModal(false);
       setSelectedFeedback(null);
     }
   };
 
-  const handleHelpful = (feedbackId: number, isHelpful: boolean) => {
-    const item = feedback.find(f => f.id === feedbackId);
-    if (item) {
-      if (isHelpful) {
-        FeedbackService.updateFeedback(feedbackId, { helpful: item.helpful + 1 });
-      } else {
-        FeedbackService.updateFeedback(feedbackId, { notHelpful: item.notHelpful + 1 });
-      }
-      setFeedback(FeedbackService.getAllFeedback());
+  const submitFeedback = () => {
+    if (newFeedback.rating > 0 && newFeedback.comment.trim()) {
+      const feedback = FeedbackService.submitFeedback(
+        newFeedback.orderId || `#${Date.now()}`,
+        'Current User',
+        newFeedback.rating,
+        newFeedback.comment,
+        newFeedback.photos
+      );
+      setFeedback(prev => [feedback, ...prev]);
+      setNewFeedback({ orderId: '', rating: 0, comment: '', photos: [] });
+      setShowSubmitModal(false);
     }
   };
 
-  // Customer feedback submission handlers
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const submitMessage = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to send messages');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5001/api/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          subject: newMessage.subject,
+          message: newMessage.message,
+          category: newMessage.category,
+          priority: newMessage.priority
+        })
+      });
+
+      if (response.ok) {
+        alert('Message sent successfully!');
+        setNewMessage({ subject: '', message: '', category: 'general', priority: 'medium' });
+        setShowMessageModal(false);
+      } else {
+        alert('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Error sending message');
+    }
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
     setNewFeedback(prev => ({
       ...prev,
-      photos: [...prev.photos, ...files].slice(0, 5) // Max 5 photos
+      photos: [...prev.photos, ...files].slice(0, 3) // Max 3 photos
     }));
   };
 
@@ -92,581 +130,530 @@ const Feedback = ({
     }));
   };
 
-  const submitCustomerFeedback = async () => {
-    if (newFeedback.rating === 0 || !newFeedback.comment.trim()) {
-      alert('Please provide a rating and comment');
-      return;
-    }
-
-    try {
-      // Get current user info from localStorage
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const userName = currentUser.name || currentUser.username || 'Customer';
-      const userEmail = currentUser.email || 'customer@example.com';
-
-      // Send message to admin through our messages API
-      const messageData = {
-        senderName: userName,
-        senderEmail: userEmail,
-        subject: `Feedback for Order ${newFeedback.orderId || 'General'}`,
-        message: `Rating: ${newFeedback.rating}/5 stars\n\nFeedback: ${newFeedback.comment}${newFeedback.orderId ? `\n\nOrder ID: ${newFeedback.orderId}` : ''}`,
-        category: 'feedback',
-        priority: newFeedback.rating <= 2 ? 'high' : 'medium'
-      };
-
-      const response = await fetch('http://localhost:5001/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messageData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Also save to local feedback list for display
-        const feedbackData = {
-          id: Date.now(),
-          customer: userName,
-          orderId: newFeedback.orderId,
-          rating: newFeedback.rating,
-          comment: newFeedback.comment,
-          date: new Date().toISOString(),
-          replied: false,
-          helpful: 0,
-          notHelpful: 0,
-          isPublic: true,
-          photos: newFeedback.photos.map(file => URL.createObjectURL(file))
-        };
-
-        setFeedback(prev => [feedbackData, ...prev]);
-
-        // Reset form
-        setNewFeedback({
-          orderId: '',
-          rating: 0,
-          comment: '',
-          photos: []
-        });
-        setShowSubmitModal(false);
-
-        alert('Thank you for your feedback! Your message has been sent to our team and you will receive a confirmation email.');
-      } else {
-        throw new Error(result.error || 'Failed to send feedback message');
-      }
-    } catch (error) {
-      console.error('Error sending feedback:', error);
-
-      // Still save locally even if API fails
-      const feedbackData = {
-        id: Date.now(),
-        customer: 'Current User',
-        orderId: newFeedback.orderId,
-        rating: newFeedback.rating,
-        comment: newFeedback.comment,
-        date: new Date().toISOString(),
-        replied: false,
-        helpful: 0,
-        notHelpful: 0,
-        isPublic: true,
-        photos: newFeedback.photos.map(file => URL.createObjectURL(file))
-      };
-
-      setFeedback(prev => [feedbackData, ...prev]);
-
-      // Reset form
-      setNewFeedback({
-        orderId: '',
-        rating: 0,
-        comment: '',
-        photos: []
-      });
-      setShowSubmitModal(false);
-
-      alert('Thank you for your feedback! (Note: There was an issue sending the message to our team, but your feedback has been recorded locally.)');
-    }
+  const renderStars = (rating: number, interactive = false, size = 20) => {
+    return Array.from({ length: 5 }, (_, index) => (
+      <StarIcon
+        key={index}
+        size={size}
+        className={`${index < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
+          } ${interactive ? 'cursor-pointer hover:text-yellow-400' : ''}`}
+        onClick={interactive ? () => setNewFeedback(prev => ({ ...prev, rating: index + 1 })) : undefined}
+      />
+    ));
   };
 
-  const submitGeneralMessage = async () => {
-    if (!newMessage.subject.trim() || !newMessage.message.trim()) {
-      alert('Please provide both subject and message');
-      return;
-    }
-
-    try {
-      // Get current user info from localStorage
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const userName = currentUser.name || currentUser.username || 'Customer';
-      const userEmail = currentUser.email || 'customer@example.com';
-
-      // Send message to admin through our messages API
-      const messageData = {
-        senderName: userName,
-        senderEmail: userEmail,
-        subject: newMessage.subject,
-        message: newMessage.message,
-        category: newMessage.category,
-        priority: newMessage.priority
-      };
-
-      const response = await fetch('http://localhost:5001/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(messageData),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        // Reset form
-        setNewMessage({
-          subject: '',
-          message: '',
-          category: 'general',
-          priority: 'medium'
-        });
-        setShowMessageModal(false);
-
-        alert('Your message has been sent successfully! You will receive a confirmation email and our team will get back to you soon.');
-      } else {
-        throw new Error(result.error || 'Failed to send message');
-      }
-    } catch (error) {
-      console.error('Error sending message:', error);
-      alert('There was an issue sending your message. Please try again later.');
-    }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
-  const renderStars = (rating: number) => {
-    return [...Array(5)].map((_, index) => <StarIcon key={index} size={16} className={index < rating ? 'text-yellow-400' : 'text-gray-300 '} fill={index < rating ? 'currentColor' : 'none'} />);
-  }; return (
-    <div className="space-y-4 xs:space-y-6 p-4 xs:p-6 relative">
-      {/* Dark Mode Toggle */}
-      <div className="absolute top-4 right-4 z-10">
-        <DarkModeToggle />
-      </div>
 
-      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4">
-        <h1 className="text-xl xs:text-2xl font-bold text-gray-800 dark:text-white">
-          {userRole === 'customer' ? 'Submit Feedback' : 'Customer Feedback'}
-        </h1>
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center space-y-2 xs:space-y-0 xs:space-x-4 w-full xs:w-auto">
-          {userRole === 'customer' && (
-            <>
-              <button
-                onClick={() => setShowSubmitModal(true)}
-                className="flex items-center justify-center px-3 xs:px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/90 text-sm xs:text-base"
-              >
-                <PlusIcon size={18} className="mr-2" />
-                Submit Feedback
-              </button>
-              <button
-                onClick={() => setShowMessageModal(true)}
-                className="flex items-center justify-center px-3 xs:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm xs:text-base"
-              >
-                <MessageSquareIcon size={18} className="mr-2" />
-                Send Message
-              </button>
-            </>
-          )}
-          <div className="flex items-center space-x-2">
-            <FilterIcon size={18} className="text-gray-400 dark:text-gray-500" />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="flex-1 xs:flex-none rounded-lg border-gray-300 dark:border-gray-600 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 dark:bg-gray-700 dark:text-white text-sm xs:text-base"
-            >
-              <option value="all">All Feedback</option>
-              <option value="positive">Positive</option>
-              <option value="negative">Negative</option>
-              <option value="pending">Pending Reply</option>
-            </select>
-          </div>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Dark Mode Toggle */}
+        <div className="absolute top-4 right-4 z-10">
+          <DarkModeToggle />
         </div>
-      </div>
-      {/* Search */}
-      <div className="relative">
-        <SearchIcon size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
-        <input type="text" placeholder="Search feedback..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 dark:bg-gray-700 dark:text-white text-sm xs:text-base" />
-      </div>
-      {/* Feedback Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4">
-        <div className="bg-white dark:bg-gray-800 p-4 xs:p-6 rounded-lg shadow transition-colors duration-300">
-          <p className="text-xs xs:text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
-          <div className="flex items-center mt-1">
-            <p className="text-lg xs:text-2xl font-semibold text-gray-800 dark:text-white">{stats.averageRating}</p>
-            <div className="flex ml-2">{renderStars(stats.averageRating)}</div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-gray-800 p-4 xs:p-6 rounded-lg shadow transition-colors duration-300">
-          <p className="text-xs xs:text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
-          <p className="text-lg xs:text-2xl font-semibold text-gray-800 dark:text-white">
-            {stats.total}
-          </p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <p className="text-sm text-gray-600 ">Positive Feedback</p>
-          <p className="text-2xl font-semibold text-green-600 ">{stats.positivePercentage}%</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow">
-          <p className="text-sm text-gray-600 ">Response Rate</p>
-          <p className="text-2xl font-semibold text-[#FF6B35]">{stats.responseRate}%</p>
-        </div>
-      </div>
-      {/* Feedback List */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="divide-y divide-gray-200 ">
-          {filteredFeedback.map(item => <div key={item.id} className="p-6 hover:bg-gray-50 ">
-            <div className="flex justify-between items-start">
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900 ">
-                      {item.customer}
-                    </p>
-                    <p className="text-sm text-gray-500 ">
-                      Order: {item.orderId}
-                    </p>
-                  </div>
-                  <p className="text-sm text-gray-500 ">
-                    {new Date(item.date).toLocaleDateString()}
+
+        {/* Beautiful Header */}
+        <div className="mb-8 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 dark:from-gray-800 dark:via-blue-900/10 dark:to-indigo-900/20 rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-indigo-300/20 rounded-full blur-3xl transform translate-x-16 -translate-y-16"></div>
+
+          <div className="relative z-10">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-xl">
+                  <StarIcon className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    {userRole === 'customer' ? 'Submit Feedback' : 'Customer Feedback'}
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    {userRole === 'customer' ? 'Share your experience with us' : 'Manage customer feedback and reviews'}
                   </p>
                 </div>
-                <div className="flex items-center mt-2">
-                  {renderStars(item.rating)}
-                </div>
-                <p className="mt-2 text-gray-600 ">{item.comment}</p>
-                <div className="flex items-center space-x-4 mt-4">
-                  <button
-                    onClick={() => handleHelpful(item.id, true)}
-                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 "
-                  >
-                    <ThumbsUpIcon size={16} className="mr-1" />
-                    {item.helpful}
-                  </button>
-                  <button
-                    onClick={() => handleHelpful(item.id, false)}
-                    className="flex items-center text-sm text-gray-500 hover:text-gray-700 "
-                  >
-                    <ThumbsDownIcon size={16} className="mr-1" />
-                    {item.notHelpful}
-                  </button>
-                  {!item.replied && userRole !== 'customer' && <button onClick={() => handleReply(item.id)} className="flex items-center text-sm text-[#FF6B35] hover:text-[#FF6B35]/80">
-                    <MessageSquareIcon size={16} className="mr-1" />
-                    Reply
-                  </button>}
-                  {item.isPublic && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                      Featured
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>)}
-        </div>
-      </div>
-      {/* Reply Modal */}
-      {showReplyModal && selectedFeedback && <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-          <h2 className="text-xl font-bold mb-4 text-gray-900 ">
-            Reply to {selectedFeedback.customer}'s Feedback
-          </h2>
-          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-            <div className="flex mb-2">
-              {renderStars(selectedFeedback.rating)}
-            </div>
-            <p className="text-gray-700 italic">"{selectedFeedback.comment}"</p>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Your Reply
-            </label>
-            <textarea
-              rows={4}
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-              placeholder="Type your reply here..."
-            />
-          </div>
-          <div className="flex justify-end space-x-4">
-            <button
-              onClick={() => {
-                setShowReplyModal(false);
-                setReplyText('');
-                setSelectedFeedback(null);
-              }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 "
-            >
-              Cancel
-            </button>
-            <button
-              onClick={submitReply}
-              className="px-4 py-2 bg-[#FF6B35] text-white rounded hover:bg-[#FF6B35]/90"
-              disabled={!replyText.trim()}
-            >
-              Send Reply
-            </button>
-          </div>
-        </div>
-      </div>}
-
-      {/* Customer Feedback Submission Modal */}
-      {showSubmitModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900 ">
-                Submit Feedback
-              </h2>
-              <button
-                onClick={() => setShowSubmitModal(false)}
-                className="text-gray-500 hover:text-gray-700 "
-              >
-                <XIcon size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-6">
-              {/* Order ID */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Order ID
-                </label>
-                <input
-                  type="text"
-                  value={newFeedback.orderId}
-                  onChange={(e) => setNewFeedback(prev => ({ ...prev, orderId: e.target.value }))}
-                  placeholder="Enter order ID (e.g., ORD-7892)"
-                  className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                />
               </div>
 
-              {/* Rating */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rating
-                </label>
-                <div className="flex space-x-1">
-                  {[1, 2, 3, 4, 5].map((star) => (
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                {userRole === 'customer' && (
+                  <>
                     <button
-                      key={star}
-                      type="button"
-                      onClick={() => setNewFeedback(prev => ({ ...prev, rating: star }))}
-                      className="focus:outline-none"
+                      onClick={() => setShowSubmitModal(true)}
+                      className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl hover:from-orange-600 hover:to-red-600 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
                     >
-                      <StarIcon
-                        size={24}
-                        className={star <= newFeedback.rating ? 'text-yellow-400' : 'text-gray-300 '}
-                        fill={star <= newFeedback.rating ? 'currentColor' : 'none'}
-                      />
+                      <PlusIcon size={20} className="mr-2" />
+                      Submit Feedback
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setShowMessageModal(true)}
+                      className="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-2xl hover:from-blue-600 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+                    >
+                      <MessageSquareIcon size={20} className="mr-2" />
+                      Send Message
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Beautiful Stats Cards */}
+        {userRole !== 'customer' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div className="group relative bg-gradient-to-br from-yellow-50 via-yellow-100 to-orange-100 dark:from-yellow-900/20 dark:via-yellow-800/30 dark:to-orange-900/20 rounded-3xl p-6 shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-lg transform translate-x-4 -translate-y-4 group-hover:scale-125 transition-transform duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-yellow-500 via-yellow-600 to-orange-700 rounded-2xl shadow-xl group-hover:rotate-6 transition-transform duration-500">
+                    <StarIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Reviews</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
+                    {stats.total}
+                  </p>
                 </div>
               </div>
+            </div>
 
-              {/* Comment */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Feedback
-                </label>
-                <textarea
-                  rows={4}
-                  value={newFeedback.comment}
-                  onChange={(e) => setNewFeedback(prev => ({ ...prev, comment: e.target.value }))}
-                  placeholder="Share your experience with this order..."
-                  className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                />
+            <div className="group relative bg-gradient-to-br from-green-50 via-emerald-100 to-green-100 dark:from-green-900/20 dark:via-emerald-800/30 dark:to-green-900/20 rounded-3xl p-6 shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-lg transform translate-x-4 -translate-y-4 group-hover:scale-125 transition-transform duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-green-500 via-emerald-600 to-green-700 rounded-2xl shadow-xl group-hover:rotate-6 transition-transform duration-500">
+                    <ThumbsUpIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Positive Reviews</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
+                    {stats.positive}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative bg-gradient-to-br from-red-50 via-red-100 to-red-100 dark:from-red-900/20 dark:via-red-800/30 dark:to-red-900/20 rounded-3xl p-6 shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-lg transform translate-x-4 -translate-y-4 group-hover:scale-125 transition-transform duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl shadow-xl group-hover:rotate-6 transition-transform duration-500">
+                    <ThumbsDownIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Negative Reviews</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
+                    {stats.negative}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="group relative bg-gradient-to-br from-blue-50 via-blue-100 to-indigo-100 dark:from-blue-900/20 dark:via-blue-800/30 dark:to-indigo-900/20 rounded-3xl p-6 shadow-xl border border-white/50 dark:border-gray-700/50 hover:shadow-2xl transition-all duration-500 hover:scale-105 cursor-pointer overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-full blur-lg transform translate-x-4 -translate-y-4 group-hover:scale-125 transition-transform duration-500"></div>
+
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-2xl shadow-xl group-hover:rotate-6 transition-transform duration-500">
+                    <MessageSquareIcon className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Average Rating</p>
+                  <p className="text-3xl font-bold text-gray-800 dark:text-white group-hover:scale-105 transition-transform duration-300">
+                    {stats.averageRating}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Beautiful Filters */}
+        {userRole !== 'customer' && (
+          <div className="mb-8 bg-white/70 dark:bg-gray-800/70 rounded-3xl shadow-xl p-6 backdrop-blur-sm border border-white/50 dark:border-gray-700/50">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="flex items-center space-x-2">
+                <FilterIcon size={20} className="text-gray-600 dark:text-gray-400" />
+                <span className="text-gray-700 dark:text-gray-300 font-medium">Filter:</span>
               </div>
 
-              {/* Photo Upload */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Photos (Optional)
-                </label>
-                <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {['all', 'positive', 'negative', 'pending'].map((filterOption) => (
                   <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700 "
+                    key={filterOption}
+                    onClick={() => setFilter(filterOption)}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${filter === filterOption
+                        ? 'bg-blue-500 text-white shadow-lg'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
                   >
-                    <CameraIcon size={20} className="mr-2" />
-                    Add Photos
+                    {filterOption.charAt(0).toUpperCase() + filterOption.slice(1)}
                   </button>
+                ))}
+              </div>
+
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="Search feedback..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Beautiful Feedback List */}
+        <div className="bg-white/70 dark:bg-gray-800/70 rounded-3xl shadow-xl backdrop-blur-sm border border-white/50 dark:border-gray-700/50 overflow-hidden">
+          <div className="p-6">
+            <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-6">
+              {userRole === 'customer' ? 'Your Feedback History' : 'Customer Feedback'} ({filteredFeedback.length})
+            </h2>
+
+            {filteredFeedback.length === 0 ? (
+              <div className="text-center py-12">
+                <StarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">No feedback found</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {filteredFeedback.map((item) => (
+                  <div
+                    key={item.id}
+                    className="group bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div>
+                        <h3 className="font-semibold text-gray-800 dark:text-white text-lg">
+                          {item.customer}
+                        </h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Order: {item.orderId} • {formatDate(item.date)}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <div className="flex">{renderStars(item.rating)}</div>
+                        <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                          ({item.rating}/5)
+                        </span>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">
+                      {item.comment}
+                    </p>
+
+                    {item.photos && item.photos.length > 0 && (
+                      <div className="flex space-x-2 mb-4">
+                        {item.photos.map((photo, index) => (
+                          <img
+                            key={index}
+                            src={photo}
+                            alt={`Feedback photo ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded-xl border border-gray-200 dark:border-gray-600"
+                          />
+                        ))}
+                      </div>
+                    )}
+
+                    {item.reply && (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mt-4 border-l-4 border-blue-500">
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">Admin Reply:</p>
+                        <p className="text-blue-700 dark:text-blue-400">{item.reply}</p>
+                      </div>
+                    )}
+
+                    {userRole !== 'customer' && !item.replied && (
+                      <div className="flex justify-end mt-4">
+                        <button
+                          onClick={() => handleReply(item.id)}
+                          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-300 transform hover:scale-105"
+                        >
+                          Reply
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Reply Modal */}
+        {showReplyModal && selectedFeedback && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full">
+              <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-indigo-600 p-6 text-white rounded-t-3xl">
+                <h2 className="text-2xl font-bold">Reply to {selectedFeedback.customer}'s Feedback</h2>
+                <div className="flex items-center mt-2 space-x-2">
+                  {renderStars(selectedFeedback.rating)}
+                </div>
+                <p className="text-blue-100 italic mt-2">"{selectedFeedback.comment}"</p>
+              </div>
+
+              <div className="p-6">
+                <textarea
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder="Type your reply..."
+                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                  rows={4}
+                />
+
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    onClick={() => {
+                      setShowReplyModal(false);
+                      setSelectedFeedback(null);
+                      setReplyText('');
+                    }}
+                    className="px-6 py-3 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitReply}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all transform hover:scale-105"
+                    disabled={!replyText.trim()}
+                  >
+                    Send Reply
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Submit Feedback Modal */}
+        {showSubmitModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full">
+              <div className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-600 p-6 text-white rounded-t-3xl">
+                <h2 className="text-2xl font-bold">Submit Your Feedback</h2>
+                <p className="text-orange-100 mt-2">Share your experience with us</p>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Order ID (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={newFeedback.orderId}
+                    onChange={(e) => setNewFeedback(prev => ({ ...prev, orderId: e.target.value }))}
+                    placeholder="Enter order ID"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Rating *
+                  </label>
+                  <div className="flex space-x-1">
+                    {renderStars(newFeedback.rating, true, 32)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Comment *
+                  </label>
+                  <textarea
+                    value={newFeedback.comment}
+                    onChange={(e) => setNewFeedback(prev => ({ ...prev, comment: e.target.value }))}
+                    placeholder="Tell us about your experience..."
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-orange-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Photos (Optional, max 3)
+                  </label>
+                  <div className="flex flex-wrap gap-3">
+                    {newFeedback.photos.map((photo, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={URL.createObjectURL(photo)}
+                          alt={`Upload ${index + 1}`}
+                          className="w-20 h-20 object-cover rounded-xl border border-gray-200 dark:border-gray-600"
+                        />
+                        <button
+                          onClick={() => removePhoto(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        >
+                          <XIcon size={12} />
+                        </button>
+                      </div>
+                    ))}
+
+                    {newFeedback.photos.length < 3 && (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-20 h-20 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex items-center justify-center hover:border-orange-500 transition-colors"
+                      >
+                        <CameraIcon size={24} className="text-gray-400" />
+                      </button>
+                    )}
+                  </div>
+
                   <input
                     ref={fileInputRef}
                     type="file"
-                    multiple
                     accept="image/*"
+                    multiple
                     onChange={handlePhotoUpload}
                     className="hidden"
                   />
+                </div>
+              </div>
 
-                  {/* Photo Preview */}
-                  {newFeedback.photos.length > 0 && (
-                    <div className="grid grid-cols-3 gap-2">
-                      {newFeedback.photos.map((photo, index) => (
-                        <div key={index} className="relative">
-                          <img
-                            src={URL.createObjectURL(photo)}
-                            alt={`Upload ${index + 1}`}
-                            className="w-full h-20 object-cover rounded-lg"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(index)}
-                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
-                          >
-                            <XIcon size={12} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+              <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-3xl">
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowSubmitModal(false);
+                      setNewFeedback({ orderId: '', rating: 0, comment: '', photos: [] });
+                    }}
+                    className="px-6 py-3 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitFeedback}
+                    className="px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl hover:from-orange-600 hover:to-red-600 transition-all transform hover:scale-105"
+                    disabled={newFeedback.rating === 0 || !newFeedback.comment.trim()}
+                  >
+                    Submit Feedback
+                  </button>
                 </div>
               </div>
             </div>
-
-            <div className="flex justify-end space-x-4 mt-6">
-              <button
-                onClick={() => {
-                  setShowSubmitModal(false);
-                  setNewFeedback({ orderId: '', rating: 0, comment: '', photos: [] });
-                }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 "
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitCustomerFeedback}
-                className="px-4 py-2 bg-[#FF6B35] text-white rounded hover:bg-[#FF6B35]/90"
-                disabled={newFeedback.rating === 0 || !newFeedback.comment.trim()}
-              >
-                Submit Feedback
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Send Message Modal */}
-      {showMessageModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Send Message</h3>
-                <button
-                  onClick={() => {
-                    setShowMessageModal(false);
-                    setNewMessage({
-                      subject: '',
-                      message: '',
-                      category: 'general',
-                      priority: 'normal'
-                    });
-                  }}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                >
-                  <XIcon size={24} />
-                </button>
+        {/* Send Message Modal */}
+        {showMessageModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl max-w-2xl w-full">
+              <div className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 p-6 text-white rounded-t-3xl">
+                <h2 className="text-2xl font-bold">Send Message</h2>
+                <p className="text-blue-100 mt-2">Contact our support team</p>
               </div>
 
-              <div className="space-y-4">
+              <div className="p-6 space-y-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Subject
+                    Subject *
                   </label>
                   <input
                     type="text"
                     value={newMessage.subject}
                     onChange={(e) => setNewMessage(prev => ({ ...prev, subject: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                    placeholder="Enter message subject"
+                    placeholder="Message subject"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={newMessage.category}
-                    onChange={(e) => setNewMessage(prev => ({ ...prev, category: e.target.value }))}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="general">General Inquiry</option>
-                    <option value="support">Technical Support</option>
-                    <option value="complaint">Complaint</option>
-                    <option value="suggestion">Suggestion</option>
-                    <option value="billing">Billing</option>
-                    <option value="other">Other</option>
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Category
+                    </label>
+                    <select
+                      value={newMessage.category}
+                      onChange={(e) => setNewMessage(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="general">General</option>
+                      <option value="support">Support</option>
+                      <option value="billing">Billing</option>
+                      <option value="complaint">Complaint</option>
+                      <option value="feature_request">Feature Request</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Priority
+                    </label>
+                    <select
+                      value={newMessage.priority}
+                      onChange={(e) => setNewMessage(prev => ({ ...prev, priority: e.target.value }))}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="urgent">Urgent</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Priority
-                  </label>
-                  <select
-                    value={newMessage.priority}
-                    onChange={(e) => setNewMessage(prev => ({ ...prev, priority: e.target.value as 'low' | 'normal' | 'high' | 'urgent' }))}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  >
-                    <option value="low">Low</option>
-                    <option value="normal">Normal</option>
-                    <option value="high">High</option>
-                    <option value="urgent">Urgent</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Message
+                    Message *
                   </label>
                   <textarea
                     value={newMessage.message}
                     onChange={(e) => setNewMessage(prev => ({ ...prev, message: e.target.value }))}
+                    placeholder="Type your message here..."
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-none"
                     rows={5}
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white resize-none"
-                    placeholder="Enter your message..."
                   />
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end space-x-3 p-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                onClick={() => {
-                  setShowMessageModal(false);
-                  setNewMessage({
-                    subject: '',
-                    message: '',
-                    category: 'general',
-                    priority: 'normal'
-                  });
-                }}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={submitGeneralMessage}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                disabled={!newMessage.subject.trim() || !newMessage.message.trim()}
-              >
-                Send Message
-              </button>
+              <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-b-3xl">
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => {
+                      setShowMessageModal(false);
+                      setNewMessage({ subject: '', message: '', category: 'general', priority: 'medium' });
+                    }}
+                    className="px-6 py-3 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitMessage}
+                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all transform hover:scale-105"
+                    disabled={!newMessage.subject.trim() || !newMessage.message.trim()}
+                  >
+                    Send Message
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default Feedback;
-

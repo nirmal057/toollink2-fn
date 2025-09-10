@@ -78,40 +78,49 @@ const PredictionSystem: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Header */}
-                <div className="mb-8">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
-                                <Zap className="h-8 w-8 text-blue-600 mr-3" />
-                                ToolLink DemandSense
-                            </h1>
-                            <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                AI-Powered Material Refill Prediction & Smart Inventory Optimization
-                            </p>
-                        </div>
-                        <div className="flex space-x-4">
-                            <select
-                                value={selectedWarehouse}
-                                onChange={(e) => setSelectedWarehouse(e.target.value)}
-                                className="px-4 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-800 dark:border-gray-600"
-                            >
-                                <option value="">All Warehouses</option>
-                                {dashboard?.warehouseInsights.map(warehouse => (
-                                    <option key={warehouse.warehouseId} value={warehouse.warehouseId}>
-                                        {warehouse.warehouseName}
-                                    </option>
-                                ))}
-                            </select>
-                            <button
-                                onClick={loadData}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
-                            >
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Refresh
-                            </button>
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+                {/* Beautiful Header */}
+                <div className="mb-8 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 dark:from-gray-800 dark:via-blue-900/10 dark:to-indigo-900/20 rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-indigo-300/20 rounded-full blur-3xl transform translate-x-16 -translate-y-16"></div>
+
+                    <div className="relative z-10">
+                        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+                            <div className="flex items-center space-x-4">
+                                <div className="p-3 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl shadow-xl">
+                                    <Zap className="h-8 w-8 text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                                        ToolLink DemandSense
+                                    </h1>
+                                    <p className="text-gray-600 dark:text-gray-400 mt-2">
+                                        AI-Powered Material Refill Prediction & Smart Inventory Optimization
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+                                <select
+                                    value={selectedWarehouse}
+                                    onChange={(e) => setSelectedWarehouse(e.target.value)}
+                                    className="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-white shadow-lg"
+                                >
+                                    <option value="">All Warehouses</option>
+                                    {dashboard?.warehouseInsights.map(warehouse => (
+                                        <option key={warehouse.warehouseId} value={warehouse.warehouseId}>
+                                            {warehouse.warehouseName}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button
+                                    onClick={loadData}
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 flex items-center justify-center"
+                                >
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -130,8 +139,8 @@ const PredictionSystem: React.FC = () => {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id as any)}
                                     className={`flex items-center py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
-                                            ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                        ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                         }`}
                                 >
                                     <tab.icon className="h-4 w-4 mr-2" />
@@ -364,10 +373,10 @@ const PredictionSystem: React.FC = () => {
                                     <div className="flex-1">
                                         <div className="flex items-center space-x-2 mb-2">
                                             <AlertTriangle className={`h-5 w-5 ${alert.severity === 'critical' ? 'text-red-600' :
-                                                    alert.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'
+                                                alert.severity === 'high' ? 'text-orange-600' : 'text-yellow-600'
                                                 }`} />
                                             <span className={`px-2 py-1 rounded text-xs font-medium ${alert.severity === 'critical' ? 'bg-red-100 text-red-800' :
-                                                    alert.severity === 'high' ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'
+                                                alert.severity === 'high' ? 'bg-orange-100 text-orange-800' : 'bg-yellow-100 text-yellow-800'
                                                 }`}>
                                                 {alert.severity.toUpperCase()}
                                             </span>

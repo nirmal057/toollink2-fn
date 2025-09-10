@@ -432,619 +432,640 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   const days = getDaysInMonth();
 
   return (
-    <div className="space-y-4 xs:space-y-6 p-4 xs:p-6">
-      <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4">
-        <h1 className="text-xl xs:text-2xl font-bold text-gray-800 dark:text-white">Delivery Calendar</h1>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Beautiful Header */}
+        <div className="mb-8 bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/50 dark:from-gray-800 dark:via-blue-900/10 dark:to-indigo-900/20 rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-blue-200/20 to-indigo-300/20 rounded-full blur-3xl transform translate-x-16 -translate-y-16"></div>
 
-        <div className="flex items-center gap-2 xs:gap-4">
-          {/* Month Navigation */}
-          <div className="flex items-center gap-1 xs:gap-2">
-            <button
-              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <ChevronLeftIcon size={18} className="text-gray-600 dark:text-gray-400" />
-            </button>
-            <span className="text-sm xs:text-lg font-medium min-w-[100px] xs:min-w-[120px] text-center text-gray-800 dark:text-white">
-              {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
-            </span>
-            <button
-              onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
-              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <ChevronRightIcon size={18} className="text-gray-600 dark:text-gray-400" />
-            </button>
-          </div>
-        </div>
-      </div>
+          <div className="relative z-10">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+              <div className="flex items-center space-x-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-xl">
+                  <CalendarIcon className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 via-blue-600 to-purple-600 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                    Delivery Calendar
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-2">
+                    Schedule and manage delivery appointments
+                  </p>
+                </div>
+              </div>
 
-      {/* Order Filter and View Controls */}
-      <div className="mb-4 xs:mb-6 flex flex-col xs:flex-row gap-4 items-start xs:items-center justify-between">
-        <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 xs:gap-4 w-full xs:w-auto">
-          {/* Order Filter */}
-          <select
-            value={selectedOrderId || ''}
-            onChange={(e) => setSelectedOrderId(e.target.value || null)}
-            className="rounded-lg border-gray-300 dark:border-gray-600 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 dark:bg-gray-700 dark:text-white text-sm xs:text-base"
-          >
-            <option value="">All Orders</option>
-            {orderIds.map(orderId => {
-              const orderDeliveries = deliveriesByOrder[orderId];
-              const customerName = orderDeliveries[0]?.customer;
-              return (
-                <option key={orderId} value={orderId}>
-                  {orderId} - {customerName}
-                </option>
-              );
-            })}
-          </select>
-
-          {/* District Filter */}
-          <select
-            value={selectedDistrict}
-            onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-          >
-            <option value="">All Districts</option>
-            {DELIVERY_AREAS.map(district => (
-              <option key={district} value={district}>
-                {district}
-              </option>
-            ))}
-          </select>
-
-          {/* View Mode Toggle */}
-          <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1 rounded-md ${viewMode === 'calendar'
-                ? 'bg-white shadow-sm text-[#FF6B35]'
-                : 'text-gray-600 hover:text-gray-900 '
-                }`}
-            >
-              <CalendarIcon size={18} />
-            </button>
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1 rounded-md ${viewMode === 'list'
-                ? 'bg-white shadow-sm text-[#FF6B35]'
-                : 'text-gray-600 hover:text-gray-900 '
-                }`}
-            >
-              <TruckIcon size={18} />
-            </button>
-          </div>
-        </div>
-        {['admin', 'warehouse'].includes(userRole) && (
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/90"
-          >
-            <PlusIcon size={20} className="mr-2" />
-            Schedule Delivery
-          </button>
-        )}
-      </div>
-
-      {viewMode === 'list' ? (
-        // List View
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          {filteredDeliveries.length === 0 ? (
-            <div className="p-6 text-center text-gray-500 ">
-              No deliveries scheduled
+              <div className="flex items-center gap-4">
+                {/* Month Navigation */}
+                <div className="flex items-center gap-2 bg-white/70 dark:bg-gray-800/70 rounded-xl px-4 py-2 backdrop-blur-sm shadow-lg">
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() - 1)))}
+                    className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <ChevronLeftIcon size={20} className="text-blue-600 dark:text-blue-400" />
+                  </button>
+                  <span className="text-lg font-semibold min-w-[140px] text-center text-gray-800 dark:text-white">
+                    {currentDate.toLocaleDateString('default', { month: 'long', year: 'numeric' })}
+                  </span>
+                  <button
+                    onClick={() => setCurrentDate(new Date(currentDate.setMonth(currentDate.getMonth() + 1)))}
+                    className="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                  >
+                    <ChevronRightIcon size={20} className="text-blue-600 dark:text-blue-400" />
+                  </button>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="divide-y divide-gray-200 ">
-              {filteredDeliveries.map(delivery => {
-                const deliveryDate = new Date(delivery.date);
+          </div>
+        </div>
+
+        {/* Order Filter and View Controls */}
+        <div className="mb-4 xs:mb-6 flex flex-col xs:flex-row gap-4 items-start xs:items-center justify-between">
+          <div className="flex flex-col xs:flex-row items-stretch xs:items-center gap-2 xs:gap-4 w-full xs:w-auto">
+            {/* Order Filter */}
+            <select
+              value={selectedOrderId || ''}
+              onChange={(e) => setSelectedOrderId(e.target.value || null)}
+              className="rounded-lg border-gray-300 dark:border-gray-600 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 dark:bg-gray-700 dark:text-white text-sm xs:text-base"
+            >
+              <option value="">All Orders</option>
+              {orderIds.map(orderId => {
+                const orderDeliveries = deliveriesByOrder[orderId];
+                const customerName = orderDeliveries[0]?.customer;
+                return (
+                  <option key={orderId} value={orderId}>
+                    {orderId} - {customerName}
+                  </option>
+                );
+              })}
+            </select>
+
+            {/* District Filter */}
+            <select
+              value={selectedDistrict}
+              onChange={(e) => setSelectedDistrict(e.target.value)}
+              className="rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+            >
+              <option value="">All Districts</option>
+              {DELIVERY_AREAS.map(district => (
+                <option key={district} value={district}>
+                  {district}
+                </option>
+              ))}
+            </select>
+
+            {/* View Mode Toggle */}
+            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('calendar')}
+                className={`px-3 py-1 rounded-md ${viewMode === 'calendar'
+                  ? 'bg-white shadow-sm text-[#FF6B35]'
+                  : 'text-gray-600 hover:text-gray-900 '
+                  }`}
+              >
+                <CalendarIcon size={18} />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`px-3 py-1 rounded-md ${viewMode === 'list'
+                  ? 'bg-white shadow-sm text-[#FF6B35]'
+                  : 'text-gray-600 hover:text-gray-900 '
+                  }`}
+              >
+                <TruckIcon size={18} />
+              </button>
+            </div>
+          </div>
+          {['admin', 'warehouse'].includes(userRole) && (
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center px-4 py-2 bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/90"
+            >
+              <PlusIcon size={20} className="mr-2" />
+              Schedule Delivery
+            </button>
+          )}
+        </div>
+
+        {viewMode === 'list' ? (
+          // List View
+          <div className="bg-white rounded-lg shadow overflow-hidden">
+            {filteredDeliveries.length === 0 ? (
+              <div className="p-6 text-center text-gray-500 ">
+                No deliveries scheduled
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-200 ">
+                {filteredDeliveries.map(delivery => {
+                  const deliveryDate = new Date(delivery.date);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isPastDelivery = deliveryDate < today;
+
+                  return (
+                    <div
+                      key={delivery.id}
+                      className={`p-4 transition-colors ${isPastDelivery ? 'opacity-60 bg-gray-50' : 'hover:bg-gray-50'}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900 ">
+                            Order #{delivery.orderId}
+                            {isPastDelivery && (
+                              <span className="text-sm text-gray-500 ml-2">(Past Delivery)</span>
+                            )}
+                          </h3>
+                          <p className="text-sm text-gray-500 ">{delivery.customer}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (isPastDelivery) {
+                                showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
+                                return;
+                              }
+                              setSelectedDelivery(delivery);
+                              setFormData({
+                                orderId: delivery.orderId,
+                                customer: delivery.customer,
+                                address: delivery.address,
+                                date: delivery.date,
+                                timeSlot: delivery.timeSlot,
+                                driver: delivery.driver,
+                                driverId: delivery.driverId || '',
+                                notes: delivery.notes || '',
+                                district: delivery.district
+                              });
+                              setShowCreateModal(true);
+                            }}
+                            className={`p-2 ${isPastDelivery
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-gray-600 hover:text-[#FF6B35]'
+                              }`}
+                            disabled={isPastDelivery}
+                          >
+                            {isPastDelivery ? 'View' : 'Edit'}
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (isPastDelivery) {
+                                showError('Past Delivery', 'Cannot delete deliveries from past dates.');
+                                return;
+                              }
+                              handleRemoveDelivery(delivery.id);
+                            }}
+                            className={`p-2 ${isPastDelivery
+                              ? 'text-gray-400 cursor-not-allowed'
+                              : 'text-gray-600 hover:text-red-600'
+                              }`}
+                            disabled={isPastDelivery}
+                          >
+                            <TrashIcon size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 ">Date</p>
+                          <p className="mt-1 ">{new Date(delivery.date).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 ">Time Slot</p>
+                          <p className="mt-1 ">{delivery.timeSlot}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 ">Driver</p>
+                          <p className="mt-1 ">{delivery.driver}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 ">District</p>
+                          <p className="mt-1 ">{delivery.district}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-500 ">Status</p>
+                          <select
+                            value={delivery.status}
+                            onChange={(e) => {
+                              if (isPastDelivery) {
+                                showError('Past Delivery', 'Cannot change status of past deliveries.');
+                                return;
+                              }
+                              handleStatusUpdate(delivery.id, e.target.value as Delivery['status']);
+                            }}
+                            className={`mt-1 text-sm rounded-full px-2.5 py-0.5 border-0 focus:ring-2 focus:ring-offset-0
+                          ${delivery.status === 'Delivered' ? 'bg-green-100 text-green-800 focus:ring-green-500' :
+                                delivery.status === 'In Transit' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
+                                  delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
+                                    'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
+                              }`}
+                            disabled={isPastDelivery}
+                          >
+                            <option value="Scheduled">Scheduled</option>
+                            <option value="In Transit">In Transit</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
+                        </div>
+                      </div>
+                      {delivery.notes && (
+                        <div className="mt-2">
+                          <p className="text-sm font-medium text-gray-500 ">Notes</p>
+                          <p className="mt-1 text-sm text-gray-600 ">{delivery.notes}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        ) : (
+          // Calendar View
+          <div className="bg-white rounded-lg shadow-sm p-4">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center">
+                <CalendarIcon size={24} className="text-[#FF6B35] mr-2" />
+                <h2 className="text-xl font-semibold ">
+                  {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
+                </h2>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => navigateMonth(-1)}
+                  className="p-2 rounded-full hover:bg-gray-100 "
+                >
+                  <ChevronLeftIcon size={20} className="" />
+                </button>
+                <button
+                  onClick={() => navigateMonth(1)}
+                  className="p-2 rounded-full hover:bg-gray-100 "
+                >
+                  <ChevronRightIcon size={20} className="" />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-7 gap-1">
+              {/* Week days header */}
+              {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                <div key={day} className="p-2 text-center text-sm font-medium text-gray-600 ">
+                  {day}
+                </div>
+              ))}
+
+              {/* Calendar days */}
+              {days.map((date, i) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
-                const isPastDelivery = deliveryDate < today;
+                const isPastDate = date && date < today;
+                const isToday = date && date.toDateString() === new Date().toDateString();
 
                 return (
                   <div
-                    key={delivery.id}
-                    className={`p-4 transition-colors ${isPastDelivery ? 'opacity-60 bg-gray-50' : 'hover:bg-gray-50'}`}
+                    key={i}
+                    className={`${date ? 'min-h-[120px] p-3 border rounded-lg ' +
+                      (isToday
+                        ? 'bg-primary-50 border-primary-200 '
+                        : isPastDate
+                          ? 'bg-gray-50 border-gray-300 opacity-80 '
+                          : 'bg-white border-gray-200 ')
+                      : ''
+                      }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-medium text-gray-900 ">
-                          Order #{delivery.orderId}
-                          {isPastDelivery && (
-                            <span className="text-sm text-gray-500 ml-2">(Past Delivery)</span>
+                    {date && (
+                      <>
+                        <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${isToday
+                          ? 'text-primary-600 '
+                          : isPastDate
+                            ? 'text-gray-500 '
+                            : 'text-gray-900 '
+                          }`}>
+                          {date.getDate()}
+                          {isPastDate && (
+                            <span className="text-[10px] text-gray-400 ml-1">(Past)</span>
                           )}
-                        </h3>
-                        <p className="text-sm text-gray-500 ">{delivery.customer}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => {
-                            if (isPastDelivery) {
-                              showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
-                              return;
-                            }
-                            setSelectedDelivery(delivery);
-                            setFormData({
-                              orderId: delivery.orderId,
-                              customer: delivery.customer,
-                              address: delivery.address,
-                              date: delivery.date,
-                              timeSlot: delivery.timeSlot,
-                              driver: delivery.driver,
-                              driverId: delivery.driverId || '',
-                              notes: delivery.notes || '',
-                              district: delivery.district
-                            });
-                            setShowCreateModal(true);
-                          }}
-                          className={`p-2 ${isPastDelivery
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-[#FF6B35]'
-                            }`}
-                          disabled={isPastDelivery}
-                        >
-                          {isPastDelivery ? 'View' : 'Edit'}
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (isPastDelivery) {
-                              showError('Past Delivery', 'Cannot delete deliveries from past dates.');
-                              return;
-                            }
-                            handleRemoveDelivery(delivery.id);
-                          }}
-                          className={`p-2 ${isPastDelivery
-                            ? 'text-gray-400 cursor-not-allowed'
-                            : 'text-gray-600 hover:text-red-600'
-                            }`}
-                          disabled={isPastDelivery}
-                        >
-                          <TrashIcon size={18} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 ">Date</p>
-                        <p className="mt-1 ">{new Date(delivery.date).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 ">Time Slot</p>
-                        <p className="mt-1 ">{delivery.timeSlot}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 ">Driver</p>
-                        <p className="mt-1 ">{delivery.driver}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 ">District</p>
-                        <p className="mt-1 ">{delivery.district}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-gray-500 ">Status</p>
-                        <select
-                          value={delivery.status}
-                          onChange={(e) => {
-                            if (isPastDelivery) {
-                              showError('Past Delivery', 'Cannot change status of past deliveries.');
-                              return;
-                            }
-                            handleStatusUpdate(delivery.id, e.target.value as Delivery['status']);
-                          }}
-                          className={`mt-1 text-sm rounded-full px-2.5 py-0.5 border-0 focus:ring-2 focus:ring-offset-0
-                          ${delivery.status === 'Delivered' ? 'bg-green-100 text-green-800 focus:ring-green-500' :
-                              delivery.status === 'In Transit' ? 'bg-blue-100 text-blue-800 focus:ring-blue-500' :
-                                delivery.status === 'Cancelled' ? 'bg-red-100 text-red-800 focus:ring-red-500' :
-                                  'bg-yellow-100 text-yellow-800 focus:ring-yellow-500'
-                            }`}
-                          disabled={isPastDelivery}
-                        >
-                          <option value="Scheduled">Scheduled</option>
-                          <option value="In Transit">In Transit</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
-                    </div>
-                    {delivery.notes && (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-500 ">Notes</p>
-                        <p className="mt-1 text-sm text-gray-600 ">{delivery.notes}</p>
-                      </div>
+                        </span>
+                          {getDeliveryCountForDate(date) > 0 && (
+                            <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
+                              {getDeliveryCountForDate(date)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          {filteredDeliveries
+                            .filter(d => new Date(d.date).toDateString() === date.toDateString())
+                            .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot))
+                            .map(delivery => {
+                              const deliveryDate = new Date(delivery.date);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              const isPastDelivery = deliveryDate < today;
+
+                              return (
+                                <div
+                                  key={delivery.id}
+                                  className={`p-2 rounded text-xs transition-opacity ${isPastDelivery
+                                    ? 'cursor-not-allowed opacity-60'
+                                    : 'cursor-pointer hover:opacity-90'
+                                    } ${delivery.status === 'Delivered'
+                                      ? 'bg-green-100 text-green-800 '
+                                      : delivery.status === 'In Transit'
+                                        ? 'bg-blue-100 text-blue-800 '
+                                        : delivery.status === 'Cancelled'
+                                          ? 'bg-red-100 text-red-800 '
+                                          : 'bg-yellow-100 text-yellow-800 '
+                                    }`}
+                                  onClick={() => {
+                                    const deliveryDate = new Date(delivery.date);
+                                    const today = new Date();
+                                    today.setHours(0, 0, 0, 0);
+
+                                    // Only allow editing if delivery is today or in the future
+                                    if (deliveryDate >= today) {
+                                      setSelectedDelivery(delivery);
+                                      setFormData({
+                                        orderId: delivery.orderId,
+                                        customer: delivery.customer,
+                                        address: delivery.address,
+                                        date: delivery.date,
+                                        timeSlot: delivery.timeSlot,
+                                        driver: delivery.driver,
+                                        driverId: delivery.driverId || '',
+                                        notes: delivery.notes || '',
+                                        district: delivery.district,
+                                        status: delivery.status
+                                      });
+                                      setShowCreateModal(true);
+                                    } else {
+                                      // For past deliveries, show read-only view
+                                      showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
+                                    }
+                                  }}
+                                >
+                                  <div className="flex items-center gap-1">
+                                    <TruckIcon size={12} />
+                                    <span className="font-medium truncate">{delivery.orderId}</span>
+                                    {isPastDelivery && (
+                                      <span className="text-[10px] opacity-70">(Past)</span>
+                                    )}
+                                  </div>
+                                  <div className="flex justify-between items-center mt-1 text-[10px]">
+                                    <span className="truncate">{delivery.customer}</span>
+                                    <span>{delivery.timeSlot.split('-')[0]}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                        </div>
+                      </>
                     )}
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
-      ) : (
-        // Calendar View
-        <div className="bg-white rounded-lg shadow-sm p-4">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center">
-              <CalendarIcon size={24} className="text-[#FF6B35] mr-2" />
-              <h2 className="text-xl font-semibold ">
-                {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
-              </h2>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => navigateMonth(-1)}
-                className="p-2 rounded-full hover:bg-gray-100 "
-              >
-                <ChevronLeftIcon size={20} className="" />
-              </button>
-              <button
-                onClick={() => navigateMonth(1)}
-                className="p-2 rounded-full hover:bg-gray-100 "
-              >
-                <ChevronRightIcon size={20} className="" />
-              </button>
-            </div>
           </div>
+        )}
 
-          <div className="grid grid-cols-7 gap-1">
-            {/* Week days header */}
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="p-2 text-center text-sm font-medium text-gray-600 ">
-                {day}
-              </div>
-            ))}
+        {/* Schedule Delivery Modal */}
+        {showCreateModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
+              <h2 className="text-xl font-bold mb-4 ">
+                {selectedDelivery ? 'Edit Delivery' : 'Schedule Delivery'}
+              </h2>
+              <form onSubmit={selectedDelivery ? handleUpdateDelivery : handleAddDelivery} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Order ID
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.orderId}
+                      onChange={e => setFormData({ ...formData, orderId: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.customer}
+                      onChange={e => setFormData({ ...formData, customer: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Delivery Address
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={e => setFormData({ ...formData, address: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.date}
+                      onChange={e => setFormData({ ...formData, date: e.target.value })}
+                      min={new Date().toISOString().split('T')[0]}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Time Slot
+                    </label>
+                    <select
+                      value={formData.timeSlot}
+                      onChange={e => setFormData({ ...formData, timeSlot: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    >
+                      {TIME_SLOTS.map(slot => (
+                        <option key={slot} value={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Assign Driver
+                    </label>
+                    {loadingDrivers ? (
+                      <div className="w-full rounded-lg border-gray-300 p-3 text-gray-500 text-center bg-gray-50">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          Loading drivers...
+                        </div>
+                      </div>
+                    ) : drivers.length > 0 ? (
+                      <div className="space-y-2">
+                        <select
+                          value={formData.driverId}
+                          onChange={e => {
+                            const selectedDriver = drivers.find(d => d.id === e.target.value);
+                            setFormData({
+                              ...formData,
+                              driverId: e.target.value,
+                              driver: selectedDriver?.fullName || ''
+                            });
+                          }}
+                          className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                          required
+                        >
+                          <option value="">Select Driver</option>
+                          {drivers.map(driver => (
+                            <option
+                              key={driver.id}
+                              value={driver.id}
+                              disabled={driver.isAvailable === false}
+                            >
+                              {driver.fullName} - {driver.vehicleInfo.type} ({driver.vehicleInfo.plateNumber})
+                              {driver.isAvailable === false ? ' - BUSY' : ' - AVAILABLE'}
+                            </option>
+                          ))}
+                        </select>
 
-            {/* Calendar days */}
-            {days.map((date, i) => {
-              const today = new Date();
-              today.setHours(0, 0, 0, 0);
-              const isPastDate = date && date < today;
-              const isToday = date && date.toDateString() === new Date().toDateString();
-
-              return (
-                <div
-                  key={i}
-                  className={`${date ? 'min-h-[120px] p-3 border rounded-lg ' +
-                    (isToday
-                      ? 'bg-primary-50 border-primary-200 '
-                      : isPastDate
-                        ? 'bg-gray-50 border-gray-300 opacity-80 '
-                        : 'bg-white border-gray-200 ')
-                    : ''
-                    }`}
-                >
-                  {date && (
-                    <>
-                      <div className="flex justify-between items-center mb-2">                      <span className={`text-sm font-medium ${isToday
-                        ? 'text-primary-600 '
-                        : isPastDate
-                          ? 'text-gray-500 '
-                          : 'text-gray-900 '
-                        }`}>
-                        {date.getDate()}
-                        {isPastDate && (
-                          <span className="text-[10px] text-gray-400 ml-1">(Past)</span>
-                        )}
-                      </span>
-                        {getDeliveryCountForDate(date) > 0 && (
-                          <span className="bg-[#FF6B35] text-white text-xs px-2 py-1 rounded-full">
-                            {getDeliveryCountForDate(date)}
-                          </span>
+                        {/* Driver Availability Summary */}
+                        {formData.date && formData.timeSlot && (
+                          <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
+                            📅 {formData.date} • ⏰ {formData.timeSlot} •
+                            Available: {drivers.filter(d => d.isAvailable !== false).length}/
+                            {drivers.length} drivers
+                          </div>
                         )}
                       </div>
+                    ) : (
+                      <div className="w-full rounded-lg border border-red-300 bg-red-50 p-3 text-red-600 text-center">
+                        No active drivers available
+                      </div>
+                    )}
 
-                      <div className="space-y-1">
-                        {filteredDeliveries
-                          .filter(d => new Date(d.date).toDateString() === date.toDateString())
-                          .sort((a, b) => a.timeSlot.localeCompare(b.timeSlot))
-                          .map(delivery => {
-                            const deliveryDate = new Date(delivery.date);
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const isPastDelivery = deliveryDate < today;
-
-                            return (
-                              <div
-                                key={delivery.id}
-                                className={`p-2 rounded text-xs transition-opacity ${isPastDelivery
-                                  ? 'cursor-not-allowed opacity-60'
-                                  : 'cursor-pointer hover:opacity-90'
-                                  } ${delivery.status === 'Delivered'
-                                    ? 'bg-green-100 text-green-800 '
-                                    : delivery.status === 'In Transit'
-                                      ? 'bg-blue-100 text-blue-800 '
-                                      : delivery.status === 'Cancelled'
-                                        ? 'bg-red-100 text-red-800 '
-                                        : 'bg-yellow-100 text-yellow-800 '
-                                  }`}
-                                onClick={() => {
-                                  const deliveryDate = new Date(delivery.date);
-                                  const today = new Date();
-                                  today.setHours(0, 0, 0, 0);
-
-                                  // Only allow editing if delivery is today or in the future
-                                  if (deliveryDate >= today) {
-                                    setSelectedDelivery(delivery);
-                                    setFormData({
-                                      orderId: delivery.orderId,
-                                      customer: delivery.customer,
-                                      address: delivery.address,
-                                      date: delivery.date,
-                                      timeSlot: delivery.timeSlot,
-                                      driver: delivery.driver,
-                                      driverId: delivery.driverId || '',
-                                      notes: delivery.notes || '',
-                                      district: delivery.district,
-                                      status: delivery.status
-                                    });
-                                    setShowCreateModal(true);
-                                  } else {
-                                    // For past deliveries, show read-only view
-                                    showError('Past Delivery', 'Cannot edit deliveries from past dates. This delivery is read-only.');
-                                  }
-                                }}
-                              >
+                    {/* Driver Info Display */}
+                    {formData.driverId && drivers.find(d => d.id === formData.driverId) && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        {(() => {
+                          const selectedDriver = drivers.find(d => d.id === formData.driverId);
+                          return selectedDriver ? (
+                            <div className="text-sm">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center gap-2">
+                                  <UserIcon size={16} className="text-blue-600" />
+                                  <span className="font-medium text-blue-800">{selectedDriver.fullName}</span>
+                                </div>
                                 <div className="flex items-center gap-1">
-                                  <TruckIcon size={12} />
-                                  <span className="font-medium truncate">{delivery.orderId}</span>
-                                  {isPastDelivery && (
-                                    <span className="text-[10px] opacity-70">(Past)</span>
+                                  {selectedDriver.isAvailable === false ? (
+                                    <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">
+                                      BUSY
+                                    </span>
+                                  ) : (
+                                    <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
+                                      AVAILABLE
+                                    </span>
                                   )}
                                 </div>
-                                <div className="flex justify-between items-center mt-1 text-[10px]">
-                                  <span className="truncate">{delivery.customer}</span>
-                                  <span>{delivery.timeSlot.split('-')[0]}</span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 text-xs">
+                                <div className="flex items-center gap-1">
+                                  <PhoneIcon size={12} className="text-blue-600" />
+                                  <span className="text-blue-700">{selectedDriver.phone}</span>
                                 </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    </>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* Schedule Delivery Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-            <h2 className="text-xl font-bold mb-4 ">
-              {selectedDelivery ? 'Edit Delivery' : 'Schedule Delivery'}
-            </h2>
-            <form onSubmit={selectedDelivery ? handleUpdateDelivery : handleAddDelivery} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Order ID
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.orderId}
-                    onChange={e => setFormData({ ...formData, orderId: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Customer Name
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.customer}
-                    onChange={e => setFormData({ ...formData, customer: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Delivery Address
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={e => setFormData({ ...formData, date: e.target.value })}
-                    min={new Date().toISOString().split('T')[0]}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Time Slot
-                  </label>
-                  <select
-                    value={formData.timeSlot}
-                    onChange={e => setFormData({ ...formData, timeSlot: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
-                  >
-                    {TIME_SLOTS.map(slot => (
-                      <option key={slot} value={slot}>
-                        {slot}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Assign Driver
-                  </label>
-                  {loadingDrivers ? (
-                    <div className="w-full rounded-lg border-gray-300 p-3 text-gray-500 text-center bg-gray-50">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        Loading drivers...
-                      </div>
-                    </div>
-                  ) : drivers.length > 0 ? (
-                    <div className="space-y-2">
-                      <select
-                        value={formData.driverId}
-                        onChange={e => {
-                          const selectedDriver = drivers.find(d => d.id === e.target.value);
-                          setFormData({
-                            ...formData,
-                            driverId: e.target.value,
-                            driver: selectedDriver?.fullName || ''
-                          });
-                        }}
-                        className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                        required
-                      >
-                        <option value="">Select Driver</option>
-                        {drivers.map(driver => (
-                          <option
-                            key={driver.id}
-                            value={driver.id}
-                            disabled={driver.isAvailable === false}
-                          >
-                            {driver.fullName} - {driver.vehicleInfo.type} ({driver.vehicleInfo.plateNumber})
-                            {driver.isAvailable === false ? ' - BUSY' : ' - AVAILABLE'}
-                          </option>
-                        ))}
-                      </select>
-
-                      {/* Driver Availability Summary */}
-                      {formData.date && formData.timeSlot && (
-                        <div className="text-xs text-gray-600 bg-gray-50 p-2 rounded">
-                          📅 {formData.date} • ⏰ {formData.timeSlot} •
-                          Available: {drivers.filter(d => d.isAvailable !== false).length}/
-                          {drivers.length} drivers
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="w-full rounded-lg border border-red-300 bg-red-50 p-3 text-red-600 text-center">
-                      No active drivers available
-                    </div>
-                  )}
-
-                  {/* Driver Info Display */}
-                  {formData.driverId && drivers.find(d => d.id === formData.driverId) && (
-                    <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      {(() => {
-                        const selectedDriver = drivers.find(d => d.id === formData.driverId);
-                        return selectedDriver ? (
-                          <div className="text-sm">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <UserIcon size={16} className="text-blue-600" />
-                                <span className="font-medium text-blue-800">{selectedDriver.fullName}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {selectedDriver.isAvailable === false ? (
-                                  <span className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-medium">
-                                    BUSY
-                                  </span>
-                                ) : (
-                                  <span className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-medium">
-                                    AVAILABLE
-                                  </span>
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Rating:</span> ⭐ {selectedDriver.rating}/5.0
+                                </div>
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Vehicle:</span> {selectedDriver.vehicleInfo.type}
+                                </div>
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Plate:</span> {selectedDriver.vehicleInfo.plateNumber}
+                                </div>
+                                <div className="text-blue-700">
+                                  <span className="font-medium">Capacity:</span> {selectedDriver.vehicleInfo.capacity}
+                                </div>
+                                {selectedDriver.currentDeliveries !== undefined && (
+                                  <div className="text-blue-700">
+                                    <span className="font-medium">Today:</span> {selectedDriver.currentDeliveries} deliveries
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div className="flex items-center gap-1">
-                                <PhoneIcon size={12} className="text-blue-600" />
-                                <span className="text-blue-700">{selectedDriver.phone}</span>
-                              </div>
-                              <div className="text-blue-700">
-                                <span className="font-medium">Rating:</span> ⭐ {selectedDriver.rating}/5.0
-                              </div>
-                              <div className="text-blue-700">
-                                <span className="font-medium">Vehicle:</span> {selectedDriver.vehicleInfo.type}
-                              </div>
-                              <div className="text-blue-700">
-                                <span className="font-medium">Plate:</span> {selectedDriver.vehicleInfo.plateNumber}
-                              </div>
-                              <div className="text-blue-700">
-                                <span className="font-medium">Capacity:</span> {selectedDriver.vehicleInfo.capacity}
-                              </div>
-                              {selectedDriver.currentDeliveries !== undefined && (
-                                <div className="text-blue-700">
-                                  <span className="font-medium">Today:</span> {selectedDriver.currentDeliveries} deliveries
+                              {selectedDriver.isAvailable === false && (
+                                <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
+                                  ⚠️ This driver is already assigned to another delivery in this time slot.
+                                  Consider selecting a different time slot or driver.
                                 </div>
                               )}
                             </div>
-                            {selectedDriver.isAvailable === false && (
-                              <div className="mt-2 text-xs text-amber-700 bg-amber-50 p-2 rounded border border-amber-200">
-                                ⚠️ This driver is already assigned to another delivery in this time slot.
-                                Consider selecting a different time slot or driver.
-                              </div>
-                            )}
-                          </div>
-                        ) : null;
-                      })()}
-                    </div>
-                  )}
+                          ) : null;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Delivery District
+                    </label>
+                    <select
+                      value={formData.district}
+                      onChange={e => setFormData({ ...formData, district: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      required
+                    >
+                      <option value="">Select District</option>
+                      {DELIVERY_AREAS.map(area => (
+                        <option key={area} value={area}>{area}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Special Instructions (Sinhala/Tamil/English)
+                    </label>
+                    <textarea
+                      value={formData.notes}
+                      onChange={e => setFormData({ ...formData, notes: e.target.value })}
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      rows={3}
+                      placeholder="Add delivery instructions in any language..."
+                    />
+                  </div>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Delivery District
-                  </label>
-                  <select
-                    value={formData.district}
-                    onChange={e => setFormData({ ...formData, district: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    required
+                <div className="flex justify-end mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetForm();
+                    }}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 mr-2"
                   >
-                    <option value="">Select District</option>
-                    {DELIVERY_AREAS.map(area => (
-                      <option key={area} value={area}>{area}</option>
-                    ))}
-                  </select>
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-[#FF6B35] text-white rounded hover:bg-[#FF6B35]/90"
+                  >
+                    {selectedDelivery ? 'Update Delivery' : 'Add Delivery'}
+                  </button>
                 </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Special Instructions (Sinhala/Tamil/English)
-                  </label>
-                  <textarea
-                    value={formData.notes}
-                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                    className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                    rows={3}
-                    placeholder="Add delivery instructions in any language..."
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetForm();
-                  }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 mr-2"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#FF6B35] text-white rounded hover:bg-[#FF6B35]/90"
-                >
-                  {selectedDelivery ? 'Update Delivery' : 'Add Delivery'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
