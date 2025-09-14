@@ -64,6 +64,7 @@ class AuthService {
 
           // Store tokens and user data
           localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('token', accessToken); // For compatibility with OrderManagement component
           localStorage.setItem('refreshToken', refreshToken || accessToken);
           localStorage.setItem('user', JSON.stringify(user));
 
@@ -138,6 +139,7 @@ class AuthService {
 
           // Store tokens and user data
           localStorage.setItem('accessToken', accessToken);
+          localStorage.setItem('token', accessToken); // For compatibility with OrderManagement component
           localStorage.setItem('refreshToken', refreshToken);
           localStorage.setItem('user', JSON.stringify(user));
 
@@ -235,6 +237,7 @@ class AuthService {
 
       if (response.ok && data.success && data.accessToken) {
         localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('token', data.accessToken); // For compatibility with OrderManagement component
         return true;
       }
 

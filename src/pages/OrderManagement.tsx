@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon } from 'lucide-react';
 import { Order, OrderFormData, OrderItem } from '../types/order';
 import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
+import { useAuth } from '../hooks/useAuth';
 
 const defaultFormData: OrderFormData = {
   customer: '',
+  email: '',
   address: '',
   contact: '+94',
   items: [{ name: '', quantity: 1 }],
@@ -18,6 +20,7 @@ const defaultFormData: OrderFormData = {
 
 const OrderManagement = ({ userRole }: { userRole: string }) => {
   const navigate = useNavigate();
+  const { user } = useAuth(); // Access user information including email
   const [orders, setOrders] = useState<Order[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -46,34 +49,16 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       setFetchingOrders(true);
       setError(null);
 
-      // Get admin token (use available admin credentials) - Use correct port 5001
-      const authResponse = await fetch('http://localhost:5001/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'admin@toollink.com',
-          password: 'admin123'
-        }),
-      });
-
-      if (!authResponse.ok) {
-        throw new Error('Authentication failed');
-      }
-
-      const authData = await authResponse.json();
-      const token = authData.accessToken;
+      // Get existing token from localStorage
+      const token = localStorage.getItem('token');
 
       if (!token) {
-        throw new Error('No token received');
+        throw new Error('No authentication token found. Please login again.');
       }
 
-      // Store token for future requests
-      localStorage.setItem('token', token);
-
-      // Fetch orders with authentication - Use correct port 5000
-      const ordersResponse = await fetch('http://localhost:5001/api/orders?limit=50', {
+      // Determine the correct endpoint based on user role
+      const endpoint = 'http://localhost:5001/api/orders?limit=50';  // Backend handles role-based filtering automatically      // Fetch orders with authentication
+      const ordersResponse = await fetch(endpoint, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -92,6 +77,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         const transformedOrders = ordersData.data.map((order: any) => ({
           id: order.orderNumber || order._id,
           customer: order.customer?.fullName || order.customer?.name || 'Unknown Customer',
+          email: order.customerEmail || order.customer?.email || '',
           items: order.items?.map((item: any) => ({
             name: item.inventory?.name || item.name || 'Unknown Item',
             quantity: item.quantity || 0
@@ -122,32 +108,21 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   // Fetch inventory items
   const fetchInventory = async () => {
     try {
-      let token = localStorage.getItem('token');
+      const token = localStorage.getItem('token');
 
       if (!token) {
-        const authResponse = await fetch('http://localhost:5001/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: 'admin@toollink.com', password: 'admin123' })
-        });
-
-        if (authResponse.ok) {
-          const authData = await authResponse.json();
-          token = authData.accessToken;
-          if (token) localStorage.setItem('token', token);
-        }
+        console.warn('No authentication token found for inventory fetch');
+        return;
       }
 
-      if (token) {
-        const response = await fetch('http://localhost:5001/api/inventory?limit=100', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+      const response = await fetch('http://localhost:5001/api/inventory?limit=100', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.data?.items) {
-            setInventory(data.data.items);
-          }
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data?.items) {
+          setInventory(data.data.items);
         }
       }
     } catch (error) {
@@ -258,6 +233,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       // Create order payload for backend
       const orderPayload = {
         items: transformedItems,
+        customerEmail: formData.email, // Send email to backend
         shippingAddress: {
           street: formData.address,
           city: "Colombo",
@@ -281,33 +257,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       };
 
       // Get stored token
-      let token = localStorage.getItem('token');
+      const token = localStorage.getItem('token');
 
       if (!token) {
-        // Authenticate if no token
-        const authResponse = await fetch('http://localhost:5001/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: 'admin@toollink.com',
-            password: 'admin123'
-          }),
-        });
-
-        if (!authResponse.ok) {
-          throw new Error('Authentication failed');
-        }
-
-        const authData = await authResponse.json();
-        token = authData.accessToken;
-
-        if (!token) {
-          throw new Error('No access token received');
-        }
-
-        localStorage.setItem('token', token);
+        throw new Error('No authentication token found. Please login again.');
       }
 
       // Send to backend with authentication and correct port
@@ -361,6 +314,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     setSelectedOrder(order);
     setFormData({
       customer: order.customer,
+      email: order.email || '',
       address: order.address,
       contact: order.contact,
       items: order.items,
@@ -372,14 +326,17 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   };
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.id.toLowerCase().includes(searchTerm.toLowerCase()) || order.customer.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch =
+      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.email && order.email.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || order.status.toLowerCase() === filterStatus.toLowerCase();
     return matchesSearch && matchesStatus;
   });
   const handleDeleteOrder = (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order) {
-      showError('Order not found');
+      showError('Error', 'Order not found');
       return;
     }
 
@@ -395,9 +352,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     try {
       // Call API to delete order from backend or just remove locally for now
       setOrders(orders.filter(order => order.id !== orderToDelete.id));
-      showSuccess('Order deleted successfully');
+      showSuccess('Success', 'Order deleted successfully');
     } catch (err) {
-      showError('Failed to delete order');
+      showError('Error', 'Failed to delete order');
     } finally {
       setDeleteLoading(false);
       setShowDeleteModal(false);
@@ -430,6 +387,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     setSelectedOrder(order);
     setFormData({
       customer: order.customer,
+      email: order.email || '',
       address: order.address,
       contact: order.contact,
       items: order.items,
@@ -494,30 +452,158 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           )}
         </motion.div>      {/* Customer-specific order stats - Enhanced Responsive */}
         {userRole === 'customer' && (
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
-              <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Total Orders</h3>
-              <p className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mt-1">{orders.length}</p>
+          <>
+            {/* Upcoming Delivery Alert */}
+            {orders.some(order =>
+              ['Pending', 'Processing'].includes(order.status) &&
+              order.preferredDate &&
+              new Date(order.preferredDate) >= new Date() &&
+              order.email === user?.email
+            ) && (
+                <div className="mb-4 sm:mb-6">
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/30 dark:to-indigo-900/30 border-l-4 border-blue-500 p-4 rounded-lg shadow-sm">
+                    <div className="flex items-start">
+                      <TruckIcon className="h-6 w-6 text-blue-500 mr-3 flex-shrink-0" />
+                      <div>
+                        <h3 className="font-medium text-blue-700 dark:text-blue-300">Upcoming Deliveries</h3>
+                        <div className="mt-2 space-y-2">
+                          {orders
+                            .filter(order =>
+                              ['Pending', 'Processing'].includes(order.status) &&
+                              order.preferredDate &&
+                              new Date(order.preferredDate) >= new Date() &&
+                              order.email === user?.email
+                            )
+                            .sort((a, b) => new Date(a.preferredDate).getTime() - new Date(b.preferredDate).getTime())
+                            .slice(0, 3)
+                            .map(order => (
+                              <div key={`upcoming-${order.id}`} className="flex justify-between items-center text-sm">
+                                <div>
+                                  <span className="font-medium text-gray-700 dark:text-gray-300">Order #{order.id}</span>
+                                  <span className="text-gray-600 dark:text-gray-400"> • </span>
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                                  </span>
+                                </div>
+                                <div className="flex items-center">
+                                  <CalendarIcon className="h-4 w-4 text-gray-500 dark:text-gray-400 mr-1" />
+                                  <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                    {new Date(order.preferredDate).toLocaleDateString()} {order.preferredTime}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
+                <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Total Orders</h3>
+                <p className="text-lg sm:text-2xl font-bold text-gray-800 dark:text-white mt-1">{orders.length}</p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
+                <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Active Orders</h3>
+                <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
+                  {orders.filter(o => ['Pending', 'Processing'].includes(o.status)).length}
+                </p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
+                <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Delivered</h3>
+                <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
+                  {orders.filter(o => o.status === 'Delivered').length}
+                </p>
+              </div>
+              <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
+                <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">This Month</h3>
+                <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
+                  {orders.filter(o => new Date(o.date).getMonth() === new Date().getMonth()).length}
+                </p>
+              </div>
             </div>
-            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
-              <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Active Orders</h3>
-              <p className="text-lg sm:text-2xl font-bold text-blue-600 dark:text-blue-400 mt-1">
-                {orders.filter(o => ['Pending', 'Processing'].includes(o.status)).length}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
-              <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">Delivered</h3>
-              <p className="text-lg sm:text-2xl font-bold text-green-600 dark:text-green-400 mt-1">
-                {orders.filter(o => o.status === 'Delivered').length}
-              </p>
-            </div>
-            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-lg shadow transition-colors duration-300 hover:shadow-md">
-              <h3 className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 font-medium">This Month</h3>
-              <p className="text-lg sm:text-2xl font-bold text-purple-600 dark:text-purple-400 mt-1">
-                {orders.filter(o => new Date(o.date).getMonth() === new Date().getMonth()).length}
-              </p>
-            </div>
-          </div>
+
+            {/* Dedicated Delivery Schedule Section for Customers */}
+            {orders.some(order => order.preferredDate && order.email === user?.email) && (
+              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-6">
+                <div className="flex items-center mb-4">
+                  <CalendarIcon className="h-5 w-5 text-blue-500 mr-2" />
+                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Your Delivery Schedule</h3>
+                </div>
+
+                <div className="overflow-hidden">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {orders
+                      .filter(order =>
+                        order.preferredDate &&
+                        new Date(order.preferredDate) >= new Date() &&
+                        ['Pending', 'Processing'].includes(order.status) &&
+                        order.email === user?.email
+                      )
+                      .sort((a, b) => new Date(a.preferredDate).getTime() - new Date(b.preferredDate).getTime())
+                      .slice(0, 6)
+                      .map(order => (
+                        <div
+                          key={`delivery-${order.id}`}
+                          className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center">
+                              <TruckIcon className="h-4 w-4 text-blue-500 mr-2" />
+                              <span className="font-medium text-gray-800 dark:text-white">Order #{order.id}</span>
+                            </div>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
+                              Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                              Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                              Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }[order.status]}`}>
+                              {order.status}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            <span className="font-medium">{new Date(order.preferredDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
+                          </div>
+
+                          <div className="flex items-center mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            <ClockIcon className="h-4 w-4 mr-2" />
+                            <span>{order.preferredTime}</span>
+                          </div>
+
+                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              {order.items.length} {order.items.length === 1 ? 'item' : 'items'}: {order.items.map(item => item.name).join(', ')}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+
+                  {orders.filter(order =>
+                    order.preferredDate &&
+                    new Date(order.preferredDate) >= new Date() &&
+                    ['Pending', 'Processing'].includes(order.status) &&
+                    order.email === user?.email
+                  ).length === 0 && (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                        <p>No upcoming deliveries scheduled</p>
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
+                        >
+                          Place a New Order
+                        </button>
+                      </div>
+                    )}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Search and Filter - Enhanced Responsive */}
@@ -526,11 +612,16 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
             <SearchIcon size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 z-10" />
             <input
               type="text"
-              placeholder={userRole === 'customer' ? 'Search your orders...' : 'Search orders...'}
+              placeholder={userRole === 'customer' ? 'Search your orders...' : 'Search by ID, customer name or email...'}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 py-3 px-4 transition-all duration-200 text-sm sm:text-base"
             />
+            {userRole !== 'customer' && searchTerm.length === 0 && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 pl-2">
+                Find orders using customer email, name, or order ID
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <FilterIcon size={20} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
@@ -607,7 +698,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         <div>
                           <h3 className="font-semibold text-gray-900 dark:text-white">{order.id}</h3>
                           {userRole !== 'customer' && (
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{order.customer}</p>
+                            <>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{order.customer}</p>
+                              {order.email && <p className="text-sm text-gray-500 dark:text-gray-400">{order.email}</p>}
+                            </>
                           )}
                         </div>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
@@ -635,9 +729,19 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         {userRole === 'customer' && (
                           <div>
                             <span className="font-medium text-gray-700 dark:text-gray-300">Delivery: </span>
-                            <span className="text-gray-600 dark:text-gray-400">
-                              {new Date(order.preferredDate).toLocaleDateString()} at {order.preferredTime}
-                            </span>
+                            {order.email === user?.email ? (
+                              <div className="mt-1 inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                <CalendarIcon className="w-3 h-3 mr-1" />
+                                {new Date(order.preferredDate).toLocaleDateString()}
+                                <span className="mx-1">•</span>
+                                <ClockIcon className="w-3 h-3 mr-1" />
+                                {order.preferredTime}
+                              </div>
+                            ) : (
+                              <span className="text-gray-600 dark:text-gray-400">
+                                {new Date(order.preferredDate).toLocaleDateString()} at {order.preferredTime}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
@@ -701,9 +805,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         Order ID
                       </th>
                       {userRole !== 'customer' && (
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Customer
-                        </th>
+                        <>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Customer
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Email
+                          </th>
+                        </>
                       )}
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                         Items
@@ -731,9 +840,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           {order.id}
                         </td>
                         {userRole !== 'customer' && (
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            {order.customer}
-                          </td>
+                          <>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {order.customer}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {order.email}
+                            </td>
+                          </>
                         )}
                         <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
                           <div className="max-w-xs truncate">
@@ -758,9 +872,24 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           {new Date(order.date).toLocaleDateString()}
                         </td>
                         {userRole === 'customer' && (
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                            <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
-                            <div className="text-xs text-gray-400 dark:text-gray-500">{order.preferredTime}</div>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            {order.email === user?.email && (
+                              <div className="flex flex-col">
+                                <div className="font-medium text-blue-600 dark:text-blue-400">
+                                  {new Date(order.preferredDate).toLocaleDateString()}
+                                </div>
+                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
+                                  <ClockIcon className="w-3 h-3 mr-1" />
+                                  {order.preferredTime}
+                                </div>
+                              </div>
+                            )}
+                            {order.email !== user?.email && (
+                              <div>
+                                <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
+                                <div className="text-xs text-gray-400 dark:text-gray-500">{order.preferredTime}</div>
+                              </div>
+                            )}
                           </td>
                         )}
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -859,6 +988,19 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           value={formData.customer}
                           onChange={handleInputChange}
                           placeholder="e.g., W.A. Saman Kumara Perera"
+                          className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 transition-all duration-200 px-3 py-2"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={formData.email}
+                          onChange={handleInputChange}
+                          placeholder="customer@example.com"
                           className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 transition-all duration-200 px-3 py-2"
                         />
                       </div>
@@ -1063,19 +1205,34 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         </select>
                       </div>
 
-                      {/* Preferred Date */}
+                      {/* Preferred Date - Enhanced with calendar icon and help text */}
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Preferred Delivery Date
-                        </label>
-                        <input
-                          type="date"
-                          name="preferredDate"
-                          value={formData.preferredDate}
-                          onChange={handleInputChange}
-                          min={new Date().toISOString().split('T')[0]}
-                          className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
-                        />
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Preferred Delivery Date
+                          </label>
+                          {user?.email && (
+                            <span className="text-xs text-blue-600 dark:text-blue-400">
+                              For {user.email}
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <CalendarIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <input
+                            type="date"
+                            name="preferredDate"
+                            value={formData.preferredDate}
+                            onChange={handleInputChange}
+                            min={new Date().toISOString().split('T')[0]}
+                            className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Select a date for your delivery. Must be today or a future date.
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1090,18 +1247,26 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                           Preferred Time
                         </label>
-                        <input
-                          type="time"
-                          name="preferredTime"
-                          value={formData.preferredTime}
-                          onChange={(e) => {
-                            handleInputChange(e);
-                            validateTimeSlot(e.target.value);
-                          }}
-                          min={BUSINESS_HOURS.start}
-                          max={BUSINESS_HOURS.end}
-                          className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
-                        />
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <ClockIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                          </div>
+                          <input
+                            type="time"
+                            name="preferredTime"
+                            value={formData.preferredTime}
+                            onChange={(e) => {
+                              handleInputChange(e);
+                              validateTimeSlot(e.target.value);
+                            }}
+                            min={BUSINESS_HOURS.start}
+                            max={BUSINESS_HOURS.end}
+                            className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Select a time between {BUSINESS_HOURS.start} and {BUSINESS_HOURS.end} for delivery.
+                        </p>
                       </div>
                       <div className="flex items-end">
                         <button

@@ -6,6 +6,7 @@ export interface OrderItem {
 export interface Order {
   id: string;
   customer: string;
+  email: string; // Added email field
   items: OrderItem[];
   status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
   date: string;
@@ -17,6 +18,7 @@ export interface Order {
 
 export interface OrderFormData {
   customer: string;
+  email: string;
   address: string;
   contact: string;
   items: OrderItem[];
