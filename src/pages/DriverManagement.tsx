@@ -310,7 +310,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const loadDeliveries = async () => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch('http://localhost:5001/api/deliveries/unassigned', {
+            const response = await fetch('http://localhost:5001/api/drivers/unassigned', {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
@@ -331,7 +331,7 @@ const DriverManagement: React.FC<{ userRole: string }> = ({ userRole }) => {
     const assignDelivery = async (deliveryId: string, driverId: string) => {
         try {
             const token = localStorage.getItem('accessToken');
-            const response = await fetch(`http://localhost:5001/api/deliveries/${deliveryId}/assign`, {
+            const response = await fetch(`http://localhost:5001/api/drivers/${deliveryId}/assign`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
