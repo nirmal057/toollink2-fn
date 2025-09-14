@@ -9,9 +9,9 @@ interface SimpleAdminGuardProps {
   fallbackPath?: string;
 }
 
-const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({ 
-  children, 
-  fallbackPath = '/dashboard' 
+const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({
+  children,
+  fallbackPath = '/dashboard'
 }) => {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -57,7 +57,7 @@ const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({
     ];
 
     const hasAdminAccess = checks.some(check => check === true);
-    
+
     console.log('SimpleAdminGuard: Quick access check:', {
       isAuthenticated,
       hasToken: !!token,
@@ -124,7 +124,7 @@ const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({
             Access Denied
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
-            You don't have permission to access this admin area. 
+            You don't have permission to access this admin area.
             Admin privileges are required.
           </p>
           <div className="space-y-2">

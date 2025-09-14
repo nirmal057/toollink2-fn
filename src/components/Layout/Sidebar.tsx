@@ -282,7 +282,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           <span className="text-xl font-bold transition-colors duration-300">ToolLink</span>
         </div>
       </div>
-      
+
       {/* Navigation Items */}
       <div className="flex-1 py-6 overflow-y-auto">
         <nav className="px-2 space-y-1">
