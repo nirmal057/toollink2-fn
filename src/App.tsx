@@ -114,7 +114,7 @@ function AppRoutes() {
           <Route
             path="/orders"
             element={
-              <RoleGuard roles={[ROLES.CUSTOMER, ROLES.ADMIN, ROLES.CASHIER]} fallback={<Unauthorized />}>
+              <RoleGuard roles={[ROLES.CUSTOMER, ROLES.ADMIN, ROLES.CASHIER, ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
                 <OrderManagement userRole={user.role} />
               </RoleGuard>
             }

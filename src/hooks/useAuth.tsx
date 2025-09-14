@@ -364,7 +364,12 @@ interface RoleGuardProps {
 }
 
 export function RoleGuard({ children, roles, permissions, fallback = null }: RoleGuardProps) {
-  const { hasAnyRole, hasPermission } = useAuth();
+  const { hasAnyRole, hasPermission, user } = useAuth();
+
+  // Admin users have access to everything
+  if (user?.role?.toLowerCase() === 'admin') {
+    return <>{children}</>;
+  }
 
   // Check role access
   if (roles && !hasAnyRole(roles)) {

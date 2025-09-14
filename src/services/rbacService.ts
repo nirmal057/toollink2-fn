@@ -307,8 +307,8 @@ class RBACService {
     const user = this.getCurrentUser(); // Use the enhanced getter
     if (!user || !permission) return false;
     
-    // Admin has full system access - explicit check
-    if (user.role === 'admin') {
+    // Admin has full system access - explicit check with case insensitivity
+    if (user.role?.toLowerCase() === 'admin') {
       return true;
     }
     
@@ -329,7 +329,7 @@ class RBACService {
   hasRole(role: Role): boolean {
     const user = this.getCurrentUser(); // Use the enhanced getter
     if (!user) return false;
-    return user.role === role;
+    return user.role?.toLowerCase() === role?.toLowerCase();
   }
 
   /**
@@ -338,6 +338,12 @@ class RBACService {
   hasAnyRole(roles: Role[]): boolean {
     const user = this.getCurrentUser(); // Use the enhanced getter
     if (!user) return false;
+    
+    // Admin users have access to everything
+    if (user.role?.toLowerCase() === 'admin') {
+      return true;
+    }
+    
     return roles.includes(user.role);
   }
 

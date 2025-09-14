@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   Users, Package, ShoppingCart, Shield, Activity as ActivityIcon, Bell, Search,
   CheckCircle, RefreshCw, AlertCircle, Clock, ArrowUpRight, ArrowDownRight, ArrowRight,
-  Eye, UserCheck, UserX, AlertTriangle, BarChart3, Truck, User, Settings
+  Eye, UserCheck, UserX, AlertTriangle, BarChart3, Truck, User, Settings,
+  MessageSquare, TrendingUp, UserPlus, Archive
 } from 'lucide-react';
 import { RealDashboardService } from '../services/realDashboardService';
 
@@ -598,13 +599,19 @@ const AdminDashboard: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 border border-gray-100 dark:border-gray-700">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h3>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {[
               { title: 'User Management', icon: Users, color: 'from-blue-500 to-blue-600', link: '/users' },
               { title: 'Inventory Control', icon: Package, color: 'from-green-500 to-green-600', link: '/inventory' },
               { title: 'Order Management', icon: ShoppingCart, color: 'from-orange-500 to-red-600', link: '/orders' },
-              { title: 'System Reports', icon: BarChart3, color: 'from-orange-500 to-red-500', link: '/admin/reports' },
+              { title: 'Driver Management', icon: User, color: 'from-purple-500 to-purple-600', link: '/driver-management' },
               { title: 'Delivery Tracking', icon: Truck, color: 'from-blue-500 to-blue-600', link: '/deliveries' },
+              { title: 'Customer Approval', icon: UserPlus, color: 'from-indigo-500 to-indigo-600', link: '/customer-approval' },
+              { title: 'System Reports', icon: BarChart3, color: 'from-orange-500 to-red-500', link: '/admin/reports' },
+              { title: 'Activity Logs', icon: ActivityIcon, color: 'from-yellow-500 to-yellow-600', link: '/admin/activities' },
+              { title: 'Audit Logs', icon: Archive, color: 'from-gray-500 to-gray-600', link: '/admin/audit-logs' },
+              { title: 'Message Center', icon: MessageSquare, color: 'from-teal-500 to-teal-600', link: '/admin/messages' },
+              { title: 'Material Prediction', icon: TrendingUp, color: 'from-pink-500 to-pink-600', link: '/predictions' },
               { title: 'System Settings', icon: Settings, color: 'from-gray-500 to-gray-600', link: '/admin/settings' }
             ].map((action, index) => (
               <button

@@ -35,10 +35,10 @@ const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({
       return false;
     }
 
-    // Multiple quick checks
+    // Multiple quick checks with case insensitivity
     const checks = [
       // Check auth context user
-      user?.role === 'admin',
+      user?.role?.toLowerCase() === 'admin',
       // Check RBAC service
       rbacService.hasRole('admin'),
       // Check localStorage fallback
@@ -47,7 +47,7 @@ const SimpleAdminGuard: React.FC<SimpleAdminGuardProps> = ({
           const localUser = localStorage.getItem('user');
           if (localUser) {
             const userData = JSON.parse(localUser);
-            return userData.role === 'admin';
+            return userData.role?.toLowerCase() === 'admin';
           }
         } catch (error) {
           console.error('Error checking localStorage user:', error);

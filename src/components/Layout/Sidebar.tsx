@@ -115,23 +115,27 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     setShowLogoutModal(false);
   }, []);
 
+  // Normalize role to handle case sensitivity
+  const normalizedRole = userRole?.toLowerCase?.() || userRole;
+  const isAdmin = normalizedRole === 'admin';
+
   const navItems = [
     // Admin Dashboard (first for admins)
-    ...(userRole === 'admin' ? [{
+    ...(isAdmin ? [{
       to: '/admin',
       icon: <ShieldIcon size={20} />,
       label: 'Admin Dashboard'
     }] : []),
 
     // User Management
-    ...(userRole === 'admin' ? [{
+    ...(isAdmin ? [{
       to: '/users',
       icon: <UsersIcon size={20} />,
       label: 'User Management'
     }] : []),
 
     // Customer Approval
-    ...(['admin', 'cashier'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['cashier'].includes(normalizedRole) ? [{
       to: '/customer-approval',
       icon: (
         <div className="relative">
@@ -147,41 +151,55 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     }] : []),
 
     // Orders
-    ...(['admin', 'warehouse', 'cashier'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['warehouse', 'cashier'].includes(normalizedRole) ? [{
       to: '/orders',
       icon: <ShoppingCartIcon size={20} />,
       label: 'Orders'
     }] : []),
-    ...(userRole === 'customer' ? [{
+    ...(normalizedRole === 'customer' ? [{
       to: '/orders',
       icon: <ShoppingCartIcon size={20} />,
       label: 'My Orders'
     }] : []),
 
     // Inventory
-    ...(['admin', 'warehouse'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
       to: '/inventory',
       icon: <PackageIcon size={20} />,
       label: 'Inventory'
     }] : []),
 
+    // Quick Add Inventory (Admin & Warehouse only)
+    ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
+      to: '/inventory/quick-add',
+      icon: <PlusIcon size={20} />,
+      label: 'Quick Add Inventory'
+    }] : []),
+
     // Deliveries
-    ...(['admin', 'warehouse', 'cashier'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['warehouse', 'cashier'].includes(normalizedRole) ? [{
       to: '/deliveries',
       icon: <CalendarIcon size={20} />,
       label: 'Deliveries'
     }] : []),
-    ...(userRole === 'customer' ? [{
+    ...(normalizedRole === 'customer' ? [{
       to: '/deliveries',
       icon: <CalendarIcon size={20} />,
       label: 'Track Deliveries'
     }] : []),
 
     // Driver Management (Admin & Warehouse only)
-    ...(['admin', 'warehouse'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
       to: '/driver-management',
       icon: <TruckIcon size={20} />,
       label: 'Driver Management'
+    }] : []),
+
+    // Activities (Admin only)
+    ...(isAdmin ? [{
+      to: '/admin/activities',
+      icon: <ActivityIcon size={20} />,
+      label: 'System Activities'
     }] : []),
 
     // Notifications (Enhanced with unread count)
@@ -201,40 +219,47 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     },
 
     // Reports (different for admin vs others)
-    ...(userRole === 'admin' ? [{
+    ...(isAdmin ? [{
       to: '/admin/reports',
       icon: <BarChartIcon size={20} />,
       label: 'System Reports'
     }] : []),
-    ...(['warehouse', 'cashier', 'user'].includes(userRole) ? [{
+    ...(['warehouse', 'cashier', 'user'].includes(normalizedRole) ? [{
       to: '/reports',
       icon: <BarChartIcon size={20} />,
       label: 'Reports'
     }] : []),
 
     // Admin Audit Logs
-    ...(userRole === 'admin' ? [{
+    ...(isAdmin ? [{
       to: '/admin/audit-logs',
       icon: <ActivityIcon size={20} />,
       label: 'Audit Logs'
     }] : []),
 
     // Messages (Admin & Cashier)
-    ...(['admin', 'cashier'].includes(userRole) ? [{
+    ...([normalizedRole].includes('admin') || ['cashier'].includes(normalizedRole) ? [{
       to: '/admin/messages',
       icon: <MailIcon size={20} />,
       label: 'Customer Messages'
+    }] : []),
+
+    // Material Predictions (Admin only)
+    ...(isAdmin ? [{
+      to: '/predictions',
+      icon: <TrendingUpIcon size={20} />,
+      label: 'Material Predictions'
     }] : []),
 
     // Feedback
     {
       to: '/feedback',
       icon: <MessageSquareIcon size={20} />,
-      label: userRole === 'customer' ? 'Submit Feedback' : 'Feedback'
+      label: normalizedRole === 'customer' ? 'Submit Feedback' : 'Feedback'
     },
 
     // Contact (only for customers)
-    ...(userRole === 'customer' ? [{
+    ...(normalizedRole === 'customer' ? [{
       to: '/contact',
       icon: <PhoneIcon size={20} />,
       label: 'Contact Us'
@@ -245,15 +270,10 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       to: '/profile',
       icon: <UserIcon size={20} />,
       label: 'Profile'
-    },
+    }
+  ];
 
-    // Material Predictions (Admin only)
-    ...(['admin'].includes(userRole) ? [{
-      to: '/predictions',
-      icon: <TrendingUpIcon size={20} />,
-      label: 'Predictions'
-    }] : [])
-  ]; return (
+  return (
     <div className="h-full flex flex-col bg-[#0B2545] dark:bg-gray-900 text-white transition-all duration-300 ease-in-out">
       {/* Logo */}
       <div className="flex items-center justify-center h-16 border-b border-[#0B2545]/40 dark:border-gray-700 transition-colors duration-300">
@@ -262,6 +282,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           <span className="text-xl font-bold transition-colors duration-300">ToolLink</span>
         </div>
       </div>
+      
       {/* Navigation Items */}
       <div className="flex-1 py-6 overflow-y-auto">
         <nav className="px-2 space-y-1">
