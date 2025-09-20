@@ -286,10 +286,10 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
       if (response.ok) {
         const data = await response.json();
         console.log('=== ALL ORDERS RESPONSE ===', data);
-        
+
         if (data.success && data.data && Array.isArray(data.data)) {
           console.log('Total orders fetched:', data.data.length);
-          
+
           // Log all order statuses to see what we have
           data.data.forEach((order: any) => {
             console.log(`Order ${order.orderId}: Customer="${order.customerName}", Status="${order.status}"`);
