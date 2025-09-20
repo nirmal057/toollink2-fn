@@ -7,6 +7,7 @@ import {
   MessageSquare, TrendingUp, UserPlus, Archive
 } from 'lucide-react';
 import { RealDashboardService } from '../services/realDashboardService';
+import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface DashboardData {
   userStats: {
@@ -513,6 +514,16 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Inventory Category Distribution Chart */}
+        <div className="mb-8">
+          <InventoryCategoryChart
+            height={400}
+            showControls={true}
+            chartType="pie"
+            className="shadow-xl"
+          />
         </div>
 
         {/* Quick Inventory View */}

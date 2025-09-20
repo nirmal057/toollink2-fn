@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PackageIcon, PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, AlertTriangleIcon, XIcon, RefreshCwIcon } from 'lucide-react';
 import { inventoryService, InventoryItem, CreateInventoryItem, InventoryStats } from '../services/inventoryService';
 import { useToast } from '../contexts/GlobalNotificationContext';
+import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface InventoryModalProps {
   isOpen: boolean;
@@ -28,10 +29,16 @@ const CATEGORIES = {
     'Hardware & Fasteners',
     'Tiles & Ceramics',
     'Roofing Materials',
-    'Safety Equipment'
+    'Safety Equipment',
+    'Sand & Aggregate',
+    'Bricks',
+    'Masonry Blocks',
+    'Stones',
+    'Materials'
   ],
   'Sand & Aggregate': ['Sand & Aggregate'],
   'Bricks': ['Bricks'],
+  'Masonry Blocks': ['Masonry Blocks'],
   'Stones': ['Stones']
 };
 
@@ -622,6 +629,20 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
                 <PackageIcon size={20} className="text-blue-500" />
               </div>
             </div>
+          </motion.div>
+
+          {/* Inventory Category Chart */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+          >
+            <InventoryCategoryChart
+              height={350}
+              showControls={true}
+              chartType="pie"
+              className="mb-6"
+            />
           </motion.div>
 
           {/* Refresh Button */}

@@ -41,6 +41,15 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   useEffect(() => {
     fetchOrders();
     fetchInventory();
+
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('Browser notifications enabled for warehouse confirmations');
+        }
+      });
+    }
   }, []);
 
   // Fetch orders
@@ -411,6 +420,110 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     // For now, just show a notification - could be expanded to a modal
     showWarning('Request Changes', `Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
   };
+
+  // Admin status change handlers
+  const canChangeFromStatus = (currentStatus: string, newStatus: string): boolean => {
+    const statusOrder = ['Pending', 'Processing', 'Confirmed', 'Shipped', 'Delivered'];
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    const newIndex = statusOrder.indexOf(newStatus);
+
+    // Can only move forward in the status chain or stay the same
+    return newIndex >= currentIndex || newStatus === currentStatus;
+  };
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    try {
+      const token = localStorage.getItem('token');
+
+      // If changing to shipped status and user is not admin, block the change
+      if (newStatus === 'Shipped' && userRole !== 'admin') {
+        showError('Access Denied', 'Only administrators can change orders to shipped status.');
+        return;
+      }
+
+      // Find the current order to get warehouse and customer information
+      const currentOrder = orders.find(order => order.id === orderId);
+      const previousStatus = currentOrder?.status;
+
+      const response = await fetch(`http://localhost:5001/api/orders/${orderId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          warehouseConfirmed: newStatus === 'Confirmed',
+          confirmedBy: userRole,
+          confirmedAt: new Date().toISOString()
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order status');
+      }
+
+      // Handle warehouse confirmation notifications
+      if (newStatus === 'Confirmed' && previousStatus !== 'Confirmed' && currentOrder) {
+        await handleWarehouseConfirmation(currentOrder, orderId);
+      }
+
+      // Refresh orders list
+      fetchOrders();
+      showSuccess('Status Updated', `Order status changed to ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      showError('Update Failed', 'Failed to update order status. Please try again.');
+    }
+  };
+
+  // Handle warehouse confirmation notifications
+  const handleWarehouseConfirmation = async (order: Order, orderId: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const warehouseName = order.warehouse || 'Main Store';
+
+      // Send notification and email to customer
+      const notificationResponse = await fetch(`http://localhost:5001/api/notifications/warehouse-confirmation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          orderId: orderId,
+          customerEmail: order.email,
+          customerName: order.customer,
+          warehouse: warehouseName,
+          orderItems: order.items,
+          orderDate: order.date,
+          deliveryDate: order.preferredDate,
+          deliveryTime: order.preferredTime
+        })
+      });
+
+      if (notificationResponse.ok) {
+        // Show in-app notification
+        showSuccess(
+          'Customer Notified',
+          `Customer ${order.customer} has been notified via email about order confirmation from ${warehouseName}`
+        );
+
+        // You can also add a browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`Order Confirmed - ${warehouseName}`, {
+            body: `Order #${orderId} confirmed for ${order.customer}`,
+            icon: '/favicon.ico'
+          });
+        }
+      } else {
+        showWarning('Notification Failed', 'Order was confirmed but customer notification failed. Please contact customer manually.');
+      }
+    } catch (error) {
+      console.error('Error sending warehouse confirmation notification:', error);
+      showWarning('Notification Error', 'Order confirmed successfully, but there was an issue sending customer notification.');
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-3 sm:p-4 lg:p-6">
       {/* Beautiful background pattern */}
@@ -557,6 +670,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
                               Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                               Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                              Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                              Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                               Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                               Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                             }[order.status]}`}>
@@ -689,27 +804,29 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           {/* Orders List */}
           {!fetchingOrders && !error && filteredOrders.length > 0 && (
             <>
-              {/* Mobile Card View */}
+              {/* Mobile Card View - Enhanced for small screens */}
               <div className="block lg:hidden">
-                <div className="p-4 space-y-4">
+                <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
                   {filteredOrders.map((order) => (
-                    <div key={order.id} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-                      <div className="flex justify-between items-start mb-3">
-                        <div>
-                          <h3 className="font-semibold text-gray-900 dark:text-white">{order.id}</h3>
+                    <div key={order.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 space-y-2 sm:space-y-0">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{order.id}</h3>
                           {userRole !== 'customer' && (
                             <>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">{order.customer}</p>
-                              {order.email && <p className="text-sm text-gray-500 dark:text-gray-400">{order.email}</p>}
+                              <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{order.customer}</p>
+                              {order.email && <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{order.email}</p>}
                             </>
                           )}
                         </div>
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
                           Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                           Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                          Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                          Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                           Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
                           Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }[order.status]
+                        }[order.status]}
                           }`}>
                           {order.status}
                         </span>
@@ -726,6 +843,12 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           <span className="font-medium text-gray-700 dark:text-gray-300">Date: </span>
                           <span className="text-gray-600 dark:text-gray-400">{new Date(order.date).toLocaleDateString()}</span>
                         </div>
+                        {userRole !== 'customer' && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Warehouse: </span>
+                            <span className="text-gray-600 dark:text-gray-400">{order.warehouse || 'Main Store'}</span>
+                          </div>
+                        )}
                         {userRole === 'customer' && (
                           <div>
                             <span className="font-medium text-gray-700 dark:text-gray-300">Delivery: </span>
@@ -746,19 +869,19 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-2 mt-4">
+                      <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-gray-200 dark:border-gray-600">
                         {userRole === 'customer' ? (
                           <>
                             <button
                               onClick={() => handleViewOrder(order)}
-                              className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1 text-xs border border-[#FF6B35] rounded-lg"
+                              className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1.5 text-xs border border-[#FF6B35] rounded-lg flex-1 sm:flex-none"
                             >
                               View Details
                             </button>
                             {order.status === 'Delivered' && (
                               <button
                                 onClick={() => handleFeedback(order)}
-                                className="text-green-600 hover:text-green-800 px-3 py-1 text-xs border border-green-600 rounded-lg"
+                                className="text-green-600 hover:text-green-800 px-3 py-1.5 text-xs border border-green-600 rounded-lg flex-1 sm:flex-none"
                               >
                                 Feedback
                               </button>
@@ -766,7 +889,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             {['Pending', 'Processing'].includes(order.status) && (
                               <button
                                 onClick={() => handleRequestChange(order)}
-                                className="text-blue-600 hover:text-blue-800 px-3 py-1 text-xs border border-blue-600 rounded-lg"
+                                className="text-blue-600 hover:text-blue-800 px-3 py-1.5 text-xs border border-blue-600 rounded-lg flex-1 sm:flex-none"
                               >
                                 Request Change
                               </button>
@@ -775,19 +898,33 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         ) : (
                           <>
                             <button
-                              onClick={() => handleEditOrder(order)}
-                              className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1 text-xs border border-[#FF6B35] rounded-lg flex items-center gap-1"
+                              onClick={() => handleViewOrder(order)}
+                              className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1.5 text-xs border border-[#FF6B35] rounded-lg flex-1 sm:flex-none"
                             >
-                              <EditIcon size={14} />
-                              Edit
+                              View Details
                             </button>
-                            <button
-                              onClick={() => handleDeleteOrder(order.id)}
-                              className="text-red-600 hover:text-red-800 px-3 py-1 text-xs border border-red-600 rounded-lg flex items-center gap-1"
+                            <select
+                              value={order.status}
+                              onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                              disabled={order.status === 'Shipped' && userRole !== 'admin'}
+                              className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed flex-1 sm:flex-none min-w-0"
                             >
-                              <TrashIcon size={14} />
-                              Delete
-                            </button>
+                              <option value="Pending" disabled={!canChangeFromStatus(order.status, 'Pending')}>
+                                Pending
+                              </option>
+                              <option value="Processing" disabled={!canChangeFromStatus(order.status, 'Processing')}>
+                                Processing
+                              </option>
+                              <option value="Confirmed" disabled={!canChangeFromStatus(order.status, 'Confirmed')}>
+                                Confirmed
+                              </option>
+                              <option value="Shipped" disabled={!canChangeFromStatus(order.status, 'Shipped')}>
+                                Shipped
+                              </option>
+                              <option value="Delivered" disabled={!canChangeFromStatus(order.status, 'Delivered')}>
+                                Delivered
+                              </option>
+                            </select>
                           </>
                         )}
                       </div>
@@ -796,151 +933,163 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 </div>
               </div>
 
-              {/* Desktop Table View */}
-              <div className="hidden lg:block overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Order ID
-                      </th>
-                      {userRole !== 'customer' && (
-                        <>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Customer
-                          </th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                            Email
-                          </th>
-                        </>
-                      )}
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Items
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {userRole === 'customer' ? 'Order Date' : 'Date'}
-                      </th>
-                      {userRole === 'customer' && (
+              {/* Desktop Table View - Enhanced Responsive */}
+              <div className="hidden lg:block">
+                <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead className="bg-gray-50 dark:bg-gray-700">
+                      <tr>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                          Delivery
+                          Order ID
                         </th>
-                      )}
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {filteredOrders.map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                          {order.id}
-                        </td>
                         {userRole !== 'customer' && (
                           <>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {order.customer}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {order.email}
-                            </td>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Email
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                              Warehouse
+                            </th>
                           </>
                         )}
-                        <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
-                          <div className="max-w-xs truncate">
-                            {order.items.map(item => `${item.name} (${item.quantity})`).join(', ')}
-                          </div>
-                          <div className="text-xs text-gray-400 dark:text-gray-500">
-                            {order.items.length} item{order.items.length !== 1 ? 's' : ''}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                            Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                            Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                            Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                            Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          }[order.status]
-                            }`}>
-                            {order.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {new Date(order.date).toLocaleDateString()}
-                        </td>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Items
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          {userRole === 'customer' ? 'Order Date' : 'Date'}
+                        </th>
                         {userRole === 'customer' && (
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            {order.email === user?.email && (
-                              <div className="flex flex-col">
-                                <div className="font-medium text-blue-600 dark:text-blue-400">
-                                  {new Date(order.preferredDate).toLocaleDateString()}
-                                </div>
-                                <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
-                                  <ClockIcon className="w-3 h-3 mr-1" />
-                                  {order.preferredTime}
-                                </div>
-                              </div>
-                            )}
-                            {order.email !== user?.email && (
-                              <div>
-                                <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
-                                <div className="text-xs text-gray-400 dark:text-gray-500">{order.preferredTime}</div>
-                              </div>
-                            )}
-                          </td>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                            Delivery
+                          </th>
                         )}
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <div className="flex justify-end space-x-2">
-                            {userRole === 'customer' ? (
-                              <>
-                                <button
-                                  onClick={() => handleViewOrder(order)}
-                                  className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-2 py-1 text-xs border border-[#FF6B35] rounded"
-                                >
-                                  View Details
-                                </button>
-                                {order.status === 'Delivered' && (
-                                  <button
-                                    onClick={() => handleFeedback(order)}
-                                    className="text-green-600 hover:text-green-800 px-2 py-1 text-xs border border-green-600 rounded"
-                                  >
-                                    Feedback
-                                  </button>
-                                )}
-                                {['Pending', 'Processing'].includes(order.status) && (
-                                  <button
-                                    onClick={() => handleRequestChange(order)}
-                                    className="text-blue-600 hover:text-blue-800 px-2 py-1 text-xs border border-blue-600 rounded"
-                                  >
-                                    Request Change
-                                  </button>
-                                )}
-                              </>
-                            ) : (
-                              <>
-                                <button
-                                  onClick={() => handleEditOrder(order)}
-                                  className="text-[#FF6B35] hover:text-[#FF6B35]/80 mr-3"
-                                >
-                                  <EditIcon size={18} />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteOrder(order.id)}
-                                  className="text-red-600 hover:text-red-800"
-                                >
-                                  <TrashIcon size={18} />
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                          Actions
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                      {filteredOrders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            {order.id}
+                          </td>
+                          {userRole !== 'customer' && (
+                            <>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                {order.customer}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                {order.email}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
+                                  {order.warehouse || 'Main Store'}
+                                </span>
+                              </td>
+                            </>
+                          )}
+                          <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-400">
+                            <div className="max-w-xs truncate">
+                              {order.items.map(item => `${item.name} (${item.quantity})`).join(', ')}
+                            </div>
+                            <div className="text-xs text-gray-400 dark:text-gray-500">
+                              {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
+                              Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                              Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                              Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                              Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                              Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                            }[order.status]
+                              }`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                            {new Date(order.date).toLocaleDateString()}
+                          </td>
+                          {userRole === 'customer' && (
+                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                              {order.email === user?.email && (
+                                <div className="flex flex-col">
+                                  <div className="font-medium text-blue-600 dark:text-blue-400">
+                                    {new Date(order.preferredDate).toLocaleDateString()}
+                                  </div>
+                                  <div className="text-xs text-gray-600 dark:text-gray-400 mt-1 flex items-center">
+                                    <ClockIcon className="w-3 h-3 mr-1" />
+                                    {order.preferredTime}
+                                  </div>
+                                </div>
+                              )}
+                              {order.email !== user?.email && (
+                                <div>
+                                  <div>{new Date(order.preferredDate).toLocaleDateString()}</div>
+                                  <div className="text-xs text-gray-400 dark:text-gray-500">{order.preferredTime}</div>
+                                </div>
+                              )}
+                            </td>
+                          )}
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div className="flex justify-end space-x-2">
+                              {userRole === 'customer' ? (
+                                <>
+                                  <button
+                                    onClick={() => handleViewOrder(order)}
+                                    className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-2 py-1 text-xs border border-[#FF6B35] rounded"
+                                  >
+                                    View Details
+                                  </button>
+                                  {order.status === 'Delivered' && (
+                                    <button
+                                      onClick={() => handleFeedback(order)}
+                                      className="text-green-600 hover:text-green-800 px-2 py-1 text-xs border border-green-600 rounded"
+                                    >
+                                      Feedback
+                                    </button>
+                                  )}
+                                  {['Pending', 'Processing'].includes(order.status) && (
+                                    <button
+                                      onClick={() => handleRequestChange(order)}
+                                      className="text-blue-600 hover:text-blue-800 px-2 py-1 text-xs border border-blue-600 rounded"
+                                    >
+                                      Request Change
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => handleEditOrder(order)}
+                                    className="text-[#FF6B35] hover:text-[#FF6B35]/80 mr-3"
+                                  >
+                                    <EditIcon size={18} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteOrder(order.id)}
+                                    className="text-red-600 hover:text-red-800"
+                                  >
+                                    <TrashIcon size={18} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}

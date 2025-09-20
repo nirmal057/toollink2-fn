@@ -35,6 +35,35 @@ interface Driver {
   currentDeliveries?: number;
 }
 
+interface Order {
+  _id: string;
+  orderNumber: string;
+  customer: {
+    _id: string;
+    fullName: string;
+    email: string;
+  };
+  customerEmail: string;
+  shippingAddress: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  status: string;
+  totalAmount: number;
+  finalAmount: number;
+  createdAt: string;
+  items: Array<{
+    inventory: {
+      name: string;
+    };
+    quantity: number;
+    unitPrice: number;
+  }>;
+}
+
 interface DeliveryFormData {
   orderId: string;
   customer: string;
@@ -142,7 +171,9 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
   const { state } = useLocation();
   const [deliveries, setDeliveries] = useState<Delivery[]>(initialDeliveries);
   const [drivers, setDrivers] = useState<Driver[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loadingDrivers, setLoadingDrivers] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<Delivery | null>(null);
@@ -239,9 +270,73 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     }
   };
 
+  const loadOrders = async () => {
+    try {
+      setLoadingOrders(true);
+      const token = localStorage.getItem('accessToken');
+
+      // Fetch all orders to see what we have
+      const response = await fetch('http://localhost:5001/api/orders?limit=100', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('=== ALL ORDERS RESPONSE ===', data);
+        
+        if (data.success && data.data && Array.isArray(data.data)) {
+          console.log('Total orders fetched:', data.data.length);
+          
+          // Log all order statuses to see what we have
+          data.data.forEach((order: any) => {
+            console.log(`Order ${order.orderId}: Customer="${order.customerName}", Status="${order.status}"`);
+          });
+
+          // Filter for confirmed orders - try multiple status variations
+          const confirmedOrders = data.data.filter((order: Order) => {
+            if (!order.status) return false;
+            const status = order.status.toLowerCase().trim();
+            const isConfirmed = status === 'confirmed' || status === 'confirm' || status === 'approved';
+            console.log(`Order ${order.orderNumber}: Status="${order.status}" -> IsConfirmed=${isConfirmed}`);
+            return isConfirmed;
+          });
+
+          console.log('=== CONFIRMED ORDERS FOUND ===', confirmedOrders.length);
+          confirmedOrders.forEach((order: Order) => {
+            console.log(`✅ ${order.orderNumber} - ${order.customer?.fullName || 'Unknown'} - ${order.status}`);
+          });
+
+          // Filter out orders that already have deliveries scheduled
+          const scheduledOrderIds = deliveries.map(d => d.orderId);
+          const availableOrders = confirmedOrders.filter((order: Order) =>
+            !scheduledOrderIds.includes(order.orderNumber)
+          );
+
+          console.log('=== AVAILABLE FOR DELIVERY ===', availableOrders.length);
+          setOrders(availableOrders);
+        } else {
+          console.error('Invalid response format:', data);
+          setOrders([]);
+        }
+      } else {
+        console.error('Failed to fetch orders:', response.status, response.statusText);
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error('Error loading orders:', error);
+      showError('Error', 'Failed to load available orders. Please try again.');
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
   // Load drivers on component mount
   useEffect(() => {
     loadDrivers();
+    loadOrders();
   }, []);
 
   // Refresh driver availability when date or time slot changes
@@ -316,6 +411,8 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
     setDeliveries([...deliveries, newDelivery]);
     setShowCreateModal(false);
     resetForm();
+    // Refresh orders to update available list
+    loadOrders();
   };
 
   // Remove delivery
@@ -830,23 +927,116 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-lg p-6 max-w-2xl w-full">
-              <h2 className="text-xl font-bold mb-4 ">
-                {selectedDelivery ? 'Edit Delivery' : 'Schedule Delivery'}
-              </h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">
+                  {selectedDelivery ? 'Edit Delivery' : 'Schedule Delivery'}
+                </h2>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={loadOrders}
+                    className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                    disabled={loadingOrders}
+                  >
+                    {loadingOrders ? 'Loading...' : 'Refresh Confirmed Orders'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateModal(false)}
+                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
               <form onSubmit={selectedDelivery ? handleUpdateDelivery : handleAddDelivery} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Order ID
+                      Select Confirmed Order (ID - Customer Name)
                     </label>
-                    <input
-                      type="text"
-                      value={formData.orderId}
-                      onChange={e => setFormData({ ...formData, orderId: e.target.value })}
-                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
-                      required
-                    />
+                    {loadingOrders ? (
+                      <div className="w-full rounded-lg border-gray-300 p-3 text-gray-500 text-center bg-gray-50">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                          Loading orders...
+                        </div>
+                      </div>
+                    ) : orders.length > 0 ? (
+                      <select
+                        value={formData.orderId}
+                        onChange={e => {
+                          const selectedOrder = orders.find(o => o.orderNumber === e.target.value);
+                          if (selectedOrder) {
+                            setFormData({
+                              ...formData,
+                              orderId: selectedOrder.orderNumber,
+                              customer: selectedOrder.customer?.fullName || 'Unknown Customer',
+                              address: `${selectedOrder.shippingAddress.street}, ${selectedOrder.shippingAddress.city}`,
+                              district: selectedOrder.shippingAddress.state
+                            });
+                          } else {
+                            setFormData({
+                              ...formData,
+                              orderId: e.target.value,
+                              customer: '',
+                              address: '',
+                              district: ''
+                            });
+                          }
+                        }}
+                        className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                        required
+                      >
+                        <option value="">🎯 Select Confirmed Order ({orders.length} found)</option>
+                        {orders.map(order => (
+                          <option key={order._id} value={order.orderNumber}>
+                            📋 {order.orderNumber} - 👤 {order.customer?.fullName || 'Unknown'} - 💰 Rs.{order.finalAmount}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <div className="w-full rounded-lg border-gray-300 p-3 text-gray-500 text-center bg-gray-50">
+                        No confirmed orders available for delivery
+                        <div className="text-xs mt-1">
+                          <button
+                            type="button"
+                            onClick={loadOrders}
+                            className="text-blue-500 hover:text-blue-600"
+                          >
+                            Refresh confirmed orders
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
+
+                  {/* Order Details Preview */}
+                  {formData.orderId && orders.find(o => o.orderNumber === formData.orderId) && (
+                    <div className="col-span-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <h4 className="text-sm font-medium text-blue-800 mb-2">Order Details</h4>
+                      {(() => {
+                        const selectedOrder = orders.find(o => o.orderNumber === formData.orderId);
+                        if (!selectedOrder) return null;
+
+                        return (
+                          <div className="text-xs text-blue-700 space-y-1">
+                            <div><strong>Order:</strong> {selectedOrder.orderNumber}</div>
+                            <div><strong>Customer:</strong> {selectedOrder.customer?.fullName || 'Unknown Customer'}</div>
+                            <div><strong>Email:</strong> {selectedOrder.customerEmail}</div>
+                            <div><strong>Total:</strong> Rs.{selectedOrder.finalAmount}</div>
+                            <div><strong>Items:</strong> {selectedOrder.items.length} item(s)</div>
+                            <div className="text-xs max-h-16 overflow-y-auto">
+                              {selectedOrder.items.map((item, idx) => (
+                                <div key={idx}>• {item.inventory?.name || 'Unknown Item'} (Qty: {item.quantity})</div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Customer Name
@@ -855,8 +1045,10 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                       type="text"
                       value={formData.customer}
                       onChange={e => setFormData({ ...formData, customer: e.target.value })}
-                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 bg-gray-50"
                       required
+                      readOnly={!!formData.orderId}
+                      placeholder={formData.orderId ? "Auto-populated from order" : "Enter customer name"}
                     />
                   </div>
                   <div className="col-span-2">
@@ -867,8 +1059,10 @@ const DeliveryCalendar: React.FC<DeliveryCalendarProps> = ({ userRole }) => {
                       type="text"
                       value={formData.address}
                       onChange={e => setFormData({ ...formData, address: e.target.value })}
-                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50"
+                      className="w-full rounded-lg border-gray-300 focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 bg-gray-50"
                       required
+                      readOnly={!!formData.orderId}
+                      placeholder={formData.orderId ? "Auto-populated from order" : "Enter delivery address"}
                     />
                   </div>
                   <div>

@@ -8,12 +8,14 @@ export interface Order {
   customer: string;
   email: string; // Added email field
   items: OrderItem[];
-  status: 'Pending' | 'Processing' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
   date: string;
   address: string;
   contact: string;
   preferredDate: string;
   preferredTime: string;
+  warehouse?: string; // Added warehouse field
+  warehouseConfirmed?: boolean; // Added warehouse confirmation field
 }
 
 export interface OrderFormData {
@@ -25,4 +27,6 @@ export interface OrderFormData {
   status: Order['status'];
   preferredDate: string;
   preferredTime: string;
+  warehouse?: string; // Added warehouse field
+  warehouseConfirmed?: boolean; // Added warehouse confirmation field
 }
