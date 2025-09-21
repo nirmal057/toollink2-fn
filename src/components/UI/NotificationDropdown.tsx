@@ -120,22 +120,20 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Enhanced Notification Bell Button - More prominent */}
+      {/* Normal Notification Bell Button */}
       <button
         onClick={handleToggle}
-        className="relative p-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 rounded-full hover:shadow-xl hover:scale-110 transform shadow-lg border-2 border-white focus:outline-none focus:ring-2 focus:ring-blue-300"
+        className="relative p-2 text-gray-400 hover:text-white hover:bg-gray-600 dark:text-gray-300 dark:hover:text-white dark:hover:bg-gray-700 transition-colors duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500"
         title="Notifications"
-        style={{ minWidth: '48px', minHeight: '48px' }}
         type="button"
       >
-        <BellIcon size={24} className={unreadCount > 0 ? 'animate-pulse' : ''} />
+        <BellIcon size={20} className={unreadCount > 0 ? 'animate-pulse' : ''} />
         {unreadCount > 0 && (
-          <span className="notification-badge absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-lg border-2 border-white">
+          <span className="notification-badge absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
-        {/* Test indicator */}
-        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
+        {/* Remove test indicator as it's not needed */}
       </button>
 
       {/* Dropdown */}

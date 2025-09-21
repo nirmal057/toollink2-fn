@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ToolLink Debug - Order Approval Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .debug-section {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .status-good {
+            color: #22c55e;
+        }
+
+        .status-error {
+            color: #ef4444;
+        }
+
+        .status-warning {
+            color: #f59e0b;
+        }
+
+        button {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        button:hover {
+            background: #2563eb;
+        }
+
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+
+        pre {
+            background: #f3f4f6;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        #output {
+            min-height: 200px;
+            border: 1px solid #d1d5db;
+            padding: 10px;
+            background: #f9fafb;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔧 ToolLink Order Approval Debug Tool</h1>
+
+    <div class="debug-section">
+        <h2>Authentication Status</h2>
+        <p>User: <span id="user-info">Checking...</span></p>
+        <p>Access Token: <span id="token-status">Checking...</span></p>
+        <p>Role: <span id="user-role">Checking...</span></p>
+    </div>
+
+    <div class="debug-section">
+        <h2>Order Management Test</h2>
+        <button onclick="checkAuth()">1. Check Authentication</button>
+        <button onclick="testOrdersAPI()">2. Test Orders API</button>
+        <button onclick="findPendingOrders()">3. Find Pending Orders</button>
+        <button onclick="testApproval()" id="approve-btn" disabled>4. Test Order Approval</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>Quick Actions</h2>
+        <button onclick="loginAsWarehouse()">Login as Warehouse</button>
+        <button onclick="openOrderManagement()">Open Order Management</button>
+        <button onclick="clearTokens()">Clear Tokens</button>
+    </div>
+
+    <div class="debug-section">
+        <h2>Debug Output</h2>
+        <div id="output">Ready to debug...\n</div>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <script>
+        let currentOrders = [];
+        let pendingOrders = [];
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : type === 'warning' ? '⚠️' : 'ℹ️';
+            output.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+        }
+
+        async function checkAuth() {
+            log('Checking authentication status...');
+
+            const accessToken = localStorage.getItem('accessToken');
+            const token = localStorage.getItem('token');
+            const userStr = localStorage.getItem('user');
+
+            document.getElementById('token-status').textContent = accessToken ? 'Present' : 'Missing';
+            document.getElementById('token-status').className = accessToken ? 'status-good' : 'status-error';
+
+            if (userStr) {
+                try {
+                    const user = JSON.parse(userStr);
+                    document.getElementById('user-info').textContent = `${user.fullName} (${user.email})`;
+                    document.getElementById('user-info').className = 'status-good';
+                    document.getElementById('user-role').textContent = user.role;
+                    document.getElementById('user-role').className = user.role === 'admin' || user.role === 'warehouse' ? 'status-good' : 'status-warning';
+                    log(`User: ${user.fullName} - Role: ${user.role}`, 'success');
+                } catch (e) {
+                    log('Error parsing user data', 'error');
+                }
+            } else {
+                document.getElementById('user-info').textContent = 'Not logged in';
+                document.getElementById('user-info').className = 'status-error';
+                log('No user data found - need to login', 'error');
+                return;
+            }
+
+            if (!accessToken && !token) {
+                log('No authentication tokens found', 'error');
+                return;
+            }
+
+            log('Authentication tokens found', 'success');
+        }
+
+        async function testOrdersAPI() {
+            log('Testing orders API...');
+
+            const authToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
+            if (!authToken) {
+                log('No auth token available', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:5001/api/orders', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${authToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                });
+
+                log(`API Response Status: ${response.status}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    currentOrders = data.data || [];
+                    log(`✅ Orders API working - Found ${currentOrders.length} orders`, 'success');
+                } else {
+                    log(`❌ API Error: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Network Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function findPendingOrders() {
+            log('Finding pending approval orders...');
+
+            if (currentOrders.length === 0) {
+                log('No orders loaded - run "Test Orders API" first', 'warning');
+                return;
+            }
+
+            pendingOrders = currentOrders.filter(order => order.status === 'Pending Approval');
+            log(`Found ${pendingOrders.length} pending approval orders`);
+
+            if (pendingOrders.length > 0) {
+                pendingOrders.forEach((order, index) => {
+                    log(`  ${index + 1}. ${order.orderNumber} - Customer: ${order.customer?.fullName || order.customer}`);
+                });
+                document.getElementById('approve-btn').disabled = false;
+                log('✅ Ready to test approval', 'success');
+            } else {
+                log('⚠️ No pending orders to test with', 'warning');
+            }
+        }
+
+        async function testApproval() {
+            log('Testing order approval...');
+
+            if (pendingOrders.length === 0) {
+                log('No pending orders available', 'error');
+                return;
+            }
+
+            const testOrder = pendingOrders[0];
+            log(`Attempting to approve order: ${testOrder.orderNumber}`);
+
+            const authToken = localStorage.getItem('accessToken') || localStorage.getItem('token');
+
+            try {
+                const response = await fetch(`http://localhost:5001/api/orders/${testOrder._id}/approve`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ notes: 'Test approval from debug tool' })
+                });
+
+                log(`Approval Response Status: ${response.status}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    log(`🎉 ORDER APPROVAL SUCCESSFUL!`, 'success');
+                    log(`Order ${testOrder.orderNumber} is now ${result.data.status}`, 'success');
+                    // Refresh the orders
+                    await testOrdersAPI();
+                    await findPendingOrders();
+                } else {
+                    log(`❌ Approval failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Approval error: ${error.message}`, 'error');
+            }
+        }
+
+        async function loginAsWarehouse() {
+            log('Logging in as warehouse user...');
+
+            try {
+                const response = await fetch('http://localhost:5001/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'house1@gmail.com',
+                        password: '123456'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('accessToken', data.accessToken);
+                    localStorage.setItem('token', data.accessToken);
+                    localStorage.setItem('refreshToken', data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+
+                    log('✅ Warehouse login successful', 'success');
+                    await checkAuth();
+                } else {
+                    log(`❌ Login failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Login error: ${error.message}`, 'error');
+            }
+        }
+
+        function openOrderManagement() {
+            window.open('/orders', '_blank');
+        }
+
+        function clearTokens() {
+            localStorage.removeItem('accessToken');
+            localStorage.removeItem('token');
+            localStorage.removeItem('refreshToken');
+            localStorage.removeItem('user');
+            log('Tokens cleared', 'warning');
+            checkAuth();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+        });
+    </script>
+</body>
+
+</html>

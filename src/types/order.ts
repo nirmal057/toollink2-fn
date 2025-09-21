@@ -5,10 +5,11 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   customer: string;
   email: string; // Added email field
   items: OrderItem[];
-  status: 'Pending' | 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled';
+  status: 'Pending' | 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Pending Approval' | 'Rejected';
   date: string;
   address: string;
   contact: string;
@@ -16,6 +17,8 @@ export interface Order {
   preferredTime: string;
   warehouse?: string; // Added warehouse field
   warehouseConfirmed?: boolean; // Added warehouse confirmation field
+  totalAmount?: number;
+  finalAmount?: number;
 }
 
 export interface OrderFormData {

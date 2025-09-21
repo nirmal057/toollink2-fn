@@ -35,6 +35,11 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // Reject modal state
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [orderToReject, setOrderToReject] = useState<Order | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [rejectLoading, setRejectLoading] = useState(false);
   const { showError, showSuccess, showWarning } = useNotification();
 
   // Fetch orders and inventory from backend
@@ -59,7 +64,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       setError(null);
 
       // Get existing token from localStorage
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
       if (!token) {
         throw new Error('No authentication token found. Please login again.');
@@ -84,7 +89,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       if (ordersData.success && ordersData.data) {
         // Transform backend order data to frontend format
         const transformedOrders = ordersData.data.map((order: any) => ({
-          id: order.orderNumber || order._id,
+          id: order._id, // Use MongoDB _id for API calls
+          orderNumber: order.orderNumber, // Keep orderNumber for display
           customer: order.customer?.fullName || order.customer?.name || 'Unknown Customer',
           email: order.customerEmail || order.customer?.email || '',
           items: order.items?.map((item: any) => ({
@@ -96,7 +102,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           address: order.shippingAddress?.street || order.customer?.address || 'Address not provided',
           contact: order.shippingAddress?.phone || order.customer?.phone || '+94',
           preferredDate: order.delivery?.estimatedDate ? new Date(order.delivery.estimatedDate).toISOString().split('T')[0] : '',
-          preferredTime: '09:00'
+          preferredTime: '09:00',
+          totalAmount: order.totalAmount || 0,
+          finalAmount: order.finalAmount || order.totalAmount || 0
         }));
 
         setOrders(transformedOrders);
@@ -117,7 +125,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   // Fetch inventory items
   const fetchInventory = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
       if (!token) {
         console.warn('No authentication token found for inventory fetch');
@@ -344,6 +352,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const filteredOrders = orders.filter(order => {
     const matchesSearch =
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.email && order.email.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesStatus = filterStatus === 'all' || order.status.toLowerCase() === filterStatus.toLowerCase();
@@ -431,8 +440,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   // Approve order
   const handleApproveOrder = async (orderId: string, notes: string = '') => {
     try {
+      console.log('=== APPROVE ORDER DEBUG ===');
+      console.log('Order ID:', orderId);
+      console.log('Notes:', notes);
+
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/approve`, {
+      console.log('Token available:', token ? 'YES' : 'NO');
+      console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'none');
+
+      if (!token) {
+        showError('Authentication Error', 'No authentication token found. Please login again.');
+        return;
+      }
+
+      const url = `http://localhost:5001/api/orders/${orderId}/approve`;
+      console.log('Request URL:', url);
+
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -441,50 +465,91 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         body: JSON.stringify({ notes })
       });
 
-      const result = await response.json();
+      console.log('Response status:', response.status);
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
-      if (result.success) {
+      const result = await response.json();
+      console.log('Response data:', result);
+
+      if (response.ok && result.success) {
+        console.log('✅ Approval successful');
         await fetchOrders(); // Refresh orders list
         showSuccess('Order Approved', 'Order has been approved and confirmed successfully.');
       } else {
-        throw new Error(result.error || 'Failed to approve order');
+        console.error('❌ Approval failed:', result);
+        throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error approving order:', error);
-      showError('Approval Failed', 'Failed to approve order. Please try again.');
+      console.error('❌ Error approving order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      showError('Approval Failed', `Failed to approve order: ${errorMessage}`);
     }
   };
 
   // Reject order with reason
   const handleRejectOrder = async (orderId: string) => {
-    const reason = prompt('Please provide a reason for rejecting this order:');
-    if (!reason || !reason.trim()) {
+    const order = orders.find(o => o.id === orderId);
+    if (order) {
+      setOrderToReject(order);
+      setShowRejectModal(true);
+      setRejectReason('');
+    }
+  };
+
+  // Confirm reject order
+  const confirmRejectOrder = async () => {
+    if (!orderToReject || !rejectReason.trim()) {
       showError('Rejection Reason Required', 'Please provide a reason for rejecting this order.');
       return;
     }
 
+    setRejectLoading(true);
     try {
+      console.log('=== REJECT ORDER DEBUG ===');
+      console.log('Order ID:', orderToReject.id);
+      console.log('Reason:', rejectReason.trim());
+
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/reject`, {
+      console.log('Token available:', token ? 'YES' : 'NO');
+
+      if (!token) {
+        showError('Authentication Error', 'No authentication token found. Please login again.');
+        return;
+      }
+
+      const url = `http://localhost:5001/api/orders/${orderToReject.id}/reject`;
+      console.log('Request URL:', url);
+
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ reason: reason.trim() })
+        body: JSON.stringify({ reason: rejectReason.trim() })
       });
 
+      console.log('Response status:', response.status);
       const result = await response.json();
+      console.log('Response data:', result);
 
-      if (result.success) {
+      if (response.ok && result.success) {
+        console.log('✅ Rejection successful');
         await fetchOrders(); // Refresh orders list
         showSuccess('Order Rejected', 'Order has been rejected and inventory restored.');
+        setShowRejectModal(false);
+        setOrderToReject(null);
+        setRejectReason('');
       } else {
-        throw new Error(result.error || 'Failed to reject order');
+        console.error('❌ Rejection failed:', result);
+        throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('Error rejecting order:', error);
-      showError('Rejection Failed', 'Failed to reject order. Please try again.');
+      console.error('❌ Error rejecting order:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      showError('Rejection Failed', `Failed to reject order: ${errorMessage}`);
+    } finally {
+      setRejectLoading(false);
     }
   };
 
@@ -500,7 +565,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
       // If changing to shipped status and user is not admin, block the change
       if (newStatus === 'Shipped' && userRole !== 'admin') {
@@ -666,7 +731,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             .map(order => (
                               <div key={`upcoming-${order.id}`} className="flex justify-between items-center text-sm">
                                 <div>
-                                  <span className="font-medium text-gray-700 dark:text-gray-300">Order #{order.id}</span>
+                                  <span className="font-medium text-gray-700 dark:text-gray-300">Order #{order.orderNumber || order.id}</span>
                                   <span className="text-gray-600 dark:text-gray-400"> • </span>
                                   <span className="text-gray-600 dark:text-gray-400">
                                     {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
@@ -801,13 +866,13 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           {!fetchingOrders && !error && filteredOrders.length > 0 && (
             <>
               {/* Mobile Card View - Enhanced for small screens */}
-              <div className="block lg:hidden">
+              <div className="block md:hidden">
                 <div className="p-2 sm:p-4 space-y-3 sm:space-y-4">
                   {filteredOrders.map((order) => (
                     <div key={order.id} className="bg-white dark:bg-gray-800 rounded-lg p-3 sm:p-4 border border-gray-200 dark:border-gray-600 shadow-sm">
                       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-3 space-y-2 sm:space-y-0">
                         <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{order.id}</h3>
+                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base truncate">{order.orderNumber || order.id}</h3>
                           {userRole !== 'customer' && (
                             <>
                               <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">{order.customer}</p>
@@ -818,10 +883,12 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
                           Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                           Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                          'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
                           Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
                           Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                           Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                          Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                          Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                          Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                         }[order.status]}
                           }`}>
                           {order.status}
@@ -835,6 +902,12 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             {order.items.map(item => `${item.name} (${item.quantity})`).join(', ')}
                           </span>
                         </div>
+                        {order.finalAmount && order.finalAmount > 0 && (
+                          <div>
+                            <span className="font-medium text-gray-700 dark:text-gray-300">Amount: </span>
+                            <span className="text-gray-600 dark:text-gray-400">LKR {order.finalAmount.toLocaleString()}</span>
+                          </div>
+                        )}
                         <div>
                           <span className="font-medium text-gray-700 dark:text-gray-300">Date: </span>
                           <span className="text-gray-600 dark:text-gray-400">{new Date(order.date).toLocaleDateString()}</span>
@@ -893,34 +966,71 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           </>
                         ) : (
                           <>
-                            <button
-                              onClick={() => handleViewOrder(order)}
-                              className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1.5 text-xs border border-[#FF6B35] rounded-lg flex-1 sm:flex-none"
-                            >
-                              View Details
-                            </button>
-                            <select
-                              value={order.status}
-                              onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                              disabled={order.status === 'Shipped' && userRole !== 'admin'}
-                              className="px-3 py-1.5 text-xs border border-gray-300 rounded-lg bg-white disabled:bg-gray-100 disabled:cursor-not-allowed flex-1 sm:flex-none min-w-0"
-                            >
-                              <option value="Pending" disabled={!canChangeFromStatus(order.status, 'Pending')}>
-                                Pending
-                              </option>
-                              <option value="Processing" disabled={!canChangeFromStatus(order.status, 'Processing')}>
-                                Processing
-                              </option>
-                              <option value="Confirmed" disabled={!canChangeFromStatus(order.status, 'Confirmed')}>
-                                Confirmed
-                              </option>
-                              <option value="Shipped" disabled={!canChangeFromStatus(order.status, 'Shipped')}>
-                                Shipped
-                              </option>
-                              <option value="Delivered" disabled={!canChangeFromStatus(order.status, 'Delivered')}>
-                                Delivered
-                              </option>
-                            </select>
+                            {order.status === 'Pending Approval' ? (
+                              <>
+                                <button
+                                  onClick={() => handleApproveOrder(order.id)}
+                                  className="text-green-600 hover:text-green-800 px-3 py-1.5 text-xs border border-green-600 rounded-lg flex items-center justify-center gap-1 flex-1 sm:flex-none"
+                                  title="Approve Order"
+                                >
+                                  <CheckIcon size={14} />
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() => handleRejectOrder(order.id)}
+                                  className="text-red-600 hover:text-red-800 px-3 py-1.5 text-xs border border-red-600 rounded-lg flex items-center justify-center gap-1 flex-1 sm:flex-none"
+                                  title="Reject Order"
+                                >
+                                  <XIcon size={14} />
+                                  Reject
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() => handleViewOrder(order)}
+                                  className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1.5 text-xs border border-[#FF6B35] rounded-lg flex-1 sm:flex-none"
+                                >
+                                  View Details
+                                </button>
+                                <select
+                                  value={order.status}
+                                  onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                                  disabled={order.status === 'Shipped' && userRole !== 'admin'}
+                                  className="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white disabled:bg-gray-100 disabled:cursor-not-allowed flex-1 sm:flex-none min-w-0"
+                                >
+                                  <option value="Pending" disabled={!canChangeFromStatus(order.status, 'Pending')}>
+                                    Pending
+                                  </option>
+                                  <option value="Processing" disabled={!canChangeFromStatus(order.status, 'Processing')}>
+                                    Processing
+                                  </option>
+                                  <option value="Confirmed" disabled={!canChangeFromStatus(order.status, 'Confirmed')}>
+                                    Confirmed
+                                  </option>
+                                  <option value="Shipped" disabled={!canChangeFromStatus(order.status, 'Shipped')}>
+                                    Shipped
+                                  </option>
+                                  <option value="Delivered" disabled={!canChangeFromStatus(order.status, 'Delivered')}>
+                                    Delivered
+                                  </option>
+                                </select>
+                                <button
+                                  onClick={() => handleEditOrder(order)}
+                                  className="text-[#FF6B35] hover:text-[#FF6B35]/80 px-3 py-1.5 text-xs border border-[#FF6B35] rounded-lg"
+                                  title="Edit Order"
+                                >
+                                  <EditIcon size={14} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteOrder(order.id)}
+                                  className="text-red-600 hover:text-red-800 px-3 py-1.5 text-xs border border-red-600 rounded-lg"
+                                  title="Delete Order"
+                                >
+                                  <TrashIcon size={14} />
+                                </button>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -930,7 +1040,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
               </div>
 
               {/* Desktop Table View - Enhanced Responsive */}
-              <div className="hidden lg:block">
+              <div className="hidden md:block">
                 <div className="overflow-x-auto shadow ring-1 ring-black ring-opacity-5 rounded-lg">
                   <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                     <thead className="bg-gray-50 dark:bg-gray-700">
@@ -974,7 +1084,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                       {filteredOrders.map((order) => (
                         <tr key={order.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                            {order.id}
+                            {order.orderNumber || order.id}
                           </td>
                           {userRole !== 'customer' && (
                             <>
@@ -1003,10 +1113,12 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
                               Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
                               Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                              'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
                               Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
                               Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
                               Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                              Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                             }[order.status]
                               }`}>
                               {order.status}
@@ -1577,6 +1689,76 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     )}
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Beautiful Reject Reason Modal */}
+        {showRejectModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 scale-100 animate-in">
+              {/* Modal Header */}
+              <div className="p-6 text-center border-b border-gray-200 dark:border-gray-700">
+                <div className="mx-auto flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-red-400 to-red-500 mb-4">
+                  <AlertTriangleIcon className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                  Reject Order
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">
+                  Please provide a reason for rejecting order #{orderToReject?.orderNumber || orderToReject?.id}
+                </p>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Rejection Reason *
+                </label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  placeholder="Please explain why this order is being rejected..."
+                  className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg resize-none focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
+                  rows={4}
+                  maxLength={500}
+                />
+                <div className="text-right text-xs text-gray-500 mt-1">
+                  {rejectReason.length}/500 characters
+                </div>
+              </div>
+
+              {/* Modal Actions */}
+              <div className="p-6 flex flex-col sm:flex-row gap-3 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => {
+                    setShowRejectModal(false);
+                    setOrderToReject(null);
+                    setRejectReason('');
+                  }}
+                  disabled={rejectLoading}
+                  className="flex-1 px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmRejectOrder}
+                  disabled={rejectLoading || !rejectReason.trim()}
+                  className="flex-1 px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 border border-transparent rounded-xl hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+                >
+                  {rejectLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Rejecting...
+                    </>
+                  ) : (
+                    <>
+                      <XIcon size={16} />
+                      Reject Order
+                    </>
+                  )}
+                </button>
               </div>
             </div>
           </div>
