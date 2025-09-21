@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { motion } from 'framer-motion';
 import { PackageIcon, BarChart3Icon, PieChartIcon, RefreshCwIcon } from 'lucide-react';
-import { inventoryService } from '../services/inventoryService';
 import { useToast } from '../contexts/GlobalNotificationContext';
+import { useAuth } from '../hooks/useAuth';
 
 interface CategoryData {
     _id: string;
@@ -50,6 +50,7 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
     const [chartType, setChartType] = useState<'pie' | 'bar'>(initialChartType);
     const [totalItems, setTotalItems] = useState(0);
     const toast = useToast();
+    const { isAuthenticated } = useAuth();
 
     // Function to create shorter category names for better display
     const createShortName = (fullName: string): string => {
@@ -74,9 +75,19 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
     const fetchCategoryData = async () => {
         try {
             setLoading(true);
+
+            // Get the access token from localStorage
+            const accessToken = localStorage.getItem('accessToken');
+            if (!accessToken) {
+                console.error('No access token found');
+                toast.error('Authentication required for chart data');
+                return;
+            }
+
             const response = await fetch('http://localhost:5001/api/inventory/stats', {
                 headers: {
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    'Authorization': `Bearer ${accessToken}`,
+                    'Content-Type': 'application/json'
                 }
             });
 
@@ -115,7 +126,7 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
 
     useEffect(() => {
         fetchCategoryData();
-    }, []);
+    }, [isAuthenticated]); // Re-fetch when authentication status changes
 
     const handleRefresh = () => {
         fetchCategoryData();

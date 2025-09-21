@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PackageIcon, PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, AlertTriangleIcon, XIcon, RefreshCwIcon } from 'lucide-react';
 import { inventoryService, InventoryItem, CreateInventoryItem, InventoryStats } from '../services/inventoryService';
 import { useToast } from '../contexts/GlobalNotificationContext';
+import { useAuth } from '../hooks/useAuth';
 import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface InventoryModalProps {
@@ -11,13 +12,63 @@ interface InventoryModalProps {
   onSubmit: (item: CreateInventoryItem) => void;
   editItem?: InventoryItem | null;
   saving?: boolean;
+  userWarehouse?: string;
 }
 
 interface InventoryManagementProps {
   userRole: 'admin' | 'warehouse' | 'cashier' | 'customer' | string;
 }
 
-// Sri Lankan hardware store inventory categories
+// Function to determine user's warehouse based on email
+const getUserWarehouse = (email: string, role: string): string => {
+  if (role === 'admin') return 'all'; // Admin can see all warehouses
+
+  const warehouseMap: { [key: string]: string } = {
+    'house1@toollink.com': 'warehouse1',
+    'house2@toollink.com': 'warehouse2',
+    'house3@toollink.com': 'warehouse3',
+    'main_house@toollink.com': 'main_warehouse'
+  };
+
+  return warehouseMap[email] || 'main_warehouse';
+};
+
+// Function to get warehouse display name
+const getWarehouseDisplayName = (warehouse: string): string => {
+  const displayNames: { [key: string]: string } = {
+    'warehouse1': 'Warehouse 1 (River Sand & Soil)',
+    'warehouse2': 'Warehouse 2 (Bricks & Masonry)',
+    'warehouse3': 'Warehouse 3 (Metals & Steel)',
+    'main_warehouse': 'Main Warehouse (Tools & Equipment)',
+    'all': 'All Warehouses'
+  };
+
+  return displayNames[warehouse] || 'Unknown Warehouse';
+};
+
+// Dynamic categories based on warehouse
+const getWarehouseCategories = (warehouse: string): string[] => {
+  const warehouseCategories: { [key: string]: string[] } = {
+    'warehouse1': ['Sand & Aggregate'], // River sand/soil
+    'warehouse2': ['Bricks', 'Masonry Blocks', 'Stones'], // Bricks
+    'warehouse3': ['Steel & Reinforcement'], // Metals
+    'main_warehouse': [
+      'Cement', 'Paint & Chemicals', 'Electrical Items', 'Plumbing Supplies',
+      'Tools & Equipment', 'Hardware & Fasteners', 'Tiles & Ceramics',
+      'Roofing Materials', 'Safety Equipment', 'Materials', 'Other'
+    ], // Tools & Equipment
+    'all': [
+      'Cement', 'Steel & Reinforcement', 'Paint & Chemicals', 'Electrical Items',
+      'Plumbing Supplies', 'Tools & Equipment', 'Hardware & Fasteners',
+      'Tiles & Ceramics', 'Roofing Materials', 'Safety Equipment',
+      'Sand & Aggregate', 'Bricks', 'Masonry Blocks', 'Stones', 'Materials', 'Other'
+    ] // Admin - all categories
+  };
+
+  return warehouseCategories[warehouse] || warehouseCategories['main_warehouse'];
+};
+
+// Sri Lankan hardware store inventory categories (kept for reference)
 const CATEGORIES = {
   ALL: [
     'Cement',
@@ -42,20 +93,12 @@ const CATEGORIES = {
   'Stones': ['Stones']
 };
 
-// Location options for Sri Lankan hardware store
-const LOCATIONS = [
-  { value: 'Main Shop', label: 'Main Shop' },
-  { value: 'Warehouse 1 (River Sand)', label: 'Warehouse 1 (River Sand)' },
-  { value: 'Warehouse 2 (Bricks)', label: 'Warehouse 2 (Bricks)' },
-  { value: 'Warehouse 3 (Black Stones)', label: 'Warehouse 3 (Black Stones)' }
-];
-
 // Unit options
 const UNITS = [
   'Kg', 'Meters', 'Liters', 'Pieces', 'Bags', 'Boxes', 'Rolls', 'Sheets', 'Feet', 'Sets', 'Packs'
 ];
 
-const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubmit, editItem, saving = false }) => {
+const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubmit, editItem, saving = false, userWarehouse = 'main_warehouse' }) => {
   const [formData, setFormData] = useState({
     name: '',
     location: 'Main Shop',
@@ -70,29 +113,24 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
   // Form validation state
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Get available categories based on selected location
-  const getAvailableCategories = (location: string): string[] => {
-    switch (location) {
-      case 'Warehouse 1 (River Sand)':
-        return CATEGORIES['Sand & Aggregate'];
-      case 'Warehouse 2 (Bricks)':
-        return CATEGORIES['Bricks'];
-      case 'Warehouse 3 (Black Stones)':
-        return CATEGORIES['Stones'];
-      case 'Main Shop':
-      default:
-        return CATEGORIES.ALL;
-    }
+  // Get available categories based on user's warehouse
+  const getAvailableCategories = (): string[] => {
+    return getWarehouseCategories(userWarehouse);
   };
 
-  const availableCategories = getAvailableCategories(formData.location);
+  // Get warehouse display name for location
+  const getLocationDisplayName = (): string => {
+    return getWarehouseDisplayName(userWarehouse);
+  };
+
+  const availableCategories = getAvailableCategories();
 
   // Initialize form data
   useEffect(() => {
     if (editItem) {
       setFormData({
         name: editItem.name || '',
-        location: editItem.location || 'Main Shop',
+        location: editItem.location || getLocationDisplayName(),
         category: editItem.category || '',
         quantity: editItem.quantity || 0,
         unit: editItem.unit || '',
@@ -101,10 +139,10 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
         supplier_info: editItem.supplier_info || ''
       });
     } else {
-      const defaultCategories = getAvailableCategories('Main Shop');
+      const defaultCategories = getAvailableCategories();
       setFormData({
         name: '',
-        location: 'Main Shop',
+        location: getLocationDisplayName(),
         category: defaultCategories[0] || '',
         quantity: 0,
         unit: '',
@@ -116,13 +154,13 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
     setErrors({});
   }, [editItem, isOpen]);
 
-  // Update category when location changes
+  // Update category when warehouse changes (simplified since warehouse is fixed per user)
   useEffect(() => {
-    const categories = getAvailableCategories(formData.location);
+    const categories = getAvailableCategories();
     if (categories.length > 0 && !categories.includes(formData.category)) {
       setFormData(prev => ({ ...prev, category: categories[0] }));
     }
-  }, [formData.location, formData.category]);
+  }, [formData.category]);
 
   // Form validation
   const validateForm = (): boolean => {
@@ -234,19 +272,16 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
                 {/* Location Field */}
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Storage Location *
+                    Storage Location
                   </label>
-                  <select
+                  <input
+                    type="text"
                     value={formData.location}
-                    onChange={e => handleInputChange('location', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
-                  >
-                    {LOCATIONS.map(location => (
-                      <option key={location.value} value={location.value}>
-                        {location.label}
-                      </option>
-                    ))}
-                  </select>
+                    disabled
+                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-gray-50 text-gray-600 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-400"
+                    placeholder="Location assigned based on warehouse"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">Location is automatically assigned based on your warehouse</p>
                 </div>
 
                 {/* Category Field */}
@@ -391,6 +426,7 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
 };
 
 const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) => {
+  const { user } = useAuth();
   const toast = useToast();
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [stats, setStats] = useState<InventoryStats>({ total: 0, active: 0, inactive: 0, low_stock: 0, categories: 0 });
@@ -404,6 +440,9 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<InventoryItem | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Get current user's warehouse
+  const currentUserWarehouse = getUserWarehouse(user?.email || '', userRole);
 
   // Load inventory data from backend
   useEffect(() => {
@@ -863,6 +902,7 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
             onSubmit={handleSubmitItem}
             editItem={selectedItem}
             saving={saving}
+            userWarehouse={currentUserWarehouse}
           />
 
           {/* Beautiful Delete Confirmation Modal */}
