@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { BellIcon, XIcon, CheckCircleIcon } from 'lucide-react';
 import { notificationService, Notification } from '../../services/notificationService';
 
@@ -14,7 +14,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Load recent notifications
-  const loadRecentNotifications = async () => {
+  const loadRecentNotifications = useCallback(async () => {
     try {
       setLoading(true);
       const response = await notificationService.getNotifications({
@@ -28,7 +28,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Load unread count on mount
   useEffect(() => {
@@ -53,7 +53,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     if (isOpen && notifications.length === 0) {
       loadRecentNotifications();
     }
-  }, [isOpen]);
+  }, [isOpen, loadRecentNotifications, notifications.length]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -67,7 +67,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = useCallback(async (notificationId: string) => {
     try {
       await notificationService.markAsRead(notificationId);
       setNotifications(prev =>
@@ -81,7 +81,7 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     } catch (error) {
       console.error('Error marking notification as read:', error);
     }
-  };
+  }, []);
 
   const getIcon = (category: string) => {
     const iconMap: { [key: string]: string } = {
@@ -112,14 +112,21 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
     return date.toLocaleDateString();
   };
 
+  const handleToggle = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsOpen(!isOpen);
+  }, [isOpen]);
+
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
       {/* Enhanced Notification Bell Button - More prominent */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative p-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 rounded-full hover:shadow-xl hover:scale-110 transform shadow-lg border-2 border-white"
+        onClick={handleToggle}
+        className="relative p-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 rounded-full hover:shadow-xl hover:scale-110 transform shadow-lg border-2 border-white focus:outline-none focus:ring-2 focus:ring-blue-300"
         title="Notifications"
         style={{ minWidth: '48px', minHeight: '48px' }}
+        type="button"
       >
         <BellIcon size={24} className={unreadCount > 0 ? 'animate-pulse' : ''} />
         {unreadCount > 0 && (
@@ -140,8 +147,13 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Enhanced Dropdown content - positioned in upper right corner */}
-          <div className="absolute right-0 mt-3 w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[100000] overflow-hidden transform animate-in slide-in-from-top-5 fade-in duration-200" style={{ zIndex: 100000 }}>
+          {/* Enhanced Dropdown content - positioned to the right side */}
+          <div className="absolute left-full ml-3 top-0 w-96 max-w-[calc(100vw-20rem)] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[100000] overflow-hidden transform animate-in slide-in-from-left-5 fade-in duration-200"
+            style={{
+              zIndex: 100000,
+              maxHeight: 'calc(100vh - 5rem)',
+              overflowY: 'auto'
+            }}>
             {/* Enhanced Header with gradient */}
             <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
               <div className="flex items-center space-x-3">
@@ -237,16 +249,12 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
               )}
             </div>
 
-            {/* Enhanced Footer */}
+            {/* Enhanced Footer - Removed to keep only dropdown functionality */}
             {notifications.length > 0 && (
               <div className="p-3 bg-gradient-to-r from-slate-50 via-green-50 to-blue-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-t border-gray-100 dark:border-gray-600">
-                <a
-                  href="/notifications"
-                  className="block text-center text-sm font-medium bg-gradient-to-r from-green-600 to-blue-600 dark:from-green-400 dark:to-blue-400 bg-clip-text text-transparent hover:from-green-700 hover:to-blue-700 transition-all duration-200 py-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/30"
-                  onClick={() => setIsOpen(false)}
-                >
-                  View all notifications →
-                </a>
+                <div className="text-center text-sm text-gray-600 dark:text-gray-400">
+                  {notifications.length} notification{notifications.length !== 1 ? 's' : ''} total
+                </div>
               </div>
             )}
           </div>

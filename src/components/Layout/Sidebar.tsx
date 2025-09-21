@@ -17,11 +17,10 @@ import {
   ActivityIcon,
   AlertCircleIcon,
   PlusIcon,
-  TruckIcon,
-  BellIcon
+  TruckIcon
 } from 'lucide-react';
+import NotificationDropdown from '../UI/NotificationDropdown';
 import { authService } from '../../services/authService';
-import { notificationService } from '../../services/notificationService';
 import { safeLogoutWithTimeout } from '../../utils/logoutUtils';
 import { useNotification } from '../../contexts/NotificationContext';
 import { CustomerApprovalNotificationService } from '../../services/customerApprovalNotificationService';
@@ -35,26 +34,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const { showError } = useNotification();
-
-  // Load unread notification count
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      try {
-        const count = await notificationService.getUnreadCount();
-        setUnreadNotificationCount(count);
-      } catch (error) {
-        console.error('Error loading unread notification count:', error);
-      }
-    };
-
-    loadUnreadCount();
-
-    // Refresh count every 30 seconds
-    const interval = setInterval(loadUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Load pending approval count for admin/cashier
   useEffect(() => {
@@ -261,23 +241,8 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
           <span className="text-xl font-bold transition-colors duration-300">ToolLink</span>
         </div>
 
-        {/* Small Notification Icon */}
-        <NavLink
-          to="/notifications"
-          className="relative p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
-          title="Notifications"
-        >
-          <BellIcon
-            size={18}
-            className={`text-white/80 group-hover:text-white transition-colors duration-200 ${unreadNotificationCount > 0 ? 'animate-pulse' : ''
-              }`}
-          />
-          {unreadNotificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold shadow-lg animate-bounce border border-white">
-              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
-            </span>
-          )}
-        </NavLink>
+        {/* Notification Dropdown */}
+        <NotificationDropdown className="relative" />
       </div>
 
       {/* Navigation Items */}

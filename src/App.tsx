@@ -12,7 +12,6 @@ import QuickAddInventory from './pages/QuickAddInventory';
 import DriverPortal from './pages/DriverPortal';
 import DriverManagement from './pages/DriverManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
-import Notifications from './pages/Notifications';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
 import ContactPage from './pages/ContactPage';
@@ -167,7 +166,6 @@ function AppRoutes() {
           />
 
           {/* Common routes - all authenticated users */}
-          <Route path="/notifications" element={<Notifications />} />
           <Route path="/messages" element={<CustomerMessages userRole={user.role} />} />
           {/* Admin and Cashier Message Dashboard */}
           <Route
