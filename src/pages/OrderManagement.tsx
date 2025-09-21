@@ -12,7 +12,7 @@ const defaultFormData: OrderFormData = {
   email: '',
   address: '',
   contact: '+94',
-  items: [{ name: '', quantity: 1 }],
+  items: [{ name: '', quantity: 1, warehouse: '', category: '', unit: '', price: 0 }],
   status: 'Pending',
   preferredDate: new Date().toISOString().split('T')[0],
   preferredTime: '09:00'
@@ -163,6 +163,37 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     return statusMap[backendStatus] || 'Pending';
   };
 
+  // Warehouse helper functions
+  const getWarehouseDisplayName = (warehouse: string): string => {
+    const displayNames: { [key: string]: string } = {
+      'warehouse1': 'Warehouse 1 (River Sand & Soil)',
+      'warehouse2': 'Warehouse 2 (Bricks & Masonry)',
+      'warehouse3': 'Warehouse 3 (Metals & Steel)',
+      'main_warehouse': 'Main Warehouse (Tools & Equipment)',
+      'all': 'All Warehouses'
+    };
+    return displayNames[warehouse] || warehouse;
+  };
+
+  // Group inventory by warehouse
+  const getInventoryByWarehouse = () => {
+    const grouped: { [key: string]: any[] } = {};
+    inventory.forEach(item => {
+      const warehouse = item.warehouse || 'main_warehouse';
+      if (!grouped[warehouse]) {
+        grouped[warehouse] = [];
+      }
+      grouped[warehouse].push(item);
+    });
+    return grouped;
+  };
+
+  // Get all available warehouses from inventory
+  const getAvailableWarehouses = () => {
+    const warehouses = new Set(inventory.map(item => item.warehouse || 'main_warehouse'));
+    return Array.from(warehouses).sort();
+  };
+
   // Form handling functions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -177,10 +208,28 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       ...prev,
       items: prev.items.map((item, i) => {
         if (i === index) {
-          return {
-            ...item,
-            [field]: field === 'name' ? value : Number(value)
-          };
+          if (field === 'name') {
+            // When item name changes, update associated warehouse and price info
+            const selectedItem = inventory.find(invItem => invItem.name === value);
+            return {
+              ...item,
+              name: value,
+              warehouse: selectedItem?.warehouse || '',
+              category: selectedItem?.category || '',
+              unit: selectedItem?.unit || '',
+              price: selectedItem?.selling_price || 0
+            };
+          } else if (field === 'quantity') {
+            return {
+              ...item,
+              [field]: Number(value)
+            };
+          } else {
+            return {
+              ...item,
+              [field]: value
+            };
+          }
         }
         return item;
       })
@@ -190,7 +239,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const addItem = () => {
     setFormData(prev => ({
       ...prev,
-      items: [...prev.items, { name: '', quantity: 1 }]
+      items: [...prev.items, { name: '', quantity: 1, warehouse: '', category: '', unit: '', price: 0 }]
     }));
   };
 
@@ -1333,15 +1382,15 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     </div>
                   </div>
 
-                  {/* Order Items - Enhanced Responsive Design */}
+                  {/* Order Items - Enhanced with Warehouse Selection */}
                   <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                          Order Items
+                          🛒 Order Items & Warehouses
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          Select items from our inventory catalog
+                          Add items from different warehouses. Each item shows its warehouse and category.
                         </p>
                       </div>
                       <button
@@ -1353,6 +1402,182 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         Add Item
                       </button>
                     </div>
+
+                    {/* Warehouse Overview */}
+                    {formData.items.some(item => item.warehouse) && (
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <h4 className="text-sm font-medium text-blue-700 dark:text-blue-300 mb-2">
+                          🏪 Warehouses Involved in this Order:
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from(new Set(formData.items.map(item => item.warehouse).filter(Boolean))).map(warehouse => (
+                            <span key={warehouse} className="px-2 py-1 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-300 rounded-md text-xs font-medium">
+                              {getWarehouseDisplayName(warehouse)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-4 max-h-80 overflow-y-auto">
+                      {formData.items.map((item, index) => {
+                        const selectedItem = inventory.find(invItem => invItem.name === item.name);
+                        const availableWarehouses = getAvailableWarehouses();
+                        const inventoryByWarehouse = getInventoryByWarehouse();
+
+                        return (
+                          <div key={index} className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm">
+                            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                              {/* Warehouse Selection */}
+                              <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  🏪 Warehouse
+                                </label>
+                                <select
+                                  value={item.warehouse || ''}
+                                  onChange={(e) => handleItemChange(index, 'warehouse', e.target.value)}
+                                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/20 px-3 py-2 transition-all duration-200 text-sm"
+                                >
+                                  <option value="">All Warehouses</option>
+                                  {availableWarehouses.map(warehouse => (
+                                    <option key={warehouse} value={warehouse}>
+                                      {getWarehouseDisplayName(warehouse)}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Item Selection - Filtered by Warehouse */}
+                              <div className="lg:col-span-2 space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  📦 Select Item *
+                                </label>
+                                <div className="relative">
+                                  <select
+                                    required
+                                    value={item.name}
+                                    onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/20 px-3 py-2 transition-all duration-200 appearance-none cursor-pointer text-sm"
+                                    style={{
+                                      backgroundImage: `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent('<svg fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path></svg>')}")`,
+                                      backgroundRepeat: 'no-repeat',
+                                      backgroundPosition: 'right 0.75rem center',
+                                      backgroundSize: '1rem 1rem'
+                                    }}
+                                  >
+                                    <option value="" className="text-gray-500">🔍 Choose an item...</option>
+                                    {(item.warehouse ? inventoryByWarehouse[item.warehouse] || [] : inventory).map((invItem) => (
+                                      <option key={invItem._id} value={invItem.name} className="font-normal">
+                                        📦 {invItem.name} • {invItem.category} • {invItem.unit} • Rs. {invItem.selling_price}
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                                {selectedItem && (
+                                  <div className="bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-2 text-sm">
+                                    <div className="grid grid-cols-2 gap-2">
+                                      <span className="text-blue-700 dark:text-blue-300">
+                                        📂 {selectedItem.category}
+                                      </span>
+                                      <span className="text-green-700 dark:text-green-300">
+                                        🏪 {getWarehouseDisplayName(selectedItem.warehouse)}
+                                      </span>
+                                      <span className="text-blue-700 dark:text-blue-300">
+                                        📏 {selectedItem.unit}
+                                      </span>
+                                      <span className="text-green-700 dark:text-green-300">
+                                        💰 Rs. {selectedItem.selling_price}
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Quantity Input */}
+                              <div className="space-y-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                  📊 Quantity * {selectedItem && `(${selectedItem.unit})`}
+                                </label>
+                                <div className="flex items-center gap-2">
+                                  <div className="relative flex-1">
+                                    <input
+                                      type="number"
+                                      required
+                                      min="0.1"
+                                      step="0.1"
+                                      value={item.quantity}
+                                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35]/20 px-3 py-2 transition-all duration-200 text-center"
+                                      placeholder="0"
+                                    />
+                                    {selectedItem && (
+                                      <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 dark:text-gray-400">
+                                        {selectedItem.unit}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {formData.items.length > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removeItem(index)}
+                                      className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 p-2 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-all duration-200 border border-red-200 hover:border-red-300 dark:border-red-800 dark:hover:border-red-700"
+                                      title="Remove this item"
+                                    >
+                                      <TrashIcon size={16} />
+                                    </button>
+                                  )}
+                                </div>
+                                {selectedItem && item.quantity && (
+                                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    💰 Subtotal: Rs. {(selectedItem.selling_price * item.quantity).toFixed(2)}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Enhanced Order Summary */}
+                    {formData.items.some(item => item.name && item.quantity) && (
+                      <div className="mt-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+                        <h4 className="text-sm font-medium text-green-700 dark:text-green-300 mb-3">
+                          📋 Order Summary ({formData.items.filter(item => item.name && item.quantity).length} items)
+                        </h4>
+                        <div className="space-y-2">
+                          {formData.items.filter(item => item.name && item.quantity).map((item, index) => {
+                            const selectedItem = inventory.find(invItem => invItem.name === item.name);
+                            const subtotal = selectedItem ? selectedItem.selling_price * item.quantity : 0;
+                            return (
+                              <div key={index} className="flex justify-between items-center text-xs bg-white dark:bg-gray-800 p-2 rounded border">
+                                <div className="flex-1">
+                                  <span className="font-medium">{item.name}</span>
+                                  <span className="text-gray-500 ml-2">({item.quantity} {selectedItem?.unit})</span>
+                                  <div className="text-gray-500 mt-1">
+                                    🏪 {getWarehouseDisplayName(item.warehouse || 'main_warehouse')}
+                                  </div>
+                                </div>
+                                <span className="font-semibold text-green-600 dark:text-green-400">
+                                  Rs. {subtotal.toFixed(2)}
+                                </span>
+                              </div>
+                            );
+                          })}
+                          <div className="border-t pt-2 mt-2">
+                            <div className="flex justify-between items-center font-semibold text-green-700 dark:text-green-300">
+                              <span>Total Amount:</span>
+                              <span className="text-lg">
+                                Rs. {formData.items.reduce((total, item) => {
+                                  const selectedItem = inventory.find(invItem => invItem.name === item.name);
+                                  return total + (selectedItem ? selectedItem.selling_price * item.quantity : 0);
+                                }, 0).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div className="space-y-4 max-h-80 overflow-y-auto">
                       {formData.items.map((item, index) => {

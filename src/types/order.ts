@@ -1,6 +1,10 @@
 export interface OrderItem {
   name: string;
   quantity: number;
+  warehouse?: string; // Added warehouse for the item
+  category?: string; // Added category for display
+  unit?: string; // Added unit for display
+  price?: number; // Added price for calculations
 }
 
 export interface Order {
@@ -19,6 +23,7 @@ export interface Order {
   warehouseConfirmed?: boolean; // Added warehouse confirmation field
   totalAmount?: number;
   finalAmount?: number;
+  warehouses?: string[]; // Added array of warehouses involved in the order
 }
 
 export interface OrderFormData {
