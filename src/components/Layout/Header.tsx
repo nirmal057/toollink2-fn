@@ -6,6 +6,7 @@ import { safeLogoutWithTimeout } from '../../utils/logoutUtils';
 import { useAuth } from '../../hooks/useAuth';
 import { rbacService } from '../../services/rbacService';
 import DarkModeToggle from '../UI/DarkModeToggle';
+import NotificationDropdown from '../UI/NotificationDropdown';
 import { useNotification } from '../../contexts/NotificationContext';
 
 interface HeaderProps {
@@ -13,6 +14,7 @@ interface HeaderProps {
 }
 
 const Header = ({ userRole }: HeaderProps) => {
+  console.log('🔔 Header component rendering, about to include NotificationDropdownNew');
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -172,9 +174,15 @@ const Header = ({ userRole }: HeaderProps) => {
       <header className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ease-in-out fixed top-0 left-0 right-0 header-container" style={{ zIndex: 10000 }}>
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-white transition-colors duration-300">
-              {isAuthenticated ? `${getRoleLabel(userRole)} Dashboard` : 'ToolLink Dashboard'}
-            </h1>
+            <div className="flex items-center space-x-4">
+              <h1 className="text-xl font-semibold text-gray-800 dark:text-white transition-colors duration-300">
+                {isAuthenticated ? `${getRoleLabel(userRole)} Dashboard` : 'ToolLink Dashboard'}
+              </h1>
+
+              {/* Notification Dropdown - positioned next to ToolLink */}
+              <NotificationDropdown />
+            </div>
+
             <div className="flex items-center space-x-6">
               {/* Dark Mode Toggle */}
               <DarkModeToggle />
