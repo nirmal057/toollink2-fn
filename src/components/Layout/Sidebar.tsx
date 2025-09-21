@@ -4,7 +4,6 @@ import {
   ShoppingCartIcon,
   PackageIcon,
   CalendarIcon,
-  BellIcon,
   BarChartIcon,
   MessageSquareIcon,
   MailIcon,
@@ -18,7 +17,8 @@ import {
   ActivityIcon,
   AlertCircleIcon,
   PlusIcon,
-  TruckIcon
+  TruckIcon,
+  BellIcon
 } from 'lucide-react';
 import { authService } from '../../services/authService';
 import { notificationService } from '../../services/notificationService';
@@ -34,8 +34,8 @@ interface SidebarProps {
 const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const { showError } = useNotification();
 
   // Load unread notification count
@@ -43,15 +43,15 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
     const loadUnreadCount = async () => {
       try {
         const count = await notificationService.getUnreadCount();
-        setUnreadCount(count);
+        setUnreadNotificationCount(count);
       } catch (error) {
-        console.error('Error loading unread count:', error);
+        console.error('Error loading unread notification count:', error);
       }
     };
 
     loadUnreadCount();
 
-    // Refresh unread count every 30 seconds
+    // Refresh count every 30 seconds
     const interval = setInterval(loadUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -197,22 +197,6 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'System Activities'
     }] : []),
 
-    // Notifications (Enhanced with unread count)
-    {
-      to: '/notifications',
-      icon: (
-        <div className="relative">
-          <BellIcon size={20} />
-          {unreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium shadow-lg animate-pulse">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </div>
-      ),
-      label: 'Notifications'
-    },
-
     // Reports (different for admin vs others)
     ...(isAdmin ? [{
       to: '/admin/reports',
@@ -270,12 +254,30 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
 
   return (
     <div className="h-full flex flex-col bg-[#0B2545] dark:bg-gray-900 text-white transition-all duration-300 ease-in-out">
-      {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-[#0B2545]/40 dark:border-gray-700 transition-colors duration-300">
+      {/* Logo with Notification Icon */}
+      <div className="flex items-center justify-between h-16 border-b border-[#0B2545]/40 dark:border-gray-700 transition-colors duration-300 px-4">
         <div className="flex items-center space-x-2">
           <div className="text-[#FF6B35] w-7 h-7 transition-transform duration-300 hover:scale-110" />
           <span className="text-xl font-bold transition-colors duration-300">ToolLink</span>
         </div>
+
+        {/* Small Notification Icon */}
+        <NavLink
+          to="/notifications"
+          className="relative p-2 rounded-lg hover:bg-white/10 transition-all duration-200 group"
+          title="Notifications"
+        >
+          <BellIcon
+            size={18}
+            className={`text-white/80 group-hover:text-white transition-colors duration-200 ${unreadNotificationCount > 0 ? 'animate-pulse' : ''
+              }`}
+          />
+          {unreadNotificationCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-bold shadow-lg animate-bounce border border-white">
+              {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+            </span>
+          )}
+        </NavLink>
       </div>
 
       {/* Navigation Items */}

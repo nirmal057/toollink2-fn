@@ -114,18 +114,21 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
 
   return (
     <div className={`relative ${className}`} ref={dropdownRef}>
-      {/* Enhanced Notification Bell Button */}
+      {/* Enhanced Notification Bell Button - More prominent */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-white transition-all duration-300 rounded-xl hover:bg-gradient-to-r hover:from-green-500 hover:to-blue-600 hover:shadow-lg hover:scale-105 transform"
+        className="relative p-3 bg-blue-600 hover:bg-blue-700 text-white transition-all duration-300 rounded-full hover:shadow-xl hover:scale-110 transform shadow-lg border-2 border-white"
         title="Notifications"
+        style={{ minWidth: '48px', minHeight: '48px' }}
       >
-        <BellIcon size={20} className={unreadCount > 0 ? 'animate-pulse' : ''} />
+        <BellIcon size={24} className={unreadCount > 0 ? 'animate-pulse' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium shadow-lg animate-bounce">
+          <span className="notification-badge absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs rounded-full h-6 w-6 flex items-center justify-center font-bold shadow-lg border-2 border-white">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
+        {/* Test indicator */}
+        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border border-white"></div>
       </button>
 
       {/* Dropdown */}
@@ -133,20 +136,30 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
         <>
           {/* Backdrop to catch clicks */}
           <div
-            className="fixed inset-0 z-[99998]"
+            className="fixed inset-0 z-[99999]"
             onClick={() => setIsOpen(false)}
           />
 
-          {/* Enhanced Dropdown content */}
-          <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[99999] overflow-hidden" style={{ zIndex: 99999 }}>
-            {/* Enhanced Header */}
-            <div className="flex items-center justify-between p-4 bg-gradient-to-r from-slate-50 via-green-50 to-blue-100 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
-              <h3 className="text-lg font-bold bg-gradient-to-r from-gray-800 via-green-600 to-blue-600 dark:from-white dark:via-green-400 dark:to-blue-400 bg-clip-text text-transparent">
-                Notifications
-              </h3>
+          {/* Enhanced Dropdown content - positioned in upper right corner */}
+          <div className="absolute right-0 mt-3 w-96 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 z-[100000] overflow-hidden transform animate-in slide-in-from-top-5 fade-in duration-200" style={{ zIndex: 100000 }}>
+            {/* Enhanced Header with gradient */}
+            <div className="flex items-center justify-between p-5 bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 border-b border-gray-200 dark:border-gray-600">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl">
+                  <BellIcon size={18} className="text-white" />
+                </div>
+                <h3 className="text-xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-400 dark:via-indigo-400 dark:to-purple-400 bg-clip-text text-transparent">
+                  Notifications
+                </h3>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                    {unreadCount} new
+                  </span>
+                )}
+              </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-600/50 transition-all duration-200"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 rounded-xl hover:bg-white/70 dark:hover:bg-gray-600/70 transition-all duration-200 hover:scale-105"
               >
                 <XIcon size={18} />
               </button>
