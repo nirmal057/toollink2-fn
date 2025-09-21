@@ -5,6 +5,7 @@ import { inventoryService, InventoryItem, CreateInventoryItem, InventoryStats } 
 import { useToast } from '../contexts/GlobalNotificationContext';
 import { useAuth } from '../hooks/useAuth';
 import InventoryCategoryChart from '../components/InventoryCategoryChart';
+import InventoryForm from '../components/InventoryForm';
 
 interface InventoryModalProps {
   isOpen: boolean;
@@ -33,188 +34,8 @@ const getUserWarehouse = (email: string, role: string): string => {
   return warehouseMap[email] || 'main_warehouse';
 };
 
-// Function to get warehouse display name
-const getWarehouseDisplayName = (warehouse: string): string => {
-  const displayNames: { [key: string]: string } = {
-    'warehouse1': 'Warehouse 1 (River Sand & Soil)',
-    'warehouse2': 'Warehouse 2 (Bricks & Masonry)',
-    'warehouse3': 'Warehouse 3 (Metals & Steel)',
-    'main_warehouse': 'Main Warehouse (Tools & Equipment)',
-    'all': 'All Warehouses'
-  };
-
-  return displayNames[warehouse] || 'Unknown Warehouse';
-};
-
-// Dynamic categories based on warehouse
-const getWarehouseCategories = (warehouse: string): string[] => {
-  const warehouseCategories: { [key: string]: string[] } = {
-    'warehouse1': ['Sand & Aggregate'], // River sand/soil
-    'warehouse2': ['Bricks', 'Masonry Blocks', 'Stones'], // Bricks
-    'warehouse3': ['Steel & Reinforcement'], // Metals
-    'main_warehouse': [
-      'Cement', 'Paint & Chemicals', 'Electrical Items', 'Plumbing Supplies',
-      'Tools & Equipment', 'Hardware & Fasteners', 'Tiles & Ceramics',
-      'Roofing Materials', 'Safety Equipment', 'Materials', 'Other'
-    ], // Tools & Equipment
-    'all': [
-      'Cement', 'Steel & Reinforcement', 'Paint & Chemicals', 'Electrical Items',
-      'Plumbing Supplies', 'Tools & Equipment', 'Hardware & Fasteners',
-      'Tiles & Ceramics', 'Roofing Materials', 'Safety Equipment',
-      'Sand & Aggregate', 'Bricks', 'Masonry Blocks', 'Stones', 'Materials', 'Other'
-    ] // Admin - all categories
-  };
-
-  return warehouseCategories[warehouse] || warehouseCategories['main_warehouse'];
-};
-
-// Sri Lankan hardware store inventory categories (kept for reference)
-const CATEGORIES = {
-  ALL: [
-    'Cement',
-    'Steel & Reinforcement',
-    'Paint & Chemicals',
-    'Electrical Items',
-    'Plumbing Supplies',
-    'Tools & Equipment',
-    'Hardware & Fasteners',
-    'Tiles & Ceramics',
-    'Roofing Materials',
-    'Safety Equipment',
-    'Sand & Aggregate',
-    'Bricks',
-    'Masonry Blocks',
-    'Stones',
-    'Materials'
-  ],
-  'Sand & Aggregate': ['Sand & Aggregate'],
-  'Bricks': ['Bricks'],
-  'Masonry Blocks': ['Masonry Blocks'],
-  'Stones': ['Stones']
-};
-
-// Unit options
-const UNITS = [
-  'Kg', 'Meters', 'Liters', 'Pieces', 'Bags', 'Boxes', 'Rolls', 'Sheets', 'Feet', 'Sets', 'Packs'
-];
-
 const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubmit, editItem, saving = false, userWarehouse = 'main_warehouse' }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    location: 'Main Shop',
-    category: '',
-    quantity: 0,
-    unit: '',
-    threshold: 0,
-    description: '',
-    supplier_info: ''
-  });
-
-  // Form validation state
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
-
-  // Get available categories based on user's warehouse
-  const getAvailableCategories = (): string[] => {
-    return getWarehouseCategories(userWarehouse);
-  };
-
-  // Get warehouse display name for location
-  const getLocationDisplayName = (): string => {
-    return getWarehouseDisplayName(userWarehouse);
-  };
-
-  const availableCategories = getAvailableCategories();
-
-  // Initialize form data
-  useEffect(() => {
-    if (editItem) {
-      setFormData({
-        name: editItem.name || '',
-        location: editItem.location || getLocationDisplayName(),
-        category: editItem.category || '',
-        quantity: editItem.quantity || 0,
-        unit: editItem.unit || '',
-        threshold: editItem.threshold || 0,
-        description: editItem.description || '',
-        supplier_info: editItem.supplier_info || ''
-      });
-    } else {
-      const defaultCategories = getAvailableCategories();
-      setFormData({
-        name: '',
-        location: getLocationDisplayName(),
-        category: defaultCategories[0] || '',
-        quantity: 0,
-        unit: '',
-        threshold: 0,
-        description: '',
-        supplier_info: ''
-      });
-    }
-    setErrors({});
-  }, [editItem, isOpen]);
-
-  // Update category when warehouse changes (simplified since warehouse is fixed per user)
-  useEffect(() => {
-    const categories = getAvailableCategories();
-    if (categories.length > 0 && !categories.includes(formData.category)) {
-      setFormData(prev => ({ ...prev, category: categories[0] }));
-    }
-  }, [formData.category]);
-
-  // Form validation
-  const validateForm = (): boolean => {
-    const newErrors: { [key: string]: string } = {};
-
-    if (!formData.name.trim()) {
-      newErrors.name = 'Name is required';
-    }
-    if (!formData.category) {
-      newErrors.category = 'Category is required';
-    }
-    if (formData.quantity < 0) {
-      newErrors.quantity = 'Quantity must be 0 or greater';
-    }
-    if (!formData.unit) {
-      newErrors.unit = 'Unit is required';
-    }
-    if (formData.threshold < 0) {
-      newErrors.threshold = 'Threshold must be 0 or greater';
-    }
-    if (!formData.supplier_info.trim()) {
-      newErrors.supplier_info = 'Supplier info is required';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  // Check if form is valid
-  const isFormValid = () => {
-    return formData.name.trim() &&
-      formData.category &&
-      formData.unit &&
-      formData.supplier_info.trim() &&
-      formData.quantity >= 0 &&
-      formData.threshold >= 0;
-  };
-
   if (!isOpen) return null;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
-
-  const handleInputChange = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-    }
-  };
 
   return (
     <AnimatePresence>
@@ -229,196 +50,44 @@ const InventoryModal: React.FC<InventoryModalProps> = ({ isOpen, onClose, onSubm
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
           transition={{ type: "spring", duration: 0.3 }}
-          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto relative transition-colors duration-300"
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-4xl max-h-[95vh] overflow-y-auto relative transition-colors duration-300"
         >
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors"
+            className="absolute right-6 top-6 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 transition-colors z-10"
           >
             <XIcon size={24} />
           </button>
 
-          <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-              {editItem ? 'Edit Inventory Item' : 'Add New Inventory Item'}
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400">
-              {editItem ? 'Update the item details below' : 'Fill in the details to add a new item to inventory'}
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Responsive Grid Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-              {/* Left Column */}
-              <div className="space-y-4">
-                {/* Name Field */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Item Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => handleInputChange('name', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                      }`}
-                    placeholder="e.g., River Sand, Red Bricks, Cement"
-                  />
-                  {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
+          {/* Header - Matching QuickAddInventory */}
+          <div className="bg-gradient-to-br from-slate-50 via-green-50 to-blue-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-6 rounded-t-xl">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 border border-gray-200 dark:border-gray-700">
+              <div className="flex items-center gap-4">
+                <div className="bg-gradient-to-r from-green-500 to-blue-600 p-3 rounded-xl">
+                  <PackageIcon size={32} className="text-white" />
                 </div>
-
-                {/* Location Field */}
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Storage Location
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.location}
-                    disabled
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-200 bg-gray-50 text-gray-600 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-400"
-                    placeholder="Location assigned based on warehouse"
-                  />
-                  <p className="text-sm text-gray-500 mt-1">Location is automatically assigned based on your warehouse</p>
-                </div>
-
-                {/* Category Field */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Category *
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={e => handleInputChange('category', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.category ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                      }`}
-                  >
-                    <option value="">Select Category</option>
-                    {availableCategories.map(category => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                  {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
-                </div>
-
-                {/* Quantity and Unit */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Quantity *
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={formData.quantity}
-                      onChange={e => handleInputChange('quantity', parseInt(e.target.value) || 0)}
-                      className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.quantity ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                        }`}
-                      placeholder="0"
-                    />
-                    {errors.quantity && <p className="text-red-500 text-sm mt-1">{errors.quantity}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                      Unit *
-                    </label>
-                    <select
-                      value={formData.unit}
-                      onChange={e => handleInputChange('unit', e.target.value)}
-                      className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.unit ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                        }`}
-                    >
-                      <option value="">Select Unit</option>
-                      {UNITS.map(unit => (
-                        <option key={unit} value={unit.toLowerCase()}>
-                          {unit}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.unit && <p className="text-red-500 text-sm mt-1">{errors.unit}</p>}
-                  </div>
-                </div>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-4">
-                {/* Low Stock Threshold */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Low Stock Threshold *
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={formData.threshold}
-                    onChange={e => handleInputChange('threshold', parseInt(e.target.value) || 0)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.threshold ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                      }`}
-                    placeholder="e.g., 10"
-                  />
-                  {errors.threshold && <p className="text-red-500 text-sm mt-1">{errors.threshold}</p>}
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Alert when stock falls below this amount
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                    {editItem ? 'Edit Inventory Item' : 'Quick Add Inventory'}
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400 mt-1">
+                    {editItem ? 'Update the item details below' : 'Quickly add new inventory items to the system'}
                   </p>
                 </div>
-
-                {/* Supplier Info */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Supplier Information *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.supplier_info}
-                    onChange={e => handleInputChange('supplier_info', e.target.value)}
-                    className={`w-full px-4 py-3 rounded-lg border-2 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white ${errors.supplier_info ? 'border-red-500' : 'border-gray-300 dark:border-gray-600 focus:border-blue-500'
-                      }`}
-                    placeholder="e.g., ABC Suppliers, Contact: 0771234567"
-                  />
-                  {errors.supplier_info && <p className="text-red-500 text-sm mt-1">{errors.supplier_info}</p>}
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                    Description (Optional)
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={e => handleInputChange('description', e.target.value)}
-                    className="w-full px-4 py-3 rounded-lg border-2 border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white transition-all duration-200"
-                    placeholder="Additional details about the item..."
-                    rows={4}
-                  />
-                </div>
               </div>
             </div>
+          </div>
 
-            {/* Form Actions */}
-            <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-4 pt-6 border-t border-gray-200 dark:border-gray-700">
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={saving}
-                className="px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving || !isFormValid()}
-                className="px-6 py-3 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:cursor-not-allowed flex items-center justify-center transition-all duration-200"
-              >
-                {saving && <RefreshCwIcon size={16} className="animate-spin mr-2" />}
-                {editItem ? 'Update Item' : 'Add Item'}
-              </button>
-            </div>
-          </form>
+          {/* Form Content */}
+          <div className="p-6">
+            <InventoryForm
+              onSubmit={onSubmit}
+              editItem={editItem}
+              saving={saving}
+              userWarehouse={userWarehouse}
+              isModal={true}
+            />
+          </div>
         </motion.div>
       </motion.div>
     </AnimatePresence>
@@ -606,10 +275,12 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
                   onClick={() => setShowCreateModal(true)}
                   className="flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-xl
                              hover:from-green-600 hover:to-blue-700 transition-all duration-200 shadow-lg hover:shadow-xl
-                             focus:outline-none focus:ring-2 focus:ring-green-500/20"
+                             focus:outline-none focus:ring-2 focus:ring-green-500/20 group relative overflow-hidden"
                 >
-                  <PlusIcon size={20} className="mr-2" />
-                  Add Item
+                  {/* Animated background effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <PlusIcon size={20} className="mr-2 relative z-10 group-hover:scale-110 transition-transform duration-200" />
+                  <span className="relative z-10 font-medium">➕ Add New Item</span>
                 </motion.button>
               )}
             </div>
@@ -719,12 +390,21 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
                 className="rounded-lg border-gray-300 dark:border-gray-600 focus:border-primary-500 focus:ring focus:ring-primary-500 focus:ring-opacity-50 dark:bg-gray-700 dark:text-white text-sm xs:text-base"
               >
                 <option value="all">All Categories</option>
-                {CATEGORIES.ALL.map(category => (
-                  <option key={category} value={category}>{category}</option>
-                ))}
+                <option value="Cement">Cement</option>
+                <option value="Steel & Reinforcement">Steel & Reinforcement</option>
+                <option value="Paint & Chemicals">Paint & Chemicals</option>
+                <option value="Electrical Items">Electrical Items</option>
+                <option value="Plumbing Supplies">Plumbing Supplies</option>
+                <option value="Tools & Equipment">Tools & Equipment</option>
+                <option value="Hardware & Fasteners">Hardware & Fasteners</option>
+                <option value="Tiles & Ceramics">Tiles & Ceramics</option>
+                <option value="Roofing Materials">Roofing Materials</option>
+                <option value="Safety Equipment">Safety Equipment</option>
                 <option value="Sand & Aggregate">Sand & Aggregate</option>
                 <option value="Bricks">Bricks</option>
+                <option value="Masonry Blocks">Masonry Blocks</option>
                 <option value="Stones">Stones</option>
+                <option value="Materials">Materials</option>
               </select>
             </div>
           </div>
