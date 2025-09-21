@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon } from 'lucide-react';
+import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon, CheckIcon } from 'lucide-react';
 import { Order, OrderFormData, OrderItem } from '../types/order';
 import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
@@ -143,6 +143,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const transformStatus = (backendStatus: string): string => {
     const statusMap: { [key: string]: string } = {
       'pending': 'Pending',
+      'Pending Approval': 'Pending Approval',
+      'Confirmed': 'Confirmed',
+      'Rejected': 'Rejected',
       'confirmed': 'Confirmed',
       'processing': 'Processing',
       'shipped': 'Shipped',
@@ -206,7 +209,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
 
       if (selectedDate < today) {
-        showError('Invalid Date', 'Cannot schedule delivery for past dates. Please select today or a future date.');
+        showError('Invalid Date', 'Cannot select past dates. Please select today or a future date.');
         return;
       }
     }
@@ -242,7 +245,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       // Create order payload for backend
       const orderPayload = {
         items: transformedItems,
-        customerEmail: formData.email, // Send email to backend
+        customerEmail: formData.email || user?.email || '', // Use form email or logged-in user email
+        customerName: formData.customer, // Include customer name
         shippingAddress: {
           street: formData.address,
           city: "Colombo",
@@ -262,11 +266,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           estimatedDate: formData.preferredDate
         },
         paymentMethod: 'cash',
-        notes: `Customer: ${formData.customer}, Preferred delivery: ${formData.preferredDate} at ${formData.preferredTime}`
+        status: formData.status, // Include order status
+        notes: userRole === 'customer'
+          ? `Customer: ${formData.customer}, Contact: ${formData.contact}`
+          : `Customer: ${formData.customer}, Contact: ${formData.contact}, Preferred delivery: ${formData.preferredDate} at ${formData.preferredTime}`
       };
 
       // Get stored token
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
       if (!token) {
         throw new Error('No authentication token found. Please login again.');
@@ -293,8 +300,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         setFormData(defaultFormData);
         showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
 
-        // Navigate to delivery calendar for scheduling if it's a new order
-        if (!selectedOrder) {
+        // Navigate to delivery calendar for scheduling if it's a new order and user is not customer
+        if (!selectedOrder && userRole !== 'customer') {
           navigate('/deliveries', {
             state: {
               newOrder: {
@@ -419,6 +426,66 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const handleRequestChange = (order: Order) => {
     // For now, just show a notification - could be expanded to a modal
     showWarning('Request Changes', `Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
+  };
+
+  // Approve order
+  const handleApproveOrder = async (orderId: string, notes: string = '') => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/approve`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ notes })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchOrders(); // Refresh orders list
+        showSuccess('Order Approved', 'Order has been approved and confirmed successfully.');
+      } else {
+        throw new Error(result.error || 'Failed to approve order');
+      }
+    } catch (error) {
+      console.error('Error approving order:', error);
+      showError('Approval Failed', 'Failed to approve order. Please try again.');
+    }
+  };
+
+  // Reject order with reason
+  const handleRejectOrder = async (orderId: string) => {
+    const reason = prompt('Please provide a reason for rejecting this order:');
+    if (!reason || !reason.trim()) {
+      showError('Rejection Reason Required', 'Please provide a reason for rejecting this order.');
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      const response = await fetch(`http://localhost:5001/api/orders/${orderId}/reject`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ reason: reason.trim() })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        await fetchOrders(); // Refresh orders list
+        showSuccess('Order Rejected', 'Order has been rejected and inventory restored.');
+      } else {
+        throw new Error(result.error || 'Failed to reject order');
+      }
+    } catch (error) {
+      console.error('Error rejecting order:', error);
+      showError('Rejection Failed', 'Failed to reject order. Please try again.');
+    }
   };
 
   // Admin status change handlers
@@ -554,7 +621,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => {
+                setShowCreateModal(true);
+                setSelectedOrder(null);
+                setFormData({
+                  ...defaultFormData,
+                  email: user?.email || ''
+                });
+              }}
               className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl
                          hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl
                          focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full sm:w-auto justify-center text-sm sm:text-base font-medium"
@@ -637,87 +711,6 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 </p>
               </div>
             </div>
-
-            {/* Dedicated Delivery Schedule Section for Customers */}
-            {orders.some(order => order.preferredDate && order.email === user?.email) && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl shadow p-5 mb-6">
-                <div className="flex items-center mb-4">
-                  <CalendarIcon className="h-5 w-5 text-blue-500 mr-2" />
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">Your Delivery Schedule</h3>
-                </div>
-
-                <div className="overflow-hidden">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {orders
-                      .filter(order =>
-                        order.preferredDate &&
-                        new Date(order.preferredDate) >= new Date() &&
-                        ['Pending', 'Processing'].includes(order.status) &&
-                        order.email === user?.email
-                      )
-                      .sort((a, b) => new Date(a.preferredDate).getTime() - new Date(b.preferredDate).getTime())
-                      .slice(0, 6)
-                      .map(order => (
-                        <div
-                          key={`delivery-${order.id}`}
-                          className="bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border border-gray-200 dark:border-gray-700 rounded-lg p-4 flex flex-col"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center">
-                              <TruckIcon className="h-4 w-4 text-blue-500 mr-2" />
-                              <span className="font-medium text-gray-800 dark:text-white">Order #{order.id}</span>
-                            </div>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                              Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                              Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                              Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-                              Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                              Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }[order.status]}`}>
-                              {order.status}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            <span className="font-medium">{new Date(order.preferredDate).toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}</span>
-                          </div>
-
-                          <div className="flex items-center mt-1 text-sm text-gray-600 dark:text-gray-400">
-                            <ClockIcon className="h-4 w-4 mr-2" />
-                            <span>{order.preferredTime}</span>
-                          </div>
-
-                          <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                            <div className="text-xs text-gray-500 dark:text-gray-400">
-                              {order.items.length} {order.items.length === 1 ? 'item' : 'items'}: {order.items.map(item => item.name).join(', ')}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-
-                  {orders.filter(order =>
-                    order.preferredDate &&
-                    new Date(order.preferredDate) >= new Date() &&
-                    ['Pending', 'Processing'].includes(order.status) &&
-                    order.email === user?.email
-                  ).length === 0 && (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <CalendarIcon className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                        <p>No upcoming deliveries scheduled</p>
-                        <button
-                          onClick={() => setShowCreateModal(true)}
-                          className="mt-3 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm"
-                        >
-                          Place a New Order
-                        </button>
-                      </div>
-                    )}
-                </div>
-              </div>
-            )}
           </>
         )}
 
@@ -738,20 +731,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2 sm:gap-3">
-            <FilterIcon size={20} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
-            <select
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-              className="flex-1 min-w-0 sm:flex-initial sm:w-auto rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 py-3 px-4 text-sm sm:text-base transition-all duration-200"
-            >
-              <option value="all">All Status</option>
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="delivered">Delivered</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
+          {/* Status Filter (Admin/Cashier only) */}
+          {userRole !== 'customer' && (
+            <div className="flex items-center gap-2 sm:gap-3">
+              <FilterIcon size={20} className="text-gray-400 dark:text-gray-500 flex-shrink-0" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="flex-1 min-w-0 sm:flex-initial sm:w-auto rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring focus:ring-[#FF6B35] focus:ring-opacity-50 py-3 px-4 text-sm sm:text-base transition-all duration-200"
+              >
+                <option value="all">All Status</option>
+                <option value="pending">Pending</option>
+                <option value="processing">Processing</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          )}
         </div>
         {/* Orders Table - Responsive */}
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden transition-colors duration-300">
@@ -1069,18 +1065,41 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                 </>
                               ) : (
                                 <>
-                                  <button
-                                    onClick={() => handleEditOrder(order)}
-                                    className="text-[#FF6B35] hover:text-[#FF6B35]/80 mr-3"
-                                  >
-                                    <EditIcon size={18} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteOrder(order.id)}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <TrashIcon size={18} />
-                                  </button>
+                                  {order.status === 'Pending Approval' ? (
+                                    <>
+                                      <button
+                                        onClick={() => handleApproveOrder(order.id)}
+                                        className="text-green-600 hover:text-green-800 mr-2 px-2 py-1 text-xs border border-green-600 rounded flex items-center"
+                                        title="Approve Order"
+                                      >
+                                        <CheckIcon size={14} className="mr-1" />
+                                        Approve
+                                      </button>
+                                      <button
+                                        onClick={() => handleRejectOrder(order.id)}
+                                        className="text-red-600 hover:text-red-800 px-2 py-1 text-xs border border-red-600 rounded flex items-center"
+                                        title="Reject Order"
+                                      >
+                                        <XIcon size={14} className="mr-1" />
+                                        Reject
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <button
+                                        onClick={() => handleEditOrder(order)}
+                                        className="text-[#FF6B35] hover:text-[#FF6B35]/80 mr-3"
+                                      >
+                                        <EditIcon size={18} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleDeleteOrder(order.id)}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        <TrashIcon size={18} />
+                                      </button>
+                                    </>
+                                  )}
                                 </>
                               )}
                             </div>
@@ -1330,124 +1349,131 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     )}
                   </div>
 
-                  {/* Order Details - Enhanced Responsive Grid */}
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                      Order Details
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Order Status */}
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Order Status
-                        </label>
-                        <select
-                          name="status"
-                          value={formData.status}
-                          onChange={handleInputChange}
-                          className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
-                        >
-                          <option value="Pending">Pending</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Delivered">Delivered</option>
-                          <option value="Cancelled">Cancelled</option>
-                        </select>
-                      </div>
-
-                      {/* Preferred Date - Enhanced with calendar icon and help text */}
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                            Preferred Delivery Date
-                          </label>
-                          {user?.email && (
-                            <span className="text-xs text-blue-600 dark:text-blue-400">
-                              For {user.email}
-                            </span>
-                          )}
-                        </div>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <CalendarIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                          </div>
-                          <input
-                            type="date"
-                            name="preferredDate"
-                            value={formData.preferredDate}
-                            onChange={handleInputChange}
-                            min={new Date().toISOString().split('T')[0]}
-                            className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
-                          />
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Select a date for your delivery. Must be today or a future date.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Time Slot - Enhanced Responsive Layout */}
-                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
-                    <div className="space-y-3">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                        Delivery Time Slot
+                  {/* Order Details - Enhanced Responsive Grid (Admin/Cashier only) */}
+                  {userRole !== 'customer' && (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                        Order Details
                       </h3>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                          Preferred Time
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <ClockIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                          </div>
-                          <input
-                            type="time"
-                            name="preferredTime"
-                            value={formData.preferredTime}
-                            onChange={(e) => {
-                              handleInputChange(e);
-                              validateTimeSlot(e.target.value);
-                            }}
-                            min={BUSINESS_HOURS.start}
-                            max={BUSINESS_HOURS.end}
-                            className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
-                          />
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Order Status (Admin/Cashier only) */}
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Order Status
+                          </label>
+                          <select
+                            name="status"
+                            value={formData.status}
+                            onChange={handleInputChange}
+                            className="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
+                          >
+                            <option value="Pending">Pending</option>
+                            <option value="Pending Approval">Pending Approval</option>
+                            <option value="Confirmed">Confirmed</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Processing">Processing</option>
+                            <option value="Delivered">Delivered</option>
+                            <option value="Cancelled">Cancelled</option>
+                          </select>
                         </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          Select a time between {BUSINESS_HOURS.start} and {BUSINESS_HOURS.end} for delivery.
+
+                        {/* Preferred Date - Enhanced with calendar icon and help text */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Preferred Delivery Date
+                            </label>
+                            {user?.email && (
+                              <span className="text-xs text-blue-600 dark:text-blue-400">
+                                For {user.email}
+                              </span>
+                            )}
+                          </div>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <CalendarIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <input
+                              type="date"
+                              name="preferredDate"
+                              value={formData.preferredDate}
+                              onChange={handleInputChange}
+                              min={new Date().toISOString().split('T')[0]}
+                              className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Select a date for your delivery. Must be today or a future date.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Time Slot - Enhanced Responsive Layout (Admin/Cashier only) */}
+                  {userRole !== 'customer' && (
+                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 border border-gray-200 dark:border-gray-600">
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                          Delivery Time Slot
+                        </h3>
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Preferred Time
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                              <ClockIcon className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                            </div>
+                            <input
+                              type="time"
+                              name="preferredTime"
+                              value={formData.preferredTime}
+                              onChange={(e) => {
+                                handleInputChange(e);
+                                validateTimeSlot(e.target.value);
+                              }}
+                              min={BUSINESS_HOURS.start}
+                              max={BUSINESS_HOURS.end}
+                              className="pl-10 w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-[#FF6B35] focus:ring-2 focus:ring-[#FF6B35] focus:ring-opacity-50 px-3 py-2 transition-all duration-200"
+                            />
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Select a time between {BUSINESS_HOURS.start} and {BUSINESS_HOURS.end} for delivery.
+                          </p>
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const timeSlots = getAvailableTimeSlots();
+                              if (timeSlots.length > 0) {
+                                const newTime = timeSlots[0];
+                                setFormData(prev => ({
+                                  ...prev,
+                                  preferredTime: newTime
+                                }));
+                                validateTimeSlot(newTime);
+                              }
+                            }}
+                            className="px-4 py-2 text-sm bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-500 dark:text-white rounded-lg hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-500 dark:hover:to-gray-400 transition-all duration-200 shadow-sm hover:shadow-md w-full sm:w-auto"
+                          >
+                            Suggest Time
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          Business hours: {BUSINESS_HOURS.start} - {BUSINESS_HOURS.end}
                         </p>
                       </div>
-                      <div className="flex items-end">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const timeSlots = getAvailableTimeSlots();
-                            if (timeSlots.length > 0) {
-                              const newTime = timeSlots[0];
-                              setFormData(prev => ({
-                                ...prev,
-                                preferredTime: newTime
-                              }));
-                              validateTimeSlot(newTime);
-                            }
-                          }}
-                          className="px-4 py-2 text-sm bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-600 dark:to-gray-500 dark:text-white rounded-lg hover:from-gray-200 hover:to-gray-300 dark:hover:from-gray-500 dark:hover:to-gray-400 transition-all duration-200 shadow-sm hover:shadow-md w-full sm:w-auto"
-                        >
-                          Suggest Time
-                        </button>
-                      </div>
+                      {error && (
+                        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="text-center">
-                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Business hours: {BUSINESS_HOURS.start} - {BUSINESS_HOURS.end}
-                      </p>
-                    </div>
-                    {error && (
-                      <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <p className="text-sm text-red-600 dark:text-red-400 text-center">{error}</p>
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {/* Form Actions - Enhanced Centered Layout */}
                   <div className="flex flex-col sm:flex-row justify-center gap-3 pt-6 border-t border-gray-200 dark:border-gray-600">

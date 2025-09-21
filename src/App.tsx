@@ -156,7 +156,7 @@ function AppRoutes() {
             element={<DriverPortal />}
           />
 
-          {/* Delivery routes - accessible by admin, warehouse, cashier */}
+          {/* Delivery routes - accessible by admin, warehouse, cashier ONLY */}
           <Route
             path="/deliveries"
             element={

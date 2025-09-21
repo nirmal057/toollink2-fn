@@ -182,11 +182,6 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       icon: <CalendarIcon size={20} />,
       label: 'Deliveries'
     }] : []),
-    ...(normalizedRole === 'customer' ? [{
-      to: '/deliveries',
-      icon: <CalendarIcon size={20} />,
-      label: 'Track Deliveries'
-    }] : []),
 
     // Driver Management (Admin & Warehouse only)
     ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
