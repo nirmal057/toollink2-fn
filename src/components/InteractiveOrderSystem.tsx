@@ -68,11 +68,8 @@ interface Order {
             sku: string;
         };
         quantity: number;
-        unitPrice: number;
-        totalPrice: number;
     }>;
     status: string;
-    totalAmount: number;
     shippingAddress: {
         street: string;
         city: string;
@@ -371,10 +368,6 @@ const InteractiveOrderSystem: React.FC<OrderAdjustmentProps> = ({ order, onOrder
                             <p className="text-sm text-gray-600">Customer</p>
                             <p className="font-medium">{order.customer.fullName}</p>
                             <p className="text-sm text-gray-500">{order.customer.phone}</p>
-                        </div>
-                        <div>
-                            <p className="text-sm text-gray-600">Total Amount</p>
-                            <p className="font-medium text-lg">Rs. {order.totalAmount.toLocaleString()}</p>
                         </div>
                         <div>
                             <p className="text-sm text-gray-600">Delivery</p>
