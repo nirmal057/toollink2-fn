@@ -352,6 +352,7 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
               showControls={true}
               chartType="pie"
               className="mb-6"
+              isAdminView={userRole === 'admin'}
             />
           </motion.div>
 

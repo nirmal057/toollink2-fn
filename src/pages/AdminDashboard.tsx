@@ -523,6 +523,7 @@ const AdminDashboard: React.FC = () => {
             showControls={true}
             chartType="pie"
             className="shadow-xl"
+            isAdminView={true}
           />
         </div>
 

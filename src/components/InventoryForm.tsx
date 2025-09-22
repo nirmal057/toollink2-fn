@@ -48,20 +48,74 @@ const WAREHOUSE_OPTIONS = [
 // Dynamic categories based on warehouse
 const getWarehouseCategories = (warehouse: string): string[] => {
     const warehouseCategories: { [key: string]: string[] } = {
-        'warehouse1': ['Sand & Aggregate'], // River sand/soil
-        'warehouse2': ['Bricks', 'Masonry Blocks', 'Stones'], // Bricks
-        'warehouse3': ['Steel & Reinforcement'], // Metals
+        'warehouse1': [
+            'Fine Sand',
+            'Medium Sand',
+            'Coarse Sand',
+            'River Sand',
+            'Washed Sand',
+            'M-Sand (Crushed Rock)',
+            'Aggregate',
+            'Gravel',
+            'Stone Chips'
+        ], // Sand & Aggregate warehouse
+        'warehouse2': [
+            'Solid Cement Blocks',
+            'Hollow Cement Blocks',
+            'Clay Bricks',
+            '4 Inch Blocks',
+            '6 Inch Blocks',
+            '8 Inch Blocks',
+            'Interlocking Pavers',
+            'Granite Slabs',
+            'Decorative Stones'
+        ], // Bricks & Masonry warehouse
+        'warehouse3': [
+            '6mm Steel Rods',
+            '8mm Steel Rods',
+            '10mm Steel Rods',
+            '12mm Steel Rods',
+            '16mm Steel Rods',
+            '20mm Steel Rods',
+            'Steel Wire',
+            'Wire Mesh',
+            'Angle Iron',
+            'Steel Plates'
+        ], // Steel & Reinforcement warehouse
         'main_warehouse': [
-            'Cement', 'Paint & Chemicals', 'Electrical Items', 'Plumbing Supplies',
-            'Tools & Equipment', 'Hardware & Fasteners', 'Tiles & Ceramics',
-            'Roofing Materials', 'Safety Equipment', 'Materials', 'Other'
-        ], // Tools & Equipment
+            'Power Drills',
+            'Angle Grinders',
+            'Rotary Hammers',
+            'Hand Tools',
+            'Measuring Tools',
+            'Safety Equipment',
+            'Hardware',
+            'Electrical Tools',
+            'Cutting Tools',
+            'Cement',
+            'Paint & Chemicals',
+            'Electrical Items',
+            'Plumbing Supplies',
+            'Tiles & Ceramics',
+            'Roofing Materials',
+            'Materials',
+            'Other'
+        ], // Tools & Equipment + General items
         'all': [
-            'Cement', 'Steel & Reinforcement', 'Paint & Chemicals', 'Electrical Items',
-            'Plumbing Supplies', 'Tools & Equipment', 'Hardware & Fasteners',
-            'Tiles & Ceramics', 'Roofing Materials', 'Safety Equipment',
-            'Sand & Aggregate', 'Bricks', 'Masonry Blocks', 'Stones', 'Materials', 'Other'
-        ] // Admin - all categories
+            // Main categories for admin - simplified view
+            'Sand & Aggregate',
+            'Bricks & Masonry',
+            'Steel & Reinforcement',
+            'Tools & Equipment',
+            'Cement',
+            'Paint & Chemicals',
+            'Electrical Items',
+            'Plumbing Supplies',
+            'Tiles & Ceramics',
+            'Roofing Materials',
+            'Materials',
+            'Other'
+        ] // Admin - main categories only (simplified)
     };
 
     return warehouseCategories[warehouse] || warehouseCategories['main_warehouse'];
@@ -74,14 +128,29 @@ const UNITS = [
 
 // Common Sri Lankan inventory items for quick selection
 const QUICK_ITEMS = [
-    { name: 'River Sand', category: 'Sand & Aggregate', unit: 'kg', location: 'Warehouse 1 (River Sand & Soil)', warehouse: 'warehouse1' },
-    { name: 'Red Bricks', category: 'Bricks', unit: 'pieces', location: 'Warehouse 2 (Bricks & Masonry)', warehouse: 'warehouse2' },
-    { name: 'Steel Bars (12mm)', category: 'Steel & Reinforcement', unit: 'pieces', location: 'Warehouse 3 (Metals & Steel)', warehouse: 'warehouse3' },
-    { name: 'Cement Bags', category: 'Cement', unit: 'bags', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
-    { name: 'White Paint', category: 'Paint & Chemicals', unit: 'liters', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
-    { name: 'Electrical Wire', category: 'Electrical Items', unit: 'meters', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
-    { name: 'PVC Pipes', category: 'Plumbing Supplies', unit: 'pieces', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
-    { name: 'Masonry Blocks', category: 'Masonry Blocks', unit: 'pieces', location: 'Warehouse 2 (Bricks & Masonry)', warehouse: 'warehouse2' }
+    // Warehouse-specific detailed items
+    { name: 'Kelani River Sand - Fine', category: 'Fine Sand', unit: 'cubic_ft', location: 'Warehouse 1 (River Sand & Soil)', warehouse: 'warehouse1' },
+    { name: 'Medium Sand for Masonry', category: 'Medium Sand', unit: 'cubic_ft', location: 'Warehouse 1 (River Sand & Soil)', warehouse: 'warehouse1' },
+    { name: 'Aggregate 10mm', category: 'Aggregate', unit: 'cubic_ft', location: 'Warehouse 1 (River Sand & Soil)', warehouse: 'warehouse1' },
+
+    { name: 'Cement Block 6"', category: '6 Inch Blocks', unit: 'pieces', location: 'Warehouse 2 (Bricks & Masonry)', warehouse: 'warehouse2' },
+    { name: 'Hollow Block 4"', category: '4 Inch Blocks', unit: 'pieces', location: 'Warehouse 2 (Bricks & Masonry)', warehouse: 'warehouse2' },
+    { name: 'Clay Brick - Solid', category: 'Clay Bricks', unit: 'pieces', location: 'Warehouse 2 (Bricks & Masonry)', warehouse: 'warehouse2' },
+
+    { name: 'Lanwa Steel Rod 10mm', category: '10mm Steel Rods', unit: 'pieces', location: 'Warehouse 3 (Metals & Steel)', warehouse: 'warehouse3' },
+    { name: 'Steel Rod 12mm', category: '12mm Steel Rods', unit: 'pieces', location: 'Warehouse 3 (Metals & Steel)', warehouse: 'warehouse3' },
+    { name: 'Binding Wire 20kg', category: 'Steel Wire', unit: 'kg', location: 'Warehouse 3 (Metals & Steel)', warehouse: 'warehouse3' },
+
+    { name: 'Makita Electric Drill 750W', category: 'Power Drills', unit: 'pieces', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
+    { name: 'Angle Grinder 900W', category: 'Angle Grinders', unit: 'pieces', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
+    { name: 'Measuring Tape 5m', category: 'Measuring Tools', unit: 'pieces', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
+    { name: 'Safety Helmet', category: 'Safety Equipment', unit: 'pieces', location: 'Main Warehouse (Tools & Equipment)', warehouse: 'main_warehouse' },
+
+    // Admin main category items (simplified)
+    { name: 'River Sand - Mixed', category: 'Sand & Aggregate', unit: 'cubic_ft', location: 'All Warehouses', warehouse: 'all' },
+    { name: 'Cement Blocks - Standard', category: 'Bricks & Masonry', unit: 'pieces', location: 'All Warehouses', warehouse: 'all' },
+    { name: 'Steel Rods - Mixed', category: 'Steel & Reinforcement', unit: 'pieces', location: 'All Warehouses', warehouse: 'all' },
+    { name: 'Construction Tools - General', category: 'Tools & Equipment', unit: 'pieces', location: 'All Warehouses', warehouse: 'all' }
 ];
 
 const InventoryForm: React.FC<InventoryFormProps> = ({

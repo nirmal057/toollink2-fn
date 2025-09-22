@@ -30,6 +30,7 @@ interface InventoryCategoryChartProps {
     showControls?: boolean;
     chartType?: 'pie' | 'bar';
     className?: string;
+    isAdminView?: boolean; // New prop to determine if admin should see warehouse grouping
 }
 
 // Color palette for categories
@@ -43,7 +44,8 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
     height = 300,
     showControls = true,
     chartType: initialChartType = 'pie',
-    className = ''
+    className = '',
+    isAdminView = false
 }) => {
     const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -65,11 +67,99 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
             'Roofing Materials': 'Roofing',
             'Safety Equipment': 'Safety',
             'Sand & Aggregate': 'Sand',
-            'Masonry Blocks': 'Blocks'
+            'Masonry Blocks': 'Blocks',
+            // Admin warehouse display names (with emojis)
+            '🏠 Warehouse 1 (River Sand) - Sand & Aggregate': 'W1 - Sand & Aggregate',
+            '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones': 'W2 - Bricks & Masonry',
+            '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement': 'W3 - Steel & Metals',
+            '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc': 'Main - Tools & Equipment'
         };
 
         // Return mapped short name or truncate if too long
         return shortNameMap[fullName] || (fullName.length > 12 ? fullName.substring(0, 12) + '...' : fullName);
+    };
+
+    // Function to group detailed categories into warehouse-level summaries for admin
+    const groupCategoriesByWarehouse = (categoryDistribution: Array<{ _id: string; count: number }>) => {
+        const warehouseGroups: { [key: string]: number } = {
+            '🏠 Warehouse 1 (River Sand) - Sand & Aggregate': 0,
+            '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones': 0,
+            '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement': 0,
+            '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc': 0
+        };
+
+        // Map detailed categories to warehouse groups
+        const categoryToWarehouse: { [key: string]: string } = {
+            // Warehouse 1 categories - Sand & Aggregate
+            'Fine Sand': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Medium Sand': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Coarse Sand': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'River Sand': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Washed Sand': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'M-Sand (Crushed Rock)': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Aggregate': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Gravel': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+            'Stone Chips': '🏠 Warehouse 1 (River Sand) - Sand & Aggregate',
+
+            // Warehouse 2 categories - Bricks, Masonry, Stones
+            'Solid Cement Blocks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            'Hollow Cement Blocks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            'Clay Bricks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            '4 Inch Blocks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            '6 Inch Blocks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            '8 Inch Blocks': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            'Interlocking Pavers': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            'Granite Slabs': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+            'Decorative Stones': '🧱 Warehouse 2 (Bricks) - Bricks, Masonry, Stones',
+
+            // Warehouse 3 categories - Steel & Reinforcement
+            '6mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            '8mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            '10mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            '12mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            '16mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            '20mm Steel Rods': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            'Steel Wire': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            'Wire Mesh': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            'Angle Iron': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+            'Steel Plates': '⚙️ Warehouse 3 (Metals) - Steel & Reinforcement',
+
+            // Main warehouse categories - Tools, Equipment & Misc
+            'Power Drills': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Angle Grinders': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Rotary Hammers': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Hand Tools': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Measuring Tools': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Safety Equipment': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Hardware': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Electrical Tools': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Cutting Tools': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Cement': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Paint & Chemicals': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Electrical Items': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Plumbing Supplies': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Tiles & Ceramics': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Roofing Materials': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Materials': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc',
+            'Other': '🔧 Main Warehouse (Tools) - Tools, Equipment & Misc'
+        };
+
+        // Group categories by warehouse
+        categoryDistribution.forEach(item => {
+            const warehouseGroup = categoryToWarehouse[item._id];
+            if (warehouseGroup) {
+                warehouseGroups[warehouseGroup] += item.count;
+            } else {
+                // Default to main warehouse for unknown categories
+                warehouseGroups['🔧 Main Warehouse (Tools) - Tools, Equipment & Misc'] += item.count;
+            }
+        });
+
+        // Convert to array format
+        return Object.entries(warehouseGroups).map(([warehouse, count]) => ({
+            _id: warehouse,
+            count: count
+        })).filter(item => item.count > 0); // Only show warehouses with items
     };
 
     const fetchCategoryData = async () => {
@@ -99,7 +189,14 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
                     setTotalItems(total);
 
                     if (statsData.categoryDistribution && statsData.categoryDistribution.length > 0) {
-                        const processedData = statsData.categoryDistribution.map((item, index) => ({
+                        let dataToProcess = statsData.categoryDistribution;
+
+                        // If admin view, group detailed categories by warehouse
+                        if (isAdminView) {
+                            dataToProcess = groupCategoriesByWarehouse(statsData.categoryDistribution);
+                        }
+
+                        const processedData = dataToProcess.map((item, index) => ({
                             _id: item._id || 'Unknown',
                             shortName: createShortName(item._id || 'Unknown'),
                             count: item.count || 0,
