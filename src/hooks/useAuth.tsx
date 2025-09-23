@@ -108,7 +108,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     syncUserState();
 
     // Set up periodic sync to handle navigation and session restoration
-    const syncInterval = setInterval(syncUserState, 500); // Check every 500ms
+    const syncInterval = setInterval(syncUserState, 2000); // Check every 2 seconds (reduced from 500ms)
 
     // Listen for storage events (cross-tab synchronization)
     const handleStorageChange = (e: StorageEvent) => {

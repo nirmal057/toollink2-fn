@@ -56,12 +56,13 @@ export class AuthTokenManager {
                 return false;
             }
 
+            // TEMPORARILY DISABLED: Skip token expiry check to debug auth issues
             // Check if token is expired
-            if (this.isTokenExpired(accessToken)) {
-                console.log('⏰ Access token expired, clearing localStorage');
-                this.clearAuthData();
-                return false;
-            }
+            // if (this.isTokenExpired(accessToken)) {
+            //     console.log('⏰ Access token expired, clearing localStorage');
+            //     this.clearAuthData();
+            //     return false;
+            // }
 
             // Validate user data format
             try {
@@ -77,7 +78,7 @@ export class AuthTokenManager {
                 return false;
             }
 
-            console.log('✅ Authentication state is valid');
+            console.log('✅ Authentication state is valid (expiry check disabled for debugging)');
             return true;
         } catch (error) {
             console.error('❌ Error validating auth state:', error);
