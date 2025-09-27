@@ -3,7 +3,6 @@ import { NavLink } from 'react-router-dom';
 import {
   ShoppingCartIcon,
   PackageIcon,
-  CalendarIcon,
   BarChartIcon,
   MessageSquareIcon,
   MailIcon,
@@ -17,7 +16,8 @@ import {
   ActivityIcon,
   AlertCircleIcon,
   PlusIcon,
-  TruckIcon
+  TruckIcon,
+  CalendarIcon
 } from 'lucide-react';
 import NotificationDropdown from '../UI/NotificationDropdown';
 import { authService } from '../../services/authService';
@@ -156,11 +156,18 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'Quick Add Inventory'
     }] : []),
 
-    // Deliveries
-    ...([normalizedRole].includes('admin') || ['warehouse', 'cashier'].includes(normalizedRole) ? [{
-      to: '/deliveries',
+    // Delivery Management (All authenticated users can access)
+    {
+      to: '/delivery-management',
+      icon: <TruckIcon size={20} />,
+      label: 'Delivery Management'
+    },
+
+    // Delivery Calendar (Admin & Warehouse only)
+    ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
+      to: '/delivery-calendar',
       icon: <CalendarIcon size={20} />,
-      label: 'Deliveries'
+      label: 'Delivery Calendar'
     }] : []),
 
     // Driver Management (Admin & Warehouse only)

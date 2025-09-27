@@ -12,6 +12,7 @@ import QuickAddInventory from './pages/QuickAddInventory';
 import DriverPortal from './pages/DriverPortal';
 import DriverManagement from './pages/DriverManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
+import DeliveryManagement from './pages/DeliveryManagement';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
 import ContactPage from './pages/ContactPage';
@@ -155,9 +156,19 @@ function AppRoutes() {
             element={<DriverPortal />}
           />
 
-          {/* Delivery routes - accessible by admin, warehouse, cashier ONLY */}
+          {/* Delivery Management - accessible by admin, warehouse, cashier, and customers */}
           <Route
             path="/deliveries"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.CUSTOMER]} fallback={<Unauthorized />}>
+                <DeliveryManagement userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* Delivery Calendar - accessible by admin, warehouse, cashier */}
+          <Route
+            path="/delivery-calendar"
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER]} fallback={<Unauthorized />}>
                 <DeliveryCalendar userRole={user.role} />
