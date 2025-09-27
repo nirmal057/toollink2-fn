@@ -26,6 +26,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import ActivitiesPage from './pages/ActivitiesPage';
 import AuditLogs from './pages/AuditLogs';
 import SystemReports from './pages/SystemReports';
+import WarehouseOrderReceived from './pages/WarehouseOrderReceived';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext';
@@ -172,6 +173,16 @@ function AppRoutes() {
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER]} fallback={<Unauthorized />}>
                 <DeliveryCalendar userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* Warehouse Order Reception - accessible by warehouse and admin */}
+          <Route
+            path="/warehouse/orders/received/:mainOrderId"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <WarehouseOrderReceived />
               </RoleGuard>
             }
           />

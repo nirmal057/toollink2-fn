@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { BellIcon, XIcon, CheckCircleIcon } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { notificationService, Notification } from '../../services/notificationService';
 
 interface NotificationDropdownProps {
@@ -7,6 +8,7 @@ interface NotificationDropdownProps {
 }
 
 const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -82,6 +84,37 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
       console.error('Error marking notification as read:', error);
     }
   }, []);
+
+  const handleNotificationClick = useCallback(async (notification: Notification) => {
+    try {
+      // Handle notification click and get redirect URL
+      const response = await notificationService.handleNotificationClick(notification._id);
+
+      // Mark as read locally if not already read
+      if (!notification.isRead) {
+        setNotifications(prev =>
+          prev.map(notif =>
+            notif._id === notification._id
+              ? { ...notif, isRead: true, status: 'read' as const }
+              : notif
+          )
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+      }
+
+      // Close dropdown
+      setIsOpen(false);
+
+      // Navigate to the appropriate page
+      if (response.redirectUrl) {
+        navigate(response.redirectUrl);
+      }
+    } catch (error) {
+      console.error('Error handling notification click:', error);
+      // Fallback: just mark as read
+      markAsRead(notification._id);
+    }
+  }, [navigate, markAsRead]);
 
   const getIcon = (category: string) => {
     const iconMap: { [key: string]: string } = {
@@ -194,7 +227,8 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
                   {notifications.map((notification) => (
                     <div
                       key={notification._id}
-                      className={`p-4 hover:bg-gradient-to-r hover:from-slate-50 hover:via-green-50 hover:to-blue-50 dark:hover:from-gray-700 dark:hover:via-gray-600 dark:hover:to-gray-700 transition-all duration-200 ${!notification.isRead ? 'bg-gradient-to-r from-blue-50 via-green-50 to-slate-50 dark:from-blue-900/20 dark:via-green-900/10 dark:to-gray-800 border-l-4 border-blue-500' : ''
+                      onClick={() => handleNotificationClick(notification)}
+                      className={`p-4 cursor-pointer hover:bg-gradient-to-r hover:from-slate-50 hover:via-green-50 hover:to-blue-50 dark:hover:from-gray-700 dark:hover:via-gray-600 dark:hover:to-gray-700 transition-all duration-200 ${!notification.isRead ? 'bg-gradient-to-r from-blue-50 via-green-50 to-slate-50 dark:from-blue-900/20 dark:via-green-900/10 dark:to-gray-800 border-l-4 border-blue-500' : ''
                         }`}
                     >
                       <div className="flex items-start gap-3">
@@ -210,7 +244,10 @@ const NotificationDropdown = ({ className = '' }: NotificationDropdownProps) => 
                             </p>
                             {!notification.isRead && (
                               <button
-                                onClick={() => markAsRead(notification._id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  markAsRead(notification._id);
+                                }}
                                 className="ml-2 flex-shrink-0 text-green-500 hover:text-green-600 p-1 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all duration-200"
                                 title="Mark as read"
                               >

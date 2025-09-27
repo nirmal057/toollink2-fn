@@ -288,6 +288,21 @@ class NotificationService {
     if (notification.type === 'success') return 'green';
     return 'blue';
   }
+
+  // Handle notification click - mark as read and return redirect URL
+  async handleNotificationClick(notificationId: string): Promise<{ redirectUrl: string }> {
+    const response = await fetch(`${API_CONFIG.BASE_URL}/notifications/${notificationId}/click`, {
+      method: 'POST',
+      headers: createApiHeaders(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to process notification click');
+    }
+
+    return response.json();
+  }
 }
 
 export const notificationService = NotificationService.getInstance();

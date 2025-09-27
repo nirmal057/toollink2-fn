@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon, CheckIcon, User, MapPin, Package, ShoppingCart, Plus, Trash2, Save, X } from 'lucide-react';
+import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon, CheckIcon, User, MapPin, Package, Building2, ShoppingCart, Plus, Trash2, Calculator, Save, X } from 'lucide-react';
 import { Order, OrderFormData, OrderItem } from '../types/order';
 import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
@@ -51,7 +51,16 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   // Calculate available warehouses
   const availableWarehouses = Array.from(new Set(inventory.map(item => item.warehouse || 'main_warehouse'))).sort();
 
-
+  // Calculate total function
+  const calculateTotal = () => {
+    return formData.items.reduce((total, item) => {
+      const inventoryItem = inventory.find(inv => inv.name === item.name);
+      if (inventoryItem && item.quantity) {
+        return total + (inventoryItem.selling_price * parseFloat(item.quantity.toString()));
+      }
+      return total;
+    }, 0);
+  };
 
   // Fetch orders and inventory from backend
   useEffect(() => {
@@ -280,7 +289,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       'wire': '⚡',
       'default': '📦'
     };
-
+    
     const categoryLower = category.toLowerCase();
     // Find matching icon by checking if category contains any keyword
     for (const [key, icon] of Object.entries(iconMap)) {
@@ -319,7 +328,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
               name: value,
               warehouse: selectedItem?.warehouse || '',
               category: selectedItem?.category || '',
-              unit: selectedItem?.unit || ''
+              unit: selectedItem?.unit || '',
+              price: selectedItem?.selling_price || 0
             };
           } else if (field === 'quantity') {
             return {
@@ -395,8 +405,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         transformedItems.push({
           inventory: inventoryItem._id,
           quantity: item.quantity,
-          unitPrice: 0,
-          totalPrice: 0,
+          unitPrice: inventoryItem.selling_price || 100,
+          totalPrice: item.quantity * (inventoryItem.selling_price || 100),
           notes: item.name
         });
       }
@@ -438,8 +448,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      // Send to enhanced backend endpoint for automatic warehouse splitting and notifications
-      const response = await fetch('http://localhost:5001/api/enhanced/orders/create-with-integration', {
+      // Send to backend with authentication and correct port
+      const response = await fetch('http://localhost:5001/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -871,8 +881,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 <button
                   onClick={() => setViewMode('orders')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'orders'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <TruckIcon className="w-4 h-4 mr-2 inline" />
@@ -881,8 +891,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 <button
                   onClick={() => setViewMode('sub-orders')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'sub-orders'
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-blue-600 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <CalendarIcon className="w-4 h-4 mr-2 inline" />
@@ -1142,14 +1152,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${{
-                              'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                              'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                              'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                              'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                              'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                              'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                              'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                            }[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                                'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                                'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                              }[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                               }`}>
                               {subOrder.status.charAt(0).toUpperCase() + subOrder.status.slice(1)}
                             </span>
@@ -1735,7 +1745,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           .map(category => {
                             const categoryIcon = getCategoryIcon(category);
                             const categoryItems = inventory.filter(item => item.category === category);
-
+                            
                             return (
                               <div
                                 key={category}
@@ -1759,6 +1769,30 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                       </div>
                     </div>
 
+                    {/* Smart Warehouse Distribution Panel */}
+                    <div className="mb-8 p-6 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-2xl border border-blue-300 dark:border-blue-700">
+                      <h4 className="text-lg font-bold text-blue-800 dark:text-blue-300 mb-4 flex items-center gap-2">
+                        <Building2 className="w-5 h-5" />
+                        Warehouse Distribution Intelligence
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                        {availableWarehouses.map(warehouse => {
+                          const warehouseItems = inventory.filter(item => item.warehouse === warehouse);
+                          return (
+                            <div key={warehouse} className="bg-white dark:bg-gray-800 rounded-xl p-4 text-center border border-blue-200 dark:border-blue-700 shadow-sm">
+                              <div className="text-2xl mb-2">🏪</div>
+                              <h6 className="font-bold text-sm text-gray-900 dark:text-white mb-1">
+                                {getWarehouseDisplayName(warehouse)}
+                              </h6>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {warehouseItems.length} materials
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {/* Enhanced Item Cards */}
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
@@ -1778,7 +1812,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
                       {formData.items.map((item, index) => {
                         const selectedItem = inventory.find(invItem => invItem.name === item.name);
-
+                        
                         return (
                           <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                             {/* Enhanced Header */}
@@ -1834,7 +1868,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                               .filter(invItem => invItem.category === category)
                                               .map((invItem) => (
                                                 <option key={invItem._id} value={invItem.name} className="font-normal">
-                                                  {invItem.name} • {getWarehouseDisplayName(invItem.warehouse)} • {invItem.unit}
+                                                  {invItem.name} • {getWarehouseDisplayName(invItem.warehouse)} • Rs. {invItem.selling_price}/{invItem.unit}
                                                 </option>
                                               ))
                                             }
@@ -1843,7 +1877,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                       })
                                     }
                                   </select>
-
+                                  
                                   {/* Material Info Display */}
                                   {selectedItem && (
                                     <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl">
@@ -1860,7 +1894,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                           <span className="text-purple-600 dark:text-purple-400 font-bold">Unit:</span>
                                           <span className="font-medium text-gray-800 dark:text-gray-200">{selectedItem.unit}</span>
                                         </div>
-
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-orange-600 dark:text-orange-400 font-bold">Price:</span>
+                                          <span className="font-medium text-gray-800 dark:text-gray-200">Rs. {selectedItem.selling_price}</span>
+                                        </div>
                                       </div>
                                     </div>
                                   )}
@@ -1889,12 +1926,42 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                       </span>
                                     )}
                                   </div>
+                                  
+                                  {/* Price Calculation */}
+                                  {selectedItem && item.quantity && (
+                                    <div className="p-3 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded-xl text-center">
+                                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                                        Rs. {(selectedItem.selling_price * item.quantity).toFixed(2)}
+                                      </p>
+                                      <p className="text-xs text-green-500 dark:text-green-400">Subtotal</p>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* Enhanced Order Summary */}
+                  <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 border-2 border-green-300 dark:border-green-700 shadow-lg">
+                    <h3 className="text-xl font-bold text-green-800 dark:text-green-300 mb-4 flex items-center gap-2">
+                      <Calculator className="w-5 h-5" />
+                      Order Summary
+                    </h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center text-lg">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">Items:</span>
+                        <span className="font-bold text-gray-900 dark:text-white">{formData.items.length}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xl border-t border-green-200 dark:border-green-700 pt-3">
+                        <span className="font-bold text-green-700 dark:text-green-300">Total Amount:</span>
+                        <span className="font-bold text-2xl text-green-600 dark:text-green-400">
+                          Rs. {calculateTotal().toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
