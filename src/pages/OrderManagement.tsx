@@ -27,7 +27,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [viewMode, setViewMode] = useState<'orders' | 'sub-orders'>('orders');
-  const [showCreateModal, setShowCreateModal] = useState(false);
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [formData, setFormData] = useState<OrderFormData>(defaultFormData);
   const [loading, setLoading] = useState(false);
@@ -49,10 +49,107 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
+  // Category browsing states
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showItemBrowser, setShowItemBrowser] = useState(false);
+  const [itemSearchTerm, setItemSearchTerm] = useState('');
+
+  // Delivery date management
+  const [currentDateDeliveryCount, setCurrentDateDeliveryCount] = useState<number>(0);
+
   // Calculate available warehouses
   const availableWarehouses = Array.from(new Set(inventory.map(item => item.warehouse || 'main_warehouse'))).sort();
 
+  // Function to check existing deliveries for a specific date
+  const checkDeliveriesForDate = async (date: string): Promise<number> => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) return 0;
 
+      const response = await fetch(`http://localhost:5001/api/delivery?date=${date}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        return data.deliveries ? data.deliveries.length : 0;
+      }
+      return 0;
+    } catch (error) {
+      console.error('Error checking deliveries:', error);
+      return 0;
+    }
+  };
+
+  // Function to find next available delivery date (starting 3 days from now)
+  const findNextAvailableDeliveryDate = async (): Promise<string> => {
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + 3); // Start checking from 3 days from now
+
+    let checkDate = new Date(baseDate);
+    let maxIterations = 30; // Prevent infinite loop, check up to 30 days ahead
+
+    while (maxIterations > 0) {
+      const dateString = checkDate.toISOString().split('T')[0];
+      const existingDeliveries = await checkDeliveriesForDate(dateString);
+
+      // If no deliveries exist for this date, or less than a reasonable limit (e.g., 10), use this date
+      if (existingDeliveries < 10) {
+        return dateString;
+      }
+
+      // Move to next day
+      checkDate.setDate(checkDate.getDate() + 1);
+      maxIterations--;
+    }
+
+    // Fallback to 3 days from now if no suitable date found
+    return baseDate.toISOString().split('T')[0];
+  };
+
+  // Initialize form with auto delivery date
+  const initializeFormWithDeliveryDate = async () => {
+    const autoDeliveryDate = await findNextAvailableDeliveryDate();
+    setFormData(prev => ({
+      ...prev,
+      preferredDate: autoDeliveryDate
+    }));
+    // Update delivery count for the initial date
+    const count = await checkDeliveriesForDate(autoDeliveryDate);
+    setCurrentDateDeliveryCount(count);
+  };
+
+  // Reset form with new auto delivery date
+  const resetFormWithAutoDeliveryDate = async () => {
+    await setupNewOrderForm();
+  };
+
+  // Update delivery count when date changes
+  const handleDateChange = async (newDate: string) => {
+    setFormData(prev => ({ ...prev, preferredDate: newDate }));
+    const count = await checkDeliveriesForDate(newDate);
+    setCurrentDateDeliveryCount(count);
+  };
+
+  // Helper function to set up new order form with auto-fill
+  const setupNewOrderForm = async () => {
+    setSelectedOrder(null);
+    const autoDeliveryDate = await findNextAvailableDeliveryDate();
+    setFormData({
+      ...defaultFormData,
+      customer: user?.fullName || user?.name || '',
+      email: user?.email || '',
+      contact: user?.phone || '+94',
+      preferredDate: autoDeliveryDate
+    });
+    // Update delivery count for the new date
+    const count = await checkDeliveriesForDate(autoDeliveryDate);
+    setCurrentDateDeliveryCount(count);
+  };
 
   // Fetch orders and inventory from backend
   useEffect(() => {
@@ -61,6 +158,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     if (userRole === 'warehouse') {
       fetchSubOrders();
     }
+
+    // Initialize auto delivery date when component mounts
+    initializeFormWithDeliveryDate();
 
     // Request browser notification permission
     if ('Notification' in window && Notification.permission === 'default') {
@@ -71,6 +171,19 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       });
     }
   }, []);
+
+  // Auto-fill form when opening for new orders
+  useEffect(() => {
+    if (showInlineForm && !selectedOrder && !formData.customer && userRole === 'customer') {
+      // If form is open but not auto-filled for customer, auto-fill it
+      setFormData(prev => ({
+        ...prev,
+        customer: user?.fullName || user?.name || '',
+        email: user?.email || '',
+        contact: user?.phone || '+94'
+      }));
+    }
+  }, [showInlineForm, selectedOrder, user, userRole]);
 
   // Fetch orders
   const fetchOrders = async () => {
@@ -292,6 +405,131 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     return iconMap.default;
   };
 
+  // Get all available categories from inventory
+  const getAvailableCategories = () => {
+    const categories = new Set(inventory.map(item => item.category || 'uncategorized').filter(Boolean));
+    return Array.from(categories).sort();
+  };
+
+  // Filter inventory by category and search term
+  const getFilteredInventory = () => {
+    return inventory.filter(item => {
+      const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+      const matchesSearch = itemSearchTerm === '' ||
+        item.name.toLowerCase().includes(itemSearchTerm.toLowerCase()) ||
+        (item.description && item.description.toLowerCase().includes(itemSearchTerm.toLowerCase()));
+      return matchesCategory && matchesSearch;
+    });
+  };
+
+  // Send notifications to relevant warehouses based on order items
+  const sendWarehouseNotifications = async (orderData: any, formData: OrderFormData) => {
+    try {
+      // Get unique warehouses from order items
+      const warehouseItems = new Map<string, any[]>();
+
+      for (const item of formData.items) {
+        const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+        if (inventoryItem && inventoryItem.warehouse) {
+          const warehouse = inventoryItem.warehouse;
+          if (!warehouseItems.has(warehouse)) {
+            warehouseItems.set(warehouse, []);
+          }
+          warehouseItems.get(warehouse)!.push({
+            name: item.name,
+            quantity: item.quantity,
+            category: inventoryItem.category,
+            unit: inventoryItem.unit
+          });
+        }
+      }
+
+      // Send notification to each relevant warehouse
+      for (const [warehouse, items] of warehouseItems) {
+        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+
+        const notificationData = {
+          type: 'NEW_ORDER_RECEIVED',
+          title: `New Order #${orderData.orderNumber || orderData._id}`,
+          message: `New order received with ${items.length} items for your warehouse`,
+          recipientRole: 'warehouse',
+          recipientWarehouse: warehouse,
+          priority: 'high',
+          metadata: {
+            orderId: orderData._id || orderData.orderNumber,
+            orderNumber: orderData.orderNumber,
+            customer: formData.customer,
+            customerEmail: formData.email,
+            warehouse: warehouse,
+            itemCount: items.length,
+            items: items,
+            totalAmount: orderData.totalAmount || 0,
+            preferredDate: formData.preferredDate,
+            preferredTime: formData.preferredTime
+          }
+        };
+
+        await fetch('http://localhost:5001/api/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(notificationData)
+        });
+
+        console.log(`📦 Notification sent to ${warehouse} warehouse for ${items.length} items`);
+      }
+
+      showSuccess('Notifications Sent', `Warehouses notified about the new order`);
+    } catch (error) {
+      console.error('Failed to send warehouse notifications:', error);
+      showWarning('Notification Warning', 'Order created successfully, but warehouse notifications may have failed');
+    }
+  };
+
+  // Send notifications to admin/cashier for order approval
+  const sendApprovalNotifications = async (orderData: any, formData: OrderFormData) => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+
+      const notificationData = {
+        type: 'ORDER_APPROVAL_REQUIRED',
+        title: `Order Approval Required #${orderData.orderNumber || orderData._id}`,
+        message: `New order from ${formData.customer} requires approval. ${formData.items.length} items ordered.`,
+        recipientRole: 'admin,cashier', // Both admin and cashier can approve
+        priority: 'high',
+        metadata: {
+          orderId: orderData._id || orderData.orderNumber,
+          orderNumber: orderData.orderNumber,
+          customer: formData.customer,
+          customerEmail: formData.email,
+          customerPhone: formData.contact,
+          itemCount: formData.items.length,
+          items: formData.items,
+          totalAmount: orderData.totalAmount || 0,
+          preferredDate: formData.preferredDate,
+          preferredTime: formData.preferredTime,
+          address: formData.address
+        }
+      };
+
+      await fetch('http://localhost:5001/api/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(notificationData)
+      });
+
+      console.log(`📋 Approval notification sent to admin/cashier for order ${orderData.orderNumber}`);
+    } catch (error) {
+      console.error('Failed to send approval notifications:', error);
+      showWarning('Notification Warning', 'Order submitted, but approval notifications may have failed');
+    }
+  };
+
   // Get all available warehouses from inventory
   const getAvailableWarehouses = () => {
     const warehouses = new Set(inventory.map(item => item.warehouse || 'main_warehouse'));
@@ -356,9 +594,16 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate phone number
-    if (formData.contact.length !== 12) { // +94 + 9 digits = 12 characters
-      showError('Invalid Phone Number', 'Please enter a complete 9-digit mobile number.');
+    // Validate phone number - ensure +94 and 9 digits
+    if (!formData.contact.startsWith('+94') || formData.contact.length !== 12) {
+      showError('Invalid Phone Number', 'Phone number must be in format +94XXXXXXXXX (9 digits after +94)');
+      return;
+    }
+
+    // Validate that the 9 digits after +94 are all numeric
+    const phoneDigits = formData.contact.substring(3);
+    if (!/^\d{9}$/.test(phoneDigits)) {
+      showError('Invalid Phone Number', 'Please enter exactly 9 digits after +94 (e.g., +94771234567)');
       return;
     }
 
@@ -376,6 +621,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
     if (!validateTimeSlot(formData.preferredTime)) {
       return;
+    }
+
+    // Check for delivery conflicts and auto-adjust if needed
+    let finalDeliveryDate = formData.preferredDate;
+    const existingDeliveries = await checkDeliveriesForDate(finalDeliveryDate);
+
+    if (existingDeliveries >= 10) { // If too many deliveries on selected date
+      showWarning('Delivery Date Adjusted', `Selected date has ${existingDeliveries} deliveries. Finding next available date...`);
+      finalDeliveryDate = await findNextAvailableDeliveryDate();
+
+      // Update form data with new date
+      setFormData(prev => ({
+        ...prev,
+        preferredDate: finalDeliveryDate
+      }));
+
+      showSuccess('Date Updated', `Delivery date automatically adjusted to ${new Date(finalDeliveryDate).toLocaleDateString()} to avoid conflicts.`);
     }
 
     setLoading(true);
@@ -423,10 +685,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         },
         delivery: {
           method: 'delivery',
-          estimatedDate: formData.preferredDate
+          estimatedDate: finalDeliveryDate
         },
         paymentMethod: 'cash',
-        status: formData.status, // Include order status
+        status: userRole === 'customer' ? 'Pending Approval' : formData.status, // Customer orders need approval
         notes: userRole === 'customer'
           ? `Customer: ${formData.customer}, Contact: ${formData.contact}`
           : `Customer: ${formData.customer}, Contact: ${formData.contact}, Preferred delivery: ${formData.preferredDate} at ${formData.preferredTime}`
@@ -439,8 +701,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      // Send to enhanced backend endpoint for automatic warehouse splitting and notifications
-      const response = await fetch('http://localhost:5001/api/enhanced/orders/create-with-integration', {
+      // Send to basic orders endpoint that works with standalone MongoDB
+      const response = await fetch('http://localhost:5001/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -455,10 +717,20 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         // Refresh orders from backend to get the actual created order
         await fetchOrders();
 
-        setShowCreateModal(false);
+        // Send notifications based on user role and order status
+        if (userRole === 'customer') {
+          // For customer orders, notify admin/cashier for approval
+          await sendApprovalNotifications(result.data, formData);
+          showSuccess('Order Submitted', `Order submitted for approval! Order ID: ${result.data?.orderNumber || 'Generated'}. You will be notified once approved.`);
+        } else {
+          // For admin/cashier orders, send warehouse notifications directly
+          await sendWarehouseNotifications(result.data, formData);
+          showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+        }
+
+        setShowInlineForm(false);
         setSelectedOrder(null);
-        setFormData(defaultFormData);
-        showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+        await resetFormWithAutoDeliveryDate();
 
         // Navigate to delivery calendar for scheduling if it's a new order and user is not customer
         if (!selectedOrder && userRole !== 'customer') {
@@ -498,7 +770,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       preferredDate: order.preferredDate,
       preferredTime: order.preferredTime
     });
-    setShowCreateModal(true);
+    setShowInlineForm(true);
   };
 
   const filteredOrders = orders.filter(order => {
@@ -572,7 +844,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       preferredDate: order.preferredDate,
       preferredTime: order.preferredTime
     });
-    setShowCreateModal(true);
+    setShowInlineForm(true);
   };
 
   const handleFeedback = (order: Order) => {
@@ -626,7 +898,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       if (response.ok && result.success) {
         console.log('✅ Approval successful');
         await fetchOrders(); // Refresh orders list
-        showSuccess('Order Approved', 'Order has been approved and confirmed successfully.');
+
+        // Send warehouse notifications after approval
+        const approvedOrder = orders.find(o => o.id === orderId);
+        if (approvedOrder) {
+          await sendWarehouseNotifications(result.data || approvedOrder, {
+            customer: approvedOrder.customer,
+            email: approvedOrder.email || '',
+            contact: approvedOrder.contact,
+            address: approvedOrder.address,
+            items: approvedOrder.items,
+            status: 'Confirmed',
+            preferredDate: approvedOrder.preferredDate,
+            preferredTime: approvedOrder.preferredTime
+          });
+        }
+
+        showSuccess('Order Approved', 'Order has been approved and warehouses have been notified successfully.');
       } else {
         console.error('❌ Approval failed:', result);
         throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
@@ -839,13 +1127,11 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                onClick={() => {
+                onClick={async () => {
+                  if (!showInlineForm) {
+                    await setupNewOrderForm();
+                  }
                   setShowInlineForm(!showInlineForm);
-                  setSelectedOrder(null);
-                  setFormData({
-                    ...defaultFormData,
-                    email: user?.email || ''
-                  });
                 }}
                 className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl
                            hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl
@@ -855,25 +1141,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 {showInlineForm ? 'Hide Form' : (userRole === 'customer' ? 'Place Order' : 'Create Order')}
               </motion.button>
 
-              <motion.button
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-                onClick={() => {
-                  setShowCreateModal(true);
-                  setSelectedOrder(null);
-                  setFormData({
-                    ...defaultFormData,
-                    email: user?.email || ''
-                  });
-                }}
-                className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg sm:rounded-xl
-                           hover:from-green-600 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl
-                           focus:outline-none focus:ring-2 focus:ring-green-500/20 w-full sm:w-auto justify-center text-sm sm:text-base font-medium"
-              >
-                <PlusIcon size={18} className="mr-2" />
-                Modal Form
-              </motion.button>
+
             </div>
           )}
         </motion.div>
@@ -964,35 +1232,62 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         value={formData.customer}
                         onChange={handleInputChange}
                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        placeholder="Enter customer name"
+                        placeholder={userRole === 'customer' ? user?.fullName || user?.name || "Your name" : "Enter customer name"}
+                        disabled={userRole === 'customer' && formData.customer === (user?.fullName || user?.name)}
                       />
+                      {userRole === 'customer' && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Ordering as: {user?.fullName || user?.name || user?.email}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email Address
+                        Email Address {userRole === 'customer' && <span className="text-red-500">*</span>}
                       </label>
                       <input
                         type="email"
                         name="email"
+                        required={userRole === 'customer'}
                         value={formData.email}
                         onChange={handleInputChange}
                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        placeholder="customer@example.com"
+                        placeholder={userRole === 'customer' ? user?.email || "your@email.com" : "customer@example.com"}
+                        disabled={userRole === 'customer' && formData.email === user?.email}
                       />
+                      {userRole === 'customer' && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                          Using your registered email: {user?.email}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         Contact Number <span className="text-red-500">*</span>
                       </label>
-                      <input
-                        type="tel"
-                        name="contact"
-                        required
-                        value={formData.contact}
-                        onChange={handleInputChange}
-                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                        placeholder="+94771234567"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-medium text-sm z-10">
+                          +94
+                        </span>
+                        <input
+                          type="tel"
+                          name="contact"
+                          required
+                          value={formData.contact.startsWith('+94') ? formData.contact.substring(3) : formData.contact}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '');
+                            if (value.length <= 9) {
+                              setFormData(prev => ({ ...prev, contact: '+94' + value }));
+                            }
+                          }}
+                          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white pl-12 pr-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          placeholder="771234567"
+                          maxLength={9}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Enter 9 digits after +94 (e.g., 771234567) {userRole === 'customer' && user?.phone ? `• Current: ${user.phone}` : ''}
+                      </p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1011,12 +1306,163 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                   </div>
                 </div>
 
-                {/* Order Items */}
+                {/* Order Items with Category Browser */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-green-500" />
-                    Order Items
-                  </h4>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                      <Package className="w-5 h-5 text-green-500" />
+                      Order Items
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowItemBrowser(!showItemBrowser)}
+                      className="flex items-center gap-2 px-3 py-2 bg-green-500 hover:bg-green-600 text-white text-sm rounded-lg transition-colors duration-200"
+                    >
+                      <Package className="w-4 h-4" />
+                      Browse Items by Category
+                    </button>
+                  </div>
+
+
+
+                  {/* Item Browser Modal */}
+                  {showItemBrowser && (
+                    <div className="mb-6 border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-white dark:bg-gray-800">
+                      <div className="flex items-center justify-between mb-4">
+                        <h5 className="font-medium text-gray-900 dark:text-white">Browse Available Items</h5>
+                        <button
+                          type="button"
+                          onClick={() => setShowItemBrowser(false)}
+                          className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      {/* Category Filter */}
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Filter by Category
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedCategory('all')}
+                            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCategory === 'all'
+                              ? 'bg-blue-500 text-white'
+                              : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                              }`}
+                          >
+                            📦 All Items
+                          </button>
+                          {getAvailableCategories().map(category => (
+                            <button
+                              key={category}
+                              type="button"
+                              onClick={() => setSelectedCategory(category)}
+                              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedCategory === category
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                                }`}
+                            >
+                              {getCategoryIcon(category)} {category}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Search Bar */}
+                      <div className="mb-4">
+                        <input
+                          type="text"
+                          placeholder="Search items..."
+                          value={itemSearchTerm}
+                          onChange={(e) => setItemSearchTerm(e.target.value)}
+                          className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
+
+                      {/* Items Grid */}
+                      <div className="max-h-64 overflow-y-auto">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {getFilteredInventory().map((inventoryItem, idx) => {
+                            const availableStock = inventoryItem.current_stock || inventoryItem.quantity || 0;
+                            const unit = inventoryItem.unit || 'pcs';
+
+                            return (
+                              <div
+                                key={idx}
+                                className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                              >
+                                <div className="flex items-center gap-2 mb-2">
+                                  <span className="text-lg">{getCategoryIcon(inventoryItem.category || 'uncategorized')}</span>
+                                  <div className="flex-1">
+                                    <div className="font-medium text-gray-900 dark:text-white text-sm">{inventoryItem.name}</div>
+                                    <div className="text-xs text-gray-600 dark:text-gray-400">
+                                      {inventoryItem.warehouse || 'main_warehouse'} • {inventoryItem.category || 'uncategorized'}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-medium text-green-600 dark:text-green-400">
+                                    Stock: {availableStock} {unit}
+                                  </span>
+                                  {availableStock > 0 && (
+                                    <span className="text-xs px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded">
+                                      Available
+                                    </span>
+                                  )}
+                                </div>
+
+                                {availableStock > 0 ? (
+                                  <div className="grid grid-cols-3 gap-1">
+                                    {[1, Math.ceil(availableStock / 4), Math.ceil(availableStock / 2)].filter(qty => qty <= availableStock).map(qty => (
+                                      <button
+                                        key={qty}
+                                        type="button"
+                                        onClick={() => {
+                                          const newItem = {
+                                            name: inventoryItem.name,
+                                            quantity: qty,
+                                            warehouse: inventoryItem.warehouse || 'main_warehouse',
+                                            category: inventoryItem.category || 'uncategorized',
+                                            unit: inventoryItem.unit || 'pcs'
+                                          };
+                                          setFormData(prev => ({
+                                            ...prev,
+                                            items: [...prev.items, newItem]
+                                          }));
+                                        }}
+                                        className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                                      >
+                                        +{qty}
+                                      </button>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled
+                                    className="w-full px-2 py-1 text-xs bg-gray-300 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded cursor-not-allowed"
+                                  >
+                                    Out of Stock
+                                  </button>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        {getFilteredInventory().length === 0 && (
+                          <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+                            No items found matching your criteria
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Selected Items */}
                   {formData.items.map((item, index) => (
                     <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4 bg-white dark:bg-gray-800">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1024,27 +1470,76 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Item Name <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="text"
-                            value={item.name}
-                            onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            placeholder="Enter item name"
-                            required
-                          />
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg">{getCategoryIcon(item.category || 'uncategorized')}</span>
+                            <input
+                              type="text"
+                              value={item.name}
+                              onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                              className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              placeholder="Enter item name"
+                              required
+                            />
+                          </div>
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Quantity <span className="text-red-500">*</span>
                           </label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
-                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                            required
-                          />
+                          {(() => {
+                            const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+                            const availableStock = inventoryItem?.current_stock || inventoryItem?.quantity || 0;
+                            const unit = inventoryItem?.unit || 'pcs';
+
+                            return (
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <input
+                                    type="number"
+                                    min="0.1"
+                                    step="0.1"
+                                    value={item.quantity}
+                                    onChange={(e) => {
+                                      const value = parseFloat(e.target.value) || 0;
+                                      handleItemChange(index, 'quantity', value.toString());
+                                    }}
+                                    className="flex-1 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    placeholder="0"
+                                    required
+                                  />
+                                  <span className="text-sm text-gray-500 dark:text-gray-400 font-medium min-w-[40px]">
+                                    {unit}
+                                  </span>
+                                </div>
+                                {inventoryItem && (
+                                  <div className="mt-1 flex items-center justify-between text-xs">
+                                    <span className="text-gray-500 dark:text-gray-400">
+                                      Available: {availableStock} {unit}
+                                    </span>
+                                    {availableStock > 0 && (
+                                      <div className="flex gap-1">
+                                        {[1, 5, 10, availableStock < 25 ? availableStock : 25].filter((qty, idx, arr) => qty <= availableStock && arr.indexOf(qty) === idx).map(qty => (
+                                          <button
+                                            key={qty}
+                                            type="button"
+                                            onClick={() => handleItemChange(index, 'quantity', qty.toString())}
+                                            className="px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                          >
+                                            {qty}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                {inventoryItem && parseFloat(item.quantity) > availableStock && (
+                                  <p className="text-xs text-red-500 mt-1">
+                                    ⚠️ Requested quantity exceeds available stock ({availableStock} {unit})
+                                  </p>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="flex items-end">
                           <button
@@ -1057,6 +1552,11 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           </button>
                         </div>
                       </div>
+                      {item.warehouse && (
+                        <div className="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                          Warehouse: {item.warehouse} • Category: {item.category || 'uncategorized'}
+                        </div>
+                      )}
                     </div>
                   ))}
 
@@ -1066,7 +1566,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
                   >
                     <Plus className="w-4 h-4" />
-                    Add Item
+                    Add Item Manually
                   </button>
                 </div>
 
@@ -1085,10 +1585,20 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                         type="date"
                         name="preferredDate"
                         value={formData.preferredDate}
-                        onChange={handleInputChange}
+                        onChange={(e) => handleDateChange(e.target.value)}
                         min={new Date().toISOString().split('T')[0]}
                         className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                       />
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          📅 Auto-set to 3 days from now. May adjust if busy.
+                        </p>
+                        {currentDateDeliveryCount > 0 && (
+                          <p className="text-xs text-orange-600 dark:text-orange-400">
+                            🚚 {currentDateDeliveryCount} deliveries scheduled
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -1133,9 +1643,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
                   <button
                     type="button"
-                    onClick={() => {
+                    onClick={async () => {
                       setShowInlineForm(false);
-                      setFormData(defaultFormData);
+                      await resetFormWithAutoDeliveryDate();
                     }}
                     className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200"
                   >
@@ -1311,7 +1821,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 </p>
                 {orders.length === 0 && userRole !== 'customer' && (
                   <button
-                    onClick={() => setShowCreateModal(true)}
+                    onClick={async () => {
+                      await setupNewOrderForm();
+                      setShowInlineForm(true);
+                    }}
                     className="bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                   >
                     Create First Order
@@ -1448,7 +1961,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     </p>
                     {orders.length === 0 && userRole !== 'customer' && (
                       <button
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={async () => {
+                          await setupNewOrderForm();
+                          setShowInlineForm(true);
+                        }}
                         className="bg-[#FF6B35] hover:bg-[#FF6B35]/90 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
                       >
                         Create First Order
@@ -1823,369 +2339,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
             </>
           )}
         </div>
-        {/* Create/Edit Order Modal - Responsive */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto transition-all duration-300 mx-auto">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    {selectedOrder ? 'Edit Order' : 'Create New Order'}
-                  </h2>
-                  <p className="text-gray-600 dark:text-gray-400 text-sm mt-1">
-                    {selectedOrder ? 'Update order details and save changes' : 'Fill in the details to create a new order'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setSelectedOrder(null);
-                    setFormData(defaultFormData);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
-                >
-                  <XIcon size={20} />
-                </button>
-              </div>
-              <div className="p-6">
-                <form onSubmit={handleSubmit} className="space-y-8">
-                  {/* Enhanced Header */}
-                  <div className="text-center pb-6 border-b border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-center gap-3 mb-3">
-                      <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-                        <PlusIcon className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                          {selectedOrder ? 'Edit Order' : 'Create New Order'}
-                        </h2>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          Smart category-based material selection across all warehouses
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  {/* Modern Customer Information */}
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-2xl p-6 border border-blue-200 dark:border-blue-800 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-blue-600 rounded-lg">
-                        <User className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                        Customer Information
-                      </h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          <span className="text-red-500">*</span>
-                          Customer Name
-                        </label>
-                        <input
-                          type="text"
-                          name="customer"
-                          required
-                          value={formData.customer}
-                          onChange={handleInputChange}
-                          placeholder="W.A. Saman Kumara Perera"
-                          className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 px-4 py-3 text-sm font-medium"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          Email Address
-                        </label>
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          placeholder="customer@example.com"
-                          className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 transition-all duration-300 px-4 py-3 text-sm font-medium"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          <span className="text-red-500">*</span>
-                          Mobile Number
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400 font-bold text-sm z-10">
-                            +94
-                          </span>
-                          <input
-                            type="tel"
-                            name="contact"
-                            required
-                            value={formData.contact.startsWith('+94') ? formData.contact.substring(3) : formData.contact}
-                            onChange={e => {
-                              const value = e.target.value.replace(/\D/g, '');
-                              if (value.length <= 9) {
-                                setFormData(prev => ({ ...prev, contact: '+94' + value }));
-                              }
-                            }}
-                            placeholder="77 123 4567"
-                            maxLength={9}
-                            className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20 pl-14 pr-4 py-3 text-sm font-medium transition-all duration-300"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Modern Delivery Address */}
-                  <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 border border-green-200 dark:border-green-800 shadow-sm">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-2 bg-green-600 rounded-lg">
-                        <MapPin className="w-5 h-5 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                        Delivery Information
-                      </h3>
-                    </div>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                          <span className="text-red-500">*</span>
-                          Complete Delivery Address
-                        </label>
-                        <textarea
-                          name="address"
-                          required
-                          rows={4}
-                          value={formData.address}
-                          onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                          placeholder="Please provide complete address including house number, street name, city, and postal code.&#10;Example: No. 123, Galle Road, Bambalapitiya, Colombo 04"
-                          className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-green-500 focus:ring-4 focus:ring-green-500/20 resize-none px-4 py-3 text-sm font-medium transition-all duration-300"
-                        />
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Revolutionary Category-Based Material Selection */}
-                  <div className="bg-gradient-to-br from-purple-50 via-blue-50 to-green-50 dark:from-purple-900/20 dark:via-blue-900/20 dark:to-green-900/20 rounded-3xl p-8 border-2 border-purple-200 dark:border-purple-800 shadow-xl">
-                    <div className="flex items-center gap-4 mb-8">
-                      <div className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl">
-                        <Package className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-                          Smart Material Selection
-                        </h3>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                          Choose materials by category for intelligent warehouse distribution
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Category Grid Selection */}
-                    <div className="mb-8">
-                      <h4 className="text-lg font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-                        <span className="text-purple-600">📂</span>
-                        Available Categories
-                      </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
-                        {Array.from(new Set(inventory.map(item => item.category)))
-                          .sort()
-                          .map(category => {
-                            const categoryIcon = getCategoryIcon(category);
-                            const categoryItems = inventory.filter(item => item.category === category);
-
-                            return (
-                              <div
-                                key={category}
-                                className="bg-white dark:bg-gray-800 rounded-xl p-4 border-2 border-gray-200 dark:border-gray-600 hover:border-purple-400 dark:hover:border-purple-500 transition-all duration-300 cursor-pointer group shadow-md hover:shadow-lg"
-                              >
-                                <div className="text-center">
-                                  <div className="text-3xl mb-2 group-hover:scale-110 transition-transform duration-300">
-                                    {categoryIcon}
-                                  </div>
-                                  <h5 className="font-bold text-gray-900 dark:text-white text-sm mb-1 capitalize">
-                                    {category}
-                                  </h5>
-                                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                                    {categoryItems.length} items
-                                  </p>
-                                </div>
-                              </div>
-                            );
-                          })
-                        }
-                      </div>
-                    </div>
-
-                    {/* Enhanced Item Cards */}
-                    <div className="space-y-6">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xl font-bold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                          <ShoppingCart className="w-5 h-5 text-purple-600" />
-                          Order Items ({formData.items.length})
-                        </h4>
-                        <button
-                          type="button"
-                          onClick={addItem}
-                          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-1"
-                        >
-                          <Plus className="w-4 h-4" />
-                          Add Material
-                        </button>
-                      </div>
-
-                      {formData.items.map((item, index) => {
-                        const selectedItem = inventory.find(invItem => invItem.name === item.name);
-
-                        return (
-                          <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-                            {/* Enhanced Header */}
-                            <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-green-600 p-4">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-white/20 rounded-lg">
-                                    {selectedItem ? getCategoryIcon(selectedItem.category) : '📦'}
-                                  </div>
-                                  <div>
-                                    <h5 className="text-white font-bold text-lg">
-                                      Item #{index + 1}
-                                    </h5>
-                                    <p className="text-white/80 text-sm">
-                                      {selectedItem ? `${selectedItem.category} • ${getWarehouseDisplayName(selectedItem.warehouse)}` : 'Select a material'}
-                                    </p>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => removeItem(index)}
-                                  className="p-2 bg-red-500/20 hover:bg-red-500 rounded-lg text-white hover:scale-110 transition-all duration-200"
-                                  title="Remove Item"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="p-6 space-y-6">
-                              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                {/* Material Selection with Category Grouping */}
-                                <div className="md:col-span-2 space-y-3">
-                                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-                                    <Package className="w-4 h-4" />
-                                    Select Material *
-                                  </label>
-                                  <select
-                                    required
-                                    value={item.name}
-                                    onChange={(e) => handleItemChange(index, 'name', e.target.value)}
-                                    data-material-select
-                                    className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 px-4 py-3 transition-all duration-300 font-medium"
-                                  >
-                                    <option value="" className="text-gray-500">Choose a material...</option>
-                                    {Array.from(new Set(inventory.map(invItem => invItem.category)))
-                                      .sort()
-                                      .map(category => {
-                                        const categoryIcon = getCategoryIcon(category);
-                                        return (
-                                          <optgroup key={category} label={`${categoryIcon} ${category.toUpperCase()}`}>
-                                            {inventory
-                                              .filter(invItem => invItem.category === category)
-                                              .map((invItem) => (
-                                                <option key={invItem._id} value={invItem.name} className="font-normal">
-                                                  {invItem.name} • {getWarehouseDisplayName(invItem.warehouse)} • {invItem.unit}
-                                                </option>
-                                              ))
-                                            }
-                                          </optgroup>
-                                        );
-                                      })
-                                    }
-                                  </select>
-
-                                  {/* Material Info Display */}
-                                  {selectedItem && (
-                                    <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl">
-                                      <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-blue-600 dark:text-blue-400 font-bold">Category:</span>
-                                          <span className="font-medium text-gray-800 dark:text-gray-200">{selectedItem.category}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-green-600 dark:text-green-400 font-bold">Warehouse:</span>
-                                          <span className="font-medium text-gray-800 dark:text-gray-200">{getWarehouseDisplayName(selectedItem.warehouse)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                          <span className="text-purple-600 dark:text-purple-400 font-bold">Unit:</span>
-                                          <span className="font-medium text-gray-800 dark:text-gray-200">{selectedItem.unit}</span>
-                                        </div>
-
-                                      </div>
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Quantity Input */}
-                                <div className="space-y-3">
-                                  <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
-                                    <span className="text-red-500">*</span>
-                                    Quantity {selectedItem && `(${selectedItem.unit})`}
-                                  </label>
-                                  <div className="relative">
-                                    <input
-                                      type="number"
-                                      required
-                                      min="0.1"
-                                      step="0.1"
-                                      value={item.quantity}
-                                      onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                                      className="w-full rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white focus:border-purple-500 focus:ring-4 focus:ring-purple-500/20 px-4 py-3 text-center text-lg font-bold transition-all duration-300"
-                                      placeholder="0"
-                                    />
-                                    {selectedItem && (
-                                      <span className="absolute right-4 top-1/2 transform -translate-y-1/2 text-sm text-gray-500 dark:text-gray-400 font-medium">
-                                        {selectedItem.unit}
-                                      </span>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Enhanced Form Actions */}
-                  <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200 dark:border-gray-600">
-                    <button
-                      type="button"
-                      onClick={() => setShowCreateModal(false)}
-                      className="flex-1 py-3 px-6 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2"
-                    >
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={loading || formData.items.length === 0}
-                      className="flex-1 py-3 px-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white rounded-xl font-semibold transition-all duration-300 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-1 disabled:transform-none disabled:shadow-none"
-                    >
-                      {loading ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          Creating Order...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          {editingOrder ? 'Update Order' : 'Create Order'}
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Beautiful Delete Confirmation Modal */}
         {showDeleteModal && (
