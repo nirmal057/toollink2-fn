@@ -46,6 +46,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
   // Additional state for the form modal
   const [showForm, setShowForm] = useState(false);
+  const [showInlineForm, setShowInlineForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   // Calculate available warehouses
@@ -833,25 +834,47 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           </div>
 
           {(userRole === 'customer' || ['admin', 'cashier'].includes(userRole)) && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              onClick={() => {
-                setShowCreateModal(true);
-                setSelectedOrder(null);
-                setFormData({
-                  ...defaultFormData,
-                  email: user?.email || ''
-                });
-              }}
-              className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl
-                         hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl
-                         focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full sm:w-auto justify-center text-sm sm:text-base font-medium"
-            >
-              <PlusIcon size={18} className="mr-2" />
-              {userRole === 'customer' ? 'Place Order' : 'Create Order'}
-            </motion.button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3 }}
+                onClick={() => {
+                  setShowInlineForm(!showInlineForm);
+                  setSelectedOrder(null);
+                  setFormData({
+                    ...defaultFormData,
+                    email: user?.email || ''
+                  });
+                }}
+                className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl
+                           hover:from-blue-600 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl
+                           focus:outline-none focus:ring-2 focus:ring-blue-500/20 w-full sm:w-auto justify-center text-sm sm:text-base font-medium"
+              >
+                <PlusIcon size={18} className="mr-2" />
+                {showInlineForm ? 'Hide Form' : (userRole === 'customer' ? 'Place Order' : 'Create Order')}
+              </motion.button>
+
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+                onClick={() => {
+                  setShowCreateModal(true);
+                  setSelectedOrder(null);
+                  setFormData({
+                    ...defaultFormData,
+                    email: user?.email || ''
+                  });
+                }}
+                className="flex items-center px-4 sm:px-6 py-2.5 sm:py-3 bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-lg sm:rounded-xl
+                           hover:from-green-600 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl
+                           focus:outline-none focus:ring-2 focus:ring-green-500/20 w-full sm:w-auto justify-center text-sm sm:text-base font-medium"
+              >
+                <PlusIcon size={18} className="mr-2" />
+                Modal Form
+              </motion.button>
+            </div>
           )}
         </motion.div>
 
@@ -901,6 +924,238 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 </div>
               </div>
             )}
+          </motion.div>
+        )}
+
+        {/* Inline Order Form */}
+        {showInlineForm && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden"
+          >
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+              <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                <PlusIcon className="w-6 h-6" />
+                {userRole === 'customer' ? 'Place New Order' : 'Create New Order'}
+              </h3>
+              <p className="text-blue-100 mt-1">Fill in the details below to create your order</p>
+            </div>
+
+            <div className="p-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Customer Information */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <User className="w-5 h-5 text-blue-500" />
+                    Customer Information
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Customer Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="customer"
+                        required
+                        value={formData.customer}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter customer name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Email Address
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="customer@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Contact Number <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        name="contact"
+                        required
+                        value={formData.contact}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="+94771234567"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Delivery Address <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="address"
+                        required
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter delivery address"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Items */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <Package className="w-5 h-5 text-green-500" />
+                    Order Items
+                  </h4>
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-4 mb-4 bg-white dark:bg-gray-800">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Item Name <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={item.name}
+                            onChange={(e) => handleItemChange(index, 'name', e.target.value)}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            placeholder="Enter item name"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Quantity <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                            className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            required
+                          />
+                        </div>
+                        <div className="flex items-end">
+                          <button
+                            type="button"
+                            onClick={() => removeItem(index)}
+                            disabled={formData.items.length === 1}
+                            className="w-full bg-red-500 hover:bg-red-600 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                          >
+                            <Trash2 className="w-4 h-4 mx-auto" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={addItem}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors duration-200"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Item
+                  </button>
+                </div>
+
+                {/* Delivery Preferences */}
+                <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <CalendarIcon className="w-5 h-5 text-purple-500" />
+                    Delivery Preferences
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Preferred Date
+                      </label>
+                      <input
+                        type="date"
+                        name="preferredDate"
+                        value={formData.preferredDate}
+                        onChange={handleInputChange}
+                        min={new Date().toISOString().split('T')[0]}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Preferred Time
+                      </label>
+                      <select
+                        name="preferredTime"
+                        value={formData.preferredTime}
+                        onChange={handleInputChange}
+                        className="w-full rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white px-3 py-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      >
+                        <option value="09:00">9:00 AM</option>
+                        <option value="10:00">10:00 AM</option>
+                        <option value="11:00">11:00 AM</option>
+                        <option value="14:00">2:00 PM</option>
+                        <option value="15:00">3:00 PM</option>
+                        <option value="16:00">4:00 PM</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200 dark:border-gray-600">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg font-medium transition-all duration-200 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        {userRole === 'customer' ? 'Place Order' : 'Create Order'}
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInlineForm(false);
+                      setFormData(defaultFormData);
+                    }}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white rounded-lg font-medium transition-all duration-200"
+                  >
+                    <X className="w-4 h-4" />
+                    Cancel
+                  </button>
+                </div>
+
+                {/* Error Display */}
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                      <AlertTriangleIcon className="w-5 h-5" />
+                      <span className="font-medium">Error</span>
+                    </div>
+                    <p className="text-red-600 dark:text-red-400 mt-1">{error}</p>
+                  </div>
+                )}
+              </form>
+            </div>
           </motion.div>
         )}
 
