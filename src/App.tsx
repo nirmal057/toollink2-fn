@@ -12,7 +12,7 @@ import QuickAddInventory from './pages/QuickAddInventory';
 import DriverPortal from './pages/DriverPortal';
 import DriverManagement from './pages/DriverManagement';
 import DeliveryCalendar from './pages/DeliveryCalendar';
-import DeliveryManagement from './pages/DeliveryManagement';
+import DeliveryManagementSystem from './pages/DeliveryManagementSystem';
 import Reports from './pages/Reports';
 import Feedback from './pages/Feedback';
 import ContactPage from './pages/ContactPage';
@@ -157,12 +157,22 @@ function AppRoutes() {
             element={<DriverPortal />}
           />
 
-          {/* Delivery Management - accessible by admin, warehouse, cashier, and customers */}
+          {/* Delivery Management System - accessible by admin, warehouse, cashier, drivers, and customers */}
           <Route
             path="/deliveries"
             element={
-              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.CUSTOMER]} fallback={<Unauthorized />}>
-                <DeliveryManagement userRole={user.role} />
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.DRIVER, ROLES.CUSTOMER]} fallback={<Unauthorized />}>
+                <DeliveryManagementSystem userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* Alternative delivery management route */}
+          <Route
+            path="/delivery-management"
+            element={
+              <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.DRIVER, ROLES.CUSTOMER]} fallback={<Unauthorized />}>
+                <DeliveryManagementSystem userRole={user.role} />
               </RoleGuard>
             }
           />
