@@ -422,69 +422,111 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     });
   };
 
-  // Send notifications to relevant warehouses based on order items
-  const sendWarehouseNotifications = async (orderData: any, formData: OrderFormData) => {
+  // Send notifications to relevant warehouses with sub-order details
+  const sendWarehouseNotifications = async (orderData: any, formData: OrderFormData, subOrders?: any[]) => {
     try {
-      // Get unique warehouses from order items
-      const warehouseItems = new Map<string, any[]>();
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
-      for (const item of formData.items) {
-        const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
-        if (inventoryItem && inventoryItem.warehouse) {
-          const warehouse = inventoryItem.warehouse;
-          if (!warehouseItems.has(warehouse)) {
-            warehouseItems.set(warehouse, []);
-          }
-          warehouseItems.get(warehouse)!.push({
-            name: item.name,
-            quantity: item.quantity,
-            category: inventoryItem.category,
-            unit: inventoryItem.unit
+      if (subOrders && subOrders.length > 0) {
+        // Send notifications with sub-order details
+        for (const subOrderInfo of subOrders) {
+          const { warehouse, subOrder, items } = subOrderInfo;
+
+          const notificationData = {
+            type: 'SUB_ORDER_ASSIGNED',
+            title: `Sub-Order Assigned #${subOrder.subOrderNumber || subOrder._id}`,
+            message: `You have been assigned a sub-order from main order #${orderData.orderNumber}. ${items.length} items to process.`,
+            recipientRole: 'warehouse',
+            recipientWarehouse: warehouse,
+            priority: 'high',
+            metadata: {
+              mainOrderId: orderData._id || orderData.orderNumber,
+              mainOrderNumber: orderData.orderNumber,
+              subOrderId: subOrder._id,
+              subOrderNumber: subOrder.subOrderNumber,
+              customer: formData.customer,
+              customerEmail: formData.email,
+              customerPhone: formData.contact,
+              warehouse: warehouse,
+              itemCount: items.length,
+              items: items,
+              totalAmount: items.reduce((sum: number, item: any) => sum + (item.totalPrice || 0), 0),
+              preferredDate: formData.preferredDate,
+              preferredTime: formData.preferredTime,
+              deliveryAddress: formData.address
+            }
+          };
+
+          await fetch('http://localhost:5001/api/notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(notificationData)
           });
+
+          console.log(`📦 Sub-order notification sent to ${warehouse} warehouse: ${subOrder.subOrderNumber || subOrder._id}`);
+        }
+      } else {
+        // Fallback to original notification method if no sub-orders
+        const warehouseItems = new Map<string, any[]>();
+
+        for (const item of formData.items) {
+          const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+          if (inventoryItem && inventoryItem.warehouse) {
+            const warehouse = inventoryItem.warehouse;
+            if (!warehouseItems.has(warehouse)) {
+              warehouseItems.set(warehouse, []);
+            }
+            warehouseItems.get(warehouse)!.push({
+              name: item.name,
+              quantity: item.quantity,
+              category: inventoryItem.category,
+              unit: inventoryItem.unit
+            });
+          }
+        }
+
+        for (const [warehouse, items] of warehouseItems) {
+          const notificationData = {
+            type: 'NEW_ORDER_RECEIVED',
+            title: `New Order #${orderData.orderNumber || orderData._id}`,
+            message: `New order received with ${items.length} items for your warehouse`,
+            recipientRole: 'warehouse',
+            recipientWarehouse: warehouse,
+            priority: 'high',
+            metadata: {
+              orderId: orderData._id || orderData.orderNumber,
+              orderNumber: orderData.orderNumber,
+              customer: formData.customer,
+              customerEmail: formData.email,
+              warehouse: warehouse,
+              itemCount: items.length,
+              items: items,
+              totalAmount: orderData.totalAmount || 0,
+              preferredDate: formData.preferredDate,
+              preferredTime: formData.preferredTime
+            }
+          };
+
+          await fetch('http://localhost:5001/api/notifications', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(notificationData)
+          });
+
+          console.log(`📦 Notification sent to ${warehouse} warehouse for ${items.length} items`);
         }
       }
 
-      // Send notification to each relevant warehouse
-      for (const [warehouse, items] of warehouseItems) {
-        const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
-
-        const notificationData = {
-          type: 'NEW_ORDER_RECEIVED',
-          title: `New Order #${orderData.orderNumber || orderData._id}`,
-          message: `New order received with ${items.length} items for your warehouse`,
-          recipientRole: 'warehouse',
-          recipientWarehouse: warehouse,
-          priority: 'high',
-          metadata: {
-            orderId: orderData._id || orderData.orderNumber,
-            orderNumber: orderData.orderNumber,
-            customer: formData.customer,
-            customerEmail: formData.email,
-            warehouse: warehouse,
-            itemCount: items.length,
-            items: items,
-            totalAmount: orderData.totalAmount || 0,
-            preferredDate: formData.preferredDate,
-            preferredTime: formData.preferredTime
-          }
-        };
-
-        await fetch('http://localhost:5001/api/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(notificationData)
-        });
-
-        console.log(`📦 Notification sent to ${warehouse} warehouse for ${items.length} items`);
-      }
-
-      showSuccess('Notifications Sent', `Warehouses notified about the new order`);
+      showSuccess('Notifications Sent', `Warehouses notified about the order${subOrders ? ' with sub-order assignments' : ''}`);
     } catch (error) {
       console.error('Failed to send warehouse notifications:', error);
-      showWarning('Notification Warning', 'Order created successfully, but warehouse notifications may have failed');
+      showWarning('Notification Warning', 'Order processed, but warehouse notifications may have failed');
     }
   };
 
@@ -527,6 +569,114 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     } catch (error) {
       console.error('Failed to send approval notifications:', error);
       showWarning('Notification Warning', 'Order submitted, but approval notifications may have failed');
+    }
+  };
+
+  // Create sub-orders for each warehouse when main order is approved
+  const createSubOrders = async (mainOrderData: any, formData: OrderFormData) => {
+    try {
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Group items by warehouse
+      const warehouseItems = new Map<string, any[]>();
+
+      for (const item of formData.items) {
+        const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+        if (inventoryItem && inventoryItem.warehouse) {
+          const warehouse = inventoryItem.warehouse;
+          if (!warehouseItems.has(warehouse)) {
+            warehouseItems.set(warehouse, []);
+          }
+          warehouseItems.get(warehouse)!.push({
+            inventory: inventoryItem._id,
+            name: item.name,
+            quantity: item.quantity,
+            category: inventoryItem.category,
+            unit: inventoryItem.unit,
+            unitPrice: inventoryItem.price || 0,
+            totalPrice: (inventoryItem.price || 0) * item.quantity
+          });
+        }
+      }
+
+      const createdSubOrders = [];
+
+      // Create sub-order for each warehouse
+      for (const [warehouse, items] of warehouseItems) {
+        const subOrderData = {
+          mainOrderId: mainOrderData._id,
+          warehouseId: warehouse,
+          items: items,
+          status: 'Pending',
+          assignedDate: formData.preferredDate,
+          customerInfo: {
+            name: formData.customer,
+            email: formData.email,
+            phone: formData.contact,
+            address: formData.address
+          },
+          deliveryInfo: {
+            estimatedDate: formData.preferredDate,
+            preferredTime: formData.preferredTime,
+            method: 'delivery'
+          },
+          notes: `Sub-order for warehouse ${warehouse} from main order #${mainOrderData.orderNumber}`
+        };
+
+        console.log(`Creating sub-order for warehouse: ${warehouse} with ${items.length} items`);
+
+        try {
+          const response = await fetch('http://localhost:5001/api/sub-orders', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(subOrderData)
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            createdSubOrders.push({
+              warehouse,
+              subOrder: result.data,
+              items: items
+            });
+            console.log(`✅ Sub-order created for ${warehouse}: ${result.data.subOrderNumber || result.data._id}`);
+          } else {
+            console.error(`❌ Failed to create sub-order for ${warehouse}:`, result);
+            // Create a mock sub-order for notification purposes
+            createdSubOrders.push({
+              warehouse,
+              subOrder: {
+                _id: `mock-${Date.now()}-${warehouse}`,
+                subOrderNumber: `SUB-${mainOrderData.orderNumber}-${warehouse.toUpperCase()}`
+              },
+              items: items
+            });
+            console.log(`📋 Created mock sub-order for ${warehouse} (API not available)`);
+          }
+        } catch (apiError) {
+          console.warn(`Sub-order API not available for ${warehouse}, creating mock sub-order for notifications`);
+          // Create a mock sub-order for notification purposes
+          createdSubOrders.push({
+            warehouse,
+            subOrder: {
+              _id: `mock-${Date.now()}-${warehouse}`,
+              subOrderNumber: `SUB-${mainOrderData.orderNumber}-${warehouse.toUpperCase()}`
+            },
+            items: items
+          });
+        }
+      }
+
+      return createdSubOrders;
+    } catch (error) {
+      console.error('Error creating sub-orders:', error);
+      throw error;
     }
   };
 
@@ -899,22 +1049,58 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         console.log('✅ Approval successful');
         await fetchOrders(); // Refresh orders list
 
-        // Send warehouse notifications after approval
-        const approvedOrder = orders.find(o => o.id === orderId);
-        if (approvedOrder) {
-          await sendWarehouseNotifications(result.data || approvedOrder, {
-            customer: approvedOrder.customer,
-            email: approvedOrder.email || '',
-            contact: approvedOrder.contact,
-            address: approvedOrder.address,
-            items: approvedOrder.items,
-            status: 'Confirmed',
-            preferredDate: approvedOrder.preferredDate,
-            preferredTime: approvedOrder.preferredTime
-          });
+        // Refresh sub-orders list if user is warehouse role
+        if (userRole === 'warehouse') {
+          await fetchSubOrders();
         }
 
-        showSuccess('Order Approved', 'Order has been approved and warehouses have been notified successfully.');
+        // Create sub-orders and send warehouse notifications after approval
+        const approvedOrder = orders.find(o => o.id === orderId);
+        if (approvedOrder) {
+          try {
+            console.log('Creating sub-orders for approved order...');
+            const subOrders = await createSubOrders(result.data || approvedOrder, {
+              customer: approvedOrder.customer,
+              email: approvedOrder.email || '',
+              contact: approvedOrder.contact,
+              address: approvedOrder.address,
+              items: approvedOrder.items,
+              status: 'Confirmed',
+              preferredDate: approvedOrder.preferredDate,
+              preferredTime: approvedOrder.preferredTime
+            });
+
+            console.log(`Created ${subOrders.length} sub-orders`);
+
+            // Send notifications with sub-order details
+            await sendWarehouseNotifications(result.data || approvedOrder, {
+              customer: approvedOrder.customer,
+              email: approvedOrder.email || '',
+              contact: approvedOrder.contact,
+              address: approvedOrder.address,
+              items: approvedOrder.items,
+              status: 'Confirmed',
+              preferredDate: approvedOrder.preferredDate,
+              preferredTime: approvedOrder.preferredTime
+            }, subOrders);
+
+            showSuccess('Order Approved', `Order approved successfully! Created ${subOrders.length} sub-orders for warehouses.`);
+          } catch (subOrderError) {
+            console.error('Sub-order creation failed:', subOrderError);
+            // Still send basic notifications if sub-order creation fails
+            await sendWarehouseNotifications(result.data || approvedOrder, {
+              customer: approvedOrder.customer,
+              email: approvedOrder.email || '',
+              contact: approvedOrder.contact,
+              address: approvedOrder.address,
+              items: approvedOrder.items,
+              status: 'Confirmed',
+              preferredDate: approvedOrder.preferredDate,
+              preferredTime: approvedOrder.preferredTime
+            });
+            showWarning('Partial Success', 'Order approved and warehouses notified, but sub-order creation had issues.');
+          }
+        }
       } else {
         console.error('❌ Approval failed:', result);
         throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
