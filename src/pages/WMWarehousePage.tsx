@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User, MapPin, Wrench } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
-import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface SubOrderItem {
     materialId: string;
@@ -50,12 +49,28 @@ const WMWarehousePage: React.FC = () => {
         console.log('WM Warehouse - Current user:', user);
         console.log('WM Warehouse - Warehouse code:', user?.warehouseCode);
 
-        if (user && user.warehouseCode === 'WM') {
+        if (user) {
             fetchWMSubOrders();
-        } else if (user && user.warehouseCode !== 'WM') {
-            setError('Access denied. This page is only for WM (Tools & Equipment) warehouse staff.');
         }
     }, [user, filter]);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout;
+
+        if (user && !loading && !error) {
+            intervalId = setInterval(() => {
+                console.log('Auto-refreshing WM sub-orders...');
+                fetchWMSubOrders();
+            }, 30000);
+        }
+
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [user, loading, error]);
 
     const fetchWMSubOrders = async () => {
         try {
@@ -66,10 +81,15 @@ const WMWarehousePage: React.FC = () => {
             if (filter.status) params.append('status', filter.status);
             if (filter.dateRange !== 'all') params.append('dateRange', filter.dateRange);
 
-            const url = `${API_CONFIG.BASE_URL}/api/orders/sub-orders/warehouse/WM?${params}`;
-            console.log('Fetching WM sub-orders from:', url);
+            const url = `${API_CONFIG.BASE_URL}/api/orders/sub-orders/my-warehouse?${params}`;
+            console.log('Fetching warehouse sub-orders from:', url);
 
             const token = localStorage.getItem('accessToken');
+            if (!token) {
+                setError('No authentication token found. Please login again.');
+                return;
+            }
+
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -78,17 +98,23 @@ const WMWarehousePage: React.FC = () => {
             });
 
             const data = await response.json();
-            console.log('WM Response data:', data);
+            console.log('Warehouse Response data:', data);
 
             if (data.success) {
-                setSubOrders(data.subOrders || []);
-                console.log(`Found ${data.subOrders?.length || 0} sub-orders for WM warehouse`);
+                if (data.warehouseCode === 'WM' || user?.warehouseCode === 'WM' || user?.email?.includes('main_house')) {
+                    setSubOrders(data.subOrders || []);
+                    console.log(`Found ${data.subOrders?.length || 0} sub-orders for ${data.warehouseCode || 'unknown'} warehouse`);
+                } else if (data.warehouseCode && data.warehouseCode !== 'WM') {
+                    setError(`Access denied. This page is for WM (Tools & Equipment) warehouse, but you are assigned to ${data.warehouseCode} warehouse.`);
+                } else {
+                    setSubOrders(data.subOrders || []);
+                }
             } else {
-                setError(data.error || 'Failed to fetch WM sub-orders');
+                setError(data.error || 'Failed to fetch warehouse sub-orders');
             }
         } catch (err) {
-            console.error('Error fetching WM sub-orders:', err);
-            setError('Failed to connect to server');
+            console.error('Error fetching warehouse sub-orders:', err);
+            setError('Failed to connect to server. Please check your internet connection.');
         } finally {
             setLoading(false);
         }
@@ -156,6 +182,22 @@ const WMWarehousePage: React.FC = () => {
                         <div className="text-right">
                             <p className="text-sm text-gray-600 dark:text-gray-300">Warehouse Code: <span className="font-bold text-green-600">WM</span></p>
                             <p className="text-sm text-gray-600 dark:text-gray-300">User: {user?.email}</p>
+                            <button
+                                onClick={fetchWMSubOrders}
+                                disabled={loading}
+                                className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Refreshing...
+                                    </>
+                                ) : (
+                                    <>
+                                        🔄 Refresh
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -208,31 +250,7 @@ const WMWarehousePage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Warehouse Inventory Categories */}
-                {!error && user?.warehouseCode === 'WM' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                                <Package className="w-6 h-6 text-green-600 mr-2" />
-                                WM Warehouse - Inventory Category Distribution
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-300 mt-1">
-                                Your warehouse's tools, equipment and machinery categories
-                            </p>
-                        </div>
-                        <div className="p-6">
-                            <InventoryCategoryChart
-                                height={300}
-                                showControls={true}
-                                chartType="pie"
-                                className="mb-4"
-                                isAdminView={false}
-                                userRole="warehouse"
-                                userWarehouse="WM"
-                            />
-                        </div>
-                    </div>
-                )}
+
 
                 {/* Sub-Orders List */}
                 {!error && (

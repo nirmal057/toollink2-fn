@@ -19,7 +19,7 @@ import {
   TruckIcon,
   CalendarIcon,
   ClipboardListIcon,
-  MapPinIcon,
+
   WrenchIcon
 } from 'lucide-react';
 import NotificationDropdown from '../UI/NotificationDropdown';
@@ -170,18 +170,18 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
 
     // Warehouse-Specific Pages (Warehouse only - shows warehouse-specific sub-orders)
     ...(normalizedRole === 'warehouse' && user?.warehouseCode ? [{
-      to: user.warehouseCode === 'W1' ? '/warehouse/w1' :
-        user.warehouseCode === 'W2' ? '/warehouse/w2' :
-          user.warehouseCode === 'W3' ? '/warehouse/w3' :
-            user.warehouseCode === 'WM' ? '/warehouse/wm' : '/my-deliveries',
-      icon: user.warehouseCode === 'W1' ? <MapPinIcon size={20} /> :
+      to: user.warehouseCode === 'W1' ? '/warehouse/w1/sub-orders' :
+        user.warehouseCode === 'W2' ? '/warehouse/w2/sub-orders' :
+          user.warehouseCode === 'W3' ? '/warehouse/w3/sub-orders' :
+            user.warehouseCode === 'WM' ? '/warehouse/wm/sub-orders' : '/my-deliveries',
+      icon: user.warehouseCode === 'W1' ? <PackageIcon size={20} /> :
         user.warehouseCode === 'W2' ? <PackageIcon size={20} /> :
           user.warehouseCode === 'W3' ? <ShieldIcon size={20} /> :
             user.warehouseCode === 'WM' ? <WrenchIcon size={20} /> : <ClipboardListIcon size={20} />,
-      label: user.warehouseCode === 'W1' ? 'W1 - Sand & Aggregates' :
-        user.warehouseCode === 'W2' ? 'W2 - Blocks & Masonry' :
-          user.warehouseCode === 'W3' ? 'W3 - Steel & Metal' :
-            user.warehouseCode === 'WM' ? 'WM - Tools & Equipment' : 'My Deliveries'
+      label: user.warehouseCode === 'W1' ? 'W1 - Sub-Orders' :
+        user.warehouseCode === 'W2' ? 'W2 - Sub-Orders' :
+          user.warehouseCode === 'W3' ? 'W3 - Sub-Orders' :
+            user.warehouseCode === 'WM' ? 'WM - Sub-Orders' : 'My Deliveries'
     }] : []),
 
     // Delivery Calendar (Admin & Warehouse only)

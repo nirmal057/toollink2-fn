@@ -29,8 +29,12 @@ import SystemReports from './pages/SystemReports';
 import WarehouseOrderReceived from './pages/WarehouseOrderReceived';
 import MyDeliveries from './pages/MyDeliveries';
 import W1WarehousePage from './pages/W1WarehousePage';
+import W1SubOrdersPage from './pages/W1SubOrdersPage';
+import W2SubOrdersPage from './pages/W2SubOrdersPage';
 import W2WarehousePage from './pages/W2WarehousePage';
+import W3SubOrdersPage from './pages/W3SubOrdersPage';
 import W3WarehousePage from './pages/W3WarehousePage';
+import WMSubOrdersPage from './pages/WMSubOrdersPage';
 import WMWarehousePage from './pages/WMWarehousePage';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
@@ -198,6 +202,38 @@ function AppRoutes() {
             element={
               <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
                 <W1WarehousePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/w1/sub-orders"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W1SubOrdersPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/w2/sub-orders"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W2SubOrdersPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/w3/sub-orders"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W3SubOrdersPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/wm/sub-orders"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <WMSubOrdersPage />
               </RoleGuard>
             }
           />

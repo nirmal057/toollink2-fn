@@ -3,9 +3,36 @@ import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, Use
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
 
+// W1 Warehouse Category Mapping
+const W1_CATEGORIES = {
+    'W1-001': 'Sand & Aggregate',
+    'W1-002': 'Fine Sand',
+    'W1-005': 'River Sand',
+    'W1-008': 'Aggregate',
+    'W1-010': 'Stone Chips'
+};
+
+// Helper function to get category ID from material name
+const getCategoryId = (materialName: string): string => {
+    const name = materialName.toLowerCase();
+
+    if (name.includes('fine') || name.includes('fine sand')) return 'W1-002';
+    if (name.includes('river') || name.includes('river sand')) return 'W1-005';
+    if (name.includes('aggregate')) return 'W1-008';
+    if (name.includes('stone') || name.includes('chip')) return 'W1-010';
+
+    return 'W1-001'; // Default to general category
+};
+
+// Helper function to get category name from ID
+const getCategoryName = (categoryId: string): string => {
+    return W1_CATEGORIES[categoryId as keyof typeof W1_CATEGORIES] || 'Sand & Aggregate';
+};
+
 interface SubOrderItem {
     materialId: string;
     materialName: string;
+    categoryId?: string; // Warehouse category ID (e.g., W1-002, W1-005)
     quantity: number;
     unitPrice: number;
     totalPrice: number;
@@ -15,6 +42,7 @@ interface SubOrderItem {
 interface SubOrder {
     _id: string;
     subOrderNumber: string;
+    warehouseId?: string; // Warehouse database ID
     mainOrderId: {
         _id: string;
         orderNumber: string;
@@ -35,20 +63,19 @@ interface SubOrder {
     createdAt: string;
 }
 
-const W1WarehousePage: React.FC = () => {
+const W1SubOrdersPage: React.FC = () => {
     const { user } = useAuth();
     const [subOrders, setSubOrders] = useState<SubOrder[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-
     const [filter, setFilter] = useState({
         status: '',
         dateRange: 'all'
     });
 
     useEffect(() => {
-        console.log('W1 Warehouse - Current user:', user);
-        console.log('W1 Warehouse - Warehouse code:', user?.warehouseCode);
+        console.log('W1 Sub-Orders - Current user:', user);
+        console.log('W1 Sub-Orders - Warehouse code:', user?.warehouseCode);
 
         if (user) {
             fetchW1SubOrders();
@@ -83,7 +110,7 @@ const W1WarehousePage: React.FC = () => {
             if (filter.dateRange !== 'all') params.append('dateRange', filter.dateRange);
 
             const url = `${API_CONFIG.BASE_URL}/api/orders/sub-orders/my-warehouse?${params}`;
-            console.log('Fetching warehouse sub-orders from:', url);
+            console.log('Fetching W1 warehouse SubOrders from SubOrders collection:', url);
 
             const token = localStorage.getItem('accessToken');
             if (!token) {
@@ -99,22 +126,22 @@ const W1WarehousePage: React.FC = () => {
             });
 
             const data = await response.json();
-            console.log('Warehouse Response data:', data);
+            console.log('W1 Warehouse SubOrders Response data:', data);
 
             if (data.success) {
                 if (data.warehouseCode === 'W1' || user?.warehouseCode === 'W1' || user?.email?.includes('house1')) {
                     setSubOrders(data.subOrders || []);
-                    console.log(`Found ${data.subOrders?.length || 0} sub-orders for ${data.warehouseCode || 'unknown'} warehouse`);
+                    console.log(`Found ${data.subOrders?.length || 0} warehouse items for W1 warehouse`);
                 } else if (data.warehouseCode && data.warehouseCode !== 'W1') {
-                    setError(`Access denied. This page is for W1 (Sand & Aggregates) warehouse, but you are assigned to ${data.warehouseCode} warehouse.`);
+                    setError(`Access denied. This page is for W1 (Sand & Aggregates) warehouse sub-orders, but you are assigned to ${data.warehouseCode} warehouse.`);
                 } else {
                     setSubOrders(data.subOrders || []);
                 }
             } else {
-                setError(data.error || 'Failed to fetch warehouse sub-orders');
+                setError(data.error || 'Failed to fetch W1 warehouse items');
             }
         } catch (err) {
-            console.error('Error fetching warehouse sub-orders:', err);
+            console.error('Error fetching W1 warehouse items:', err);
             setError('Failed to connect to server. Please check your internet connection.');
         } finally {
             setLoading(false);
@@ -177,11 +204,11 @@ const W1WarehousePage: React.FC = () => {
                                 W1 - Sand & Aggregates Sub-Orders
                             </h1>
                             <p className="text-gray-600 dark:text-gray-300 mt-2">
-                                View and manage all sub-orders for sand and aggregates materials
+                                Manage all sub-orders for sand, aggregates, and construction materials
                             </p>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-gray-600 dark:text-gray-300">Warehouse Code: <span className="font-bold text-blue-600">W1</span></p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300">Warehouse: <span className="font-bold text-blue-600">W1</span></p>
                             <p className="text-sm text-gray-600 dark:text-gray-300">User: {user?.email}</p>
                             <button
                                 onClick={fetchW1SubOrders}
@@ -221,6 +248,8 @@ const W1WarehousePage: React.FC = () => {
                                 <option value="prepared">Prepared</option>
                                 <option value="dispatched">Dispatched</option>
                                 <option value="delivered">Delivered</option>
+                                <option value="failed">Failed</option>
+                                <option value="rescheduled">Rescheduled</option>
                             </select>
                         </div>
                         <div>
@@ -251,99 +280,127 @@ const W1WarehousePage: React.FC = () => {
                     </div>
                 )}
 
-
-
                 {/* Sub-Orders List */}
-                {!error && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                                Sand & Aggregates Sub-Orders ({subOrders.length})
-                            </h2>
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm">
+                    <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                        <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                            <Package className="w-6 h-6 text-blue-600 mr-2" />
+                            Sand & Aggregates Sub-Orders ({subOrders.length})
+                        </h2>
+                        <p className="text-gray-600 dark:text-gray-300 mt-1">
+                            All sub-orders assigned to W1 warehouse for sand, gravel, and aggregate materials
+                        </p>
+                    </div>
+
+                    {subOrders.length === 0 ? (
+                        <div className="p-12 text-center">
+                            <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                No Sub-Orders Found
+                            </h3>
+                            <p className="text-gray-600 dark:text-gray-300">
+                                There are currently no sub-orders for W1 warehouse.
+                            </p>
                         </div>
-
-                        {subOrders.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <Package className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
-                                    No Sub-Orders Found
-                                </h3>
-                                <p className="text-gray-600 dark:text-gray-300">
-                                    There are currently no sub-orders for W1 warehouse.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
-                                {subOrders.map((subOrder) => (
-                                    <div key={subOrder._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div>
-                                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                                                    {subOrder.subOrderNumber}
-                                                </h3>
-                                                <p className="text-sm text-gray-600 dark:text-gray-300">
-                                                    Main Order: {subOrder.mainOrderId?.orderNumber}
-                                                </p>
-                                            </div>
-                                            <div className="flex items-center space-x-3">
-                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(subOrder.status)}`}>
-                                                    {getStatusIcon(subOrder.status)}
-                                                    <span className="ml-1">{subOrder.status}</span>
+                    ) : (
+                        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                            {subOrders.map((subOrder) => (
+                                <div key={subOrder._id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                    {/* Sub-Order Header */}
+                                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                                {subOrder.subOrderNumber}
+                                            </h3>
+                                            <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+                                                <span>Main Order: {subOrder.mainOrderId?.orderNumber}</span>
+                                                <span className="bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded text-xs font-mono">
+                                                    Warehouse: W1
                                                 </span>
+                                                {subOrder._id && (
+                                                    <span className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded text-xs font-mono">
+                                                        ID: {subOrder._id.slice(-6)}
+                                                    </span>
+                                                )}
                                             </div>
                                         </div>
-
-                                        {/* Customer Info */}
-                                        <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                            <div className="flex items-center mb-2">
-                                                <User className="w-4 h-4 text-gray-600 mr-2" />
-                                                <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                    Customer Information
-                                                </span>
-                                            </div>
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Name: {subOrder.mainOrderId?.customerId?.fullName}
-                                            </p>
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Email: {subOrder.mainOrderId?.customerId?.email}
-                                            </p>
-                                        </div>
-
-                                        {/* Items */}
-                                        <div className="mb-4">
-                                            <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
-                                                Sand & Aggregates Items:
-                                            </h4>
-                                            <div className="space-y-2">
-                                                {subOrder.items.map((item) => (
-                                                    <div key={item._id} className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900 rounded">
-                                                        <span className="text-sm text-gray-900 dark:text-white">
-                                                            {item.materialName}
-                                                        </span>
-                                                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                                                            Qty: {item.quantity}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        {/* Dates */}
-                                        <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
-                                            <span>Created: {formatDate(subOrder.createdAt)}</span>
-                                            {subOrder.mainOrderId?.requestedDeliveryDate && (
-                                                <span>Delivery: {formatDate(subOrder.mainOrderId.requestedDeliveryDate)}</span>
-                                            )}
+                                        <div className="flex items-center mt-2 sm:mt-0">
+                                            <span className={`px-3 py-1 rounded-full text-xs font-medium flex items-center ${getStatusColor(subOrder.status)}`}>
+                                                {getStatusIcon(subOrder.status)}
+                                                <span className="ml-1">{subOrder.status}</span>
+                                            </span>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+
+                                    {/* Customer Info */}
+                                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
+                                        <div className="flex items-center mb-2">
+                                            <User className="w-4 h-4 text-gray-600 mr-2" />
+                                            <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                Customer Information
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            Name: {subOrder.mainOrderId?.customerId?.fullName}
+                                        </p>
+                                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                                            Email: {subOrder.mainOrderId?.customerId?.email}
+                                        </p>
+                                    </div>
+
+                                    {/* Items */}
+                                    <div className="mb-4">
+                                        <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-2">
+                                            Sand & Aggregates Items:
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {subOrder.items.map((item) => {
+                                                const categoryId = item.categoryId || getCategoryId(item.materialName);
+                                                const categoryName = getCategoryName(categoryId);
+
+                                                return (
+                                                    <div key={item._id} className="p-3 bg-blue-50 dark:bg-blue-900 rounded-lg border-l-4 border-blue-500">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <Package className="w-4 h-4 text-blue-600" />
+                                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                        {item.materialName}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                                                    <span className="bg-blue-100 dark:bg-blue-800 px-2 py-1 rounded font-mono">
+                                                                        {categoryId}
+                                                                    </span>
+                                                                    <span>•</span>
+                                                                    <span>{categoryName}</span>
+                                                                </div>
+                                                            </div>
+                                                            <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                                                                Qty: {item.quantity}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Dates */}
+                                    <div className="flex justify-between text-sm text-gray-600 dark:text-gray-300">
+                                        <span>Created: {formatDate(subOrder.createdAt)}</span>
+                                        {subOrder.mainOrderId?.requestedDeliveryDate && (
+                                            <span>Delivery: {formatDate(subOrder.mainOrderId.requestedDeliveryDate)}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
-export default W1WarehousePage;
+export default W1SubOrdersPage;

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User, MapPin } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
-import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface SubOrderItem {
     materialId: string;
@@ -50,12 +49,28 @@ const W3WarehousePage: React.FC = () => {
         console.log('W3 Warehouse - Current user:', user);
         console.log('W3 Warehouse - Warehouse code:', user?.warehouseCode);
 
-        if (user && user.warehouseCode === 'W3') {
+        if (user) {
             fetchW3SubOrders();
-        } else if (user && user.warehouseCode !== 'W3') {
-            setError('Access denied. This page is only for W3 (Steel & Metal) warehouse staff.');
         }
     }, [user, filter]);
+
+    // Auto-refresh every 30 seconds
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout;
+
+        if (user && !loading && !error) {
+            intervalId = setInterval(() => {
+                console.log('Auto-refreshing W3 sub-orders...');
+                fetchW3SubOrders();
+            }, 30000);
+        }
+
+        return () => {
+            if (intervalId) {
+                clearInterval(intervalId);
+            }
+        };
+    }, [user, loading, error]);
 
     const fetchW3SubOrders = async () => {
         try {
@@ -66,10 +81,15 @@ const W3WarehousePage: React.FC = () => {
             if (filter.status) params.append('status', filter.status);
             if (filter.dateRange !== 'all') params.append('dateRange', filter.dateRange);
 
-            const url = `${API_CONFIG.BASE_URL}/api/orders/sub-orders/warehouse/W3?${params}`;
-            console.log('Fetching W3 sub-orders from:', url);
+            const url = `${API_CONFIG.BASE_URL}/api/orders/sub-orders/my-warehouse?${params}`;
+            console.log('Fetching warehouse sub-orders from:', url);
 
             const token = localStorage.getItem('accessToken');
+            if (!token) {
+                setError('No authentication token found. Please login again.');
+                return;
+            }
+
             const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -78,17 +98,23 @@ const W3WarehousePage: React.FC = () => {
             });
 
             const data = await response.json();
-            console.log('W3 Response data:', data);
+            console.log('Warehouse Response data:', data);
 
             if (data.success) {
-                setSubOrders(data.subOrders || []);
-                console.log(`Found ${data.subOrders?.length || 0} sub-orders for W3 warehouse`);
+                if (data.warehouseCode === 'W3' || user?.warehouseCode === 'W3' || user?.email?.includes('house3')) {
+                    setSubOrders(data.subOrders || []);
+                    console.log(`Found ${data.subOrders?.length || 0} sub-orders for ${data.warehouseCode || 'unknown'} warehouse`);
+                } else if (data.warehouseCode && data.warehouseCode !== 'W3') {
+                    setError(`Access denied. This page is for W3 (Steel & Metal) warehouse, but you are assigned to ${data.warehouseCode} warehouse.`);
+                } else {
+                    setSubOrders(data.subOrders || []);
+                }
             } else {
-                setError(data.error || 'Failed to fetch W3 sub-orders');
+                setError(data.error || 'Failed to fetch warehouse sub-orders');
             }
         } catch (err) {
-            console.error('Error fetching W3 sub-orders:', err);
-            setError('Failed to connect to server');
+            console.error('Error fetching warehouse sub-orders:', err);
+            setError('Failed to connect to server. Please check your internet connection.');
         } finally {
             setLoading(false);
         }
@@ -156,6 +182,22 @@ const W3WarehousePage: React.FC = () => {
                         <div className="text-right">
                             <p className="text-sm text-gray-600 dark:text-gray-300">Warehouse Code: <span className="font-bold text-purple-600">W3</span></p>
                             <p className="text-sm text-gray-600 dark:text-gray-300">User: {user?.email}</p>
+                            <button
+                                onClick={fetchW3SubOrders}
+                                disabled={loading}
+                                className="mt-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm"
+                            >
+                                {loading ? (
+                                    <>
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        Refreshing...
+                                    </>
+                                ) : (
+                                    <>
+                                        🔄 Refresh
+                                    </>
+                                )}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -208,31 +250,7 @@ const W3WarehousePage: React.FC = () => {
                     </div>
                 )}
 
-                {/* Warehouse Inventory Categories */}
-                {!error && user?.warehouseCode === 'W3' && (
-                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
-                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
-                                <Package className="w-6 h-6 text-gray-600 mr-2" />
-                                W3 Warehouse - Steel & Reinforcement Category Distribution
-                            </h2>
-                            <p className="text-gray-600 dark:text-gray-300 mt-1">
-                                Your warehouse's steel and reinforcement categories
-                            </p>
-                        </div>
-                        <div className="p-6">
-                            <InventoryCategoryChart
-                                height={300}
-                                showControls={true}
-                                chartType="pie"
-                                className="mb-4"
-                                isAdminView={false}
-                                userRole="warehouse"
-                                userWarehouse="W3"
-                            />
-                        </div>
-                    </div>
-                )}
+
 
                 {/* Sub-Orders List */}
                 {!error && (
