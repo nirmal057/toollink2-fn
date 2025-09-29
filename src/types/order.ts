@@ -4,6 +4,8 @@ export interface OrderItem {
   warehouse?: string; // Added warehouse for the item
   category?: string; // Added category for display
   unit?: string; // Added unit for display
+  materialId?: string; // Material ID for new backend system
+  price?: number; // Price for calculations
 }
 
 export interface Order {
@@ -12,7 +14,7 @@ export interface Order {
   customer: string;
   email: string; // Added email field
   items: OrderItem[];
-  status: 'Pending' | 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Pending Approval' | 'Rejected';
+  status: 'Pending' | 'Processing' | 'Confirmed' | 'Shipped' | 'Delivered' | 'Cancelled' | 'Pending Approval' | 'Rejected' | 'pending_approval' | 'approved' | 'rejected';
   date: string;
   address: string;
   contact: string;
@@ -21,6 +23,10 @@ export interface Order {
   warehouse?: string; // Added warehouse field
   warehouseConfirmed?: boolean; // Added warehouse confirmation field
   warehouses?: string[]; // Added array of warehouses involved in the order
+  totalAmount?: number; // Total amount for order
+  finalAmount?: number; // Final amount after calculations
+  subOrderCount?: number; // Number of sub-orders created
+  warehouseBreakdown?: any[]; // Breakdown by warehouse
 }
 
 export interface OrderFormData {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PlusIcon, SearchIcon, FilterIcon, EditIcon, TrashIcon, XIcon, AlertTriangleIcon, TruckIcon, CalendarIcon, ClockIcon, CheckIcon, User, MapPin, Package, Building2, ShoppingCart, Plus, Trash2, Calculator, Save, X } from 'lucide-react';
 import { Order, OrderFormData, OrderItem } from '../types/order';
-import { createDeliveryTimeSlot, isWithinBusinessHours, getAvailableTimeSlots, BUSINESS_HOURS } from '../utils/timeUtils';
+import { createDeliveryTimeSlot, isWithinBusinessHours } from '../utils/timeUtils';
 import { motion } from 'framer-motion';
 import { useNotification } from '../contexts/NotificationContext';
 import { useAuth } from '../hooks/useAuth';
@@ -12,7 +12,7 @@ const defaultFormData: OrderFormData = {
   email: '',
   address: '',
   contact: '+94',
-  items: [{ name: '', quantity: 1, warehouse: '', category: '', unit: '' }],
+  items: [{ name: '', quantity: 1, warehouse: '', category: '', unit: '', materialId: '', price: 0 }],
   status: 'Pending',
   preferredDate: new Date().toISOString().split('T')[0],
   preferredTime: '09:00'
@@ -35,18 +35,12 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [fetchingOrders, setFetchingOrders] = useState(true);
   // Delete confirmation modal state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   // Reject modal state
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [orderToReject, setOrderToReject] = useState<Order | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [rejectLoading, setRejectLoading] = useState(false);
   const { showError, showSuccess, showWarning } = useNotification();
-
-  // Additional state for the form modal
-  const [showForm, setShowForm] = useState(false);
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
   // Calculate available warehouses
   const availableWarehouses = Array.from(new Set(inventory.map(item => item.warehouse || 'main_warehouse'))).sort();
@@ -77,7 +71,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     }
   }, []);
 
-  // Fetch orders
+  // Fetch orders - Updated to handle new backend structure
   const fetchOrders = async () => {
     try {
       setFetchingOrders(true);
@@ -90,8 +84,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      // Determine the correct endpoint based on user role
-      const endpoint = 'http://localhost:5001/api/orders?limit=50';  // Backend handles role-based filtering automatically      // Fetch orders with authentication
+      // Use main-orders endpoint for new system
+      const endpoint = 'http://localhost:5001/api/orders/main-orders?limit=50';
       const ordersResponse = await fetch(endpoint, {
         method: 'GET',
         headers: {
@@ -107,24 +101,28 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       const ordersData = await ordersResponse.json();
 
       if (ordersData.success && ordersData.data) {
-        // Transform backend order data to frontend format
+        // Transform backend main order data to frontend format
         const transformedOrders = ordersData.data.map((order: any) => ({
           id: order._id, // Use MongoDB _id for API calls
           orderNumber: order.orderNumber, // Keep orderNumber for display
-          customer: order.customer?.fullName || order.customer?.name || 'Unknown Customer',
-          email: order.customerEmail || order.customer?.email || '',
+          customer: order.customerId?.fullName || order.customerId?.username || 'Unknown Customer',
+          email: order.customerId?.email || '',
           items: order.items?.map((item: any) => ({
-            name: item.inventory?.name || item.name || 'Unknown Item',
-            quantity: item.quantity || 0
+            name: item.materialId?.name || 'Unknown Material',
+            quantity: item.requestedQty || 0,
+            materialId: item.materialId?._id,
+            category: item.materialId?.category || 'Unknown'
           })) || [],
           status: transformStatus(order.status),
           date: order.createdAt ? new Date(order.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
-          address: order.shippingAddress?.street || order.customer?.address || 'Address not provided',
-          contact: order.shippingAddress?.phone || order.customer?.phone || '+94',
-          preferredDate: order.delivery?.estimatedDate ? new Date(order.delivery.estimatedDate).toISOString().split('T')[0] : '',
+          address: order.deliveryAddress?.street || 'Address not provided',
+          contact: order.deliveryAddress?.phone || '+94',
+          preferredDate: order.requestedDeliveryDate ? new Date(order.requestedDeliveryDate).toISOString().split('T')[0] : '',
           preferredTime: '09:00',
-          totalAmount: order.totalAmount || 0,
-          finalAmount: order.finalAmount || order.totalAmount || 0
+          totalAmount: 0, // Main orders don't have pricing in this system
+          finalAmount: 0,
+          subOrderCount: order.subOrderCount || 0,
+          warehouseBreakdown: order.warehouseBreakdown || []
         }));
 
         setOrders(transformedOrders);
@@ -142,28 +140,41 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     }
   };
 
-  // Fetch inventory items
+  // Fetch materials (updated from inventory)
   const fetchInventory = async () => {
     try {
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
 
       if (!token) {
-        console.warn('No authentication token found for inventory fetch');
+        console.warn('No authentication token found for materials fetch');
         return;
       }
 
-      const response = await fetch('http://localhost:5001/api/inventory?limit=100', {
+      // Use materials endpoint instead of inventory
+      const response = await fetch('http://localhost:5001/api/materials?limit=100', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.data?.items) {
-          setInventory(data.data.items);
+        if (data.success && data.data) {
+          // Transform materials to match expected structure
+          const materials = data.data.map((material: any) => ({
+            _id: material._id,
+            name: material.name,
+            category: material.category,
+            unit: material.unit,
+            warehouse: material.warehouse || 'main_warehouse',
+            selling_price: material.sellingPrice || 0,
+            sku: material.sku || '',
+            current_stock: material.stock || 0,
+            status: material.isActive ? 'active' : 'inactive'
+          }));
+          setInventory(materials);
         }
       }
     } catch (error) {
-      console.error('Failed to fetch inventory:', error);
+      console.error('Failed to fetch materials:', error);
     }
   };
 
@@ -226,9 +237,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const transformStatus = (backendStatus: string): string => {
     const statusMap: { [key: string]: string } = {
       'pending': 'Pending',
-      'Pending Approval': 'Pending Approval',
-      'Confirmed': 'Confirmed',
-      'Rejected': 'Rejected',
+      'pending_approval': 'Pending Approval',
+      'approved': 'Approved',
+      'rejected': 'Rejected',
       'confirmed': 'Confirmed',
       'processing': 'Processing',
       'shipped': 'Shipped',
@@ -250,18 +261,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     return displayNames[warehouse] || warehouse;
   };
 
-  // Group inventory by warehouse
-  const getInventoryByWarehouse = () => {
-    const grouped: { [key: string]: any[] } = {};
-    inventory.forEach(item => {
-      const warehouse = item.warehouse || 'main_warehouse';
-      if (!grouped[warehouse]) {
-        grouped[warehouse] = [];
-      }
-      grouped[warehouse].push(item);
-    });
-    return grouped;
-  };
+
 
   // Category icon mapping for better visual identification
   const getCategoryIcon = (category: string): string => {
@@ -297,11 +297,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     return iconMap.default;
   };
 
-  // Get all available warehouses from inventory
-  const getAvailableWarehouses = () => {
-    const warehouses = new Set(inventory.map(item => item.warehouse || 'main_warehouse'));
-    return Array.from(warehouses).sort();
-  };
+
 
   // Form handling functions
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -388,51 +384,37 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     setError(null);
 
     try {
-      // Transform items to match backend expectations
+      // Transform items to match new backend expectations (materialId instead of inventory)
       const transformedItems = [];
 
       for (const item of formData.items) {
-        // Find inventory item by name
-        const inventoryItem = inventory.find(inv => inv.name.toLowerCase().includes(item.name.toLowerCase()));
+        // Find material item by name
+        const materialItem = inventory.find(inv => inv.name.toLowerCase().includes(item.name.toLowerCase()));
 
-        if (!inventoryItem) {
-          throw new Error(`Inventory item not found for: ${item.name}`);
+        if (!materialItem) {
+          throw new Error(`Material not found for: ${item.name}`);
         }
 
         transformedItems.push({
-          inventory: inventoryItem._id,
-          quantity: item.quantity,
-          unitPrice: inventoryItem.selling_price || 100,
-          totalPrice: item.quantity * (inventoryItem.selling_price || 100),
-          notes: item.name
+          materialId: materialItem._id,
+          requestedQty: item.quantity,
+          preferredWarehouseId: null // Optional
         });
       }
 
-      // Create order payload for backend
+      // Create order payload for new main-order system
       const orderPayload = {
         items: transformedItems,
+        deliveryAddress: {
+          street: formData.address,
+          city: "Colombo",
+          state: "Western",
+          zipCode: "00100",
+          phone: formData.contact
+        },
+        requestedDeliveryDate: formData.preferredDate ? new Date(`${formData.preferredDate}T${formData.preferredTime}:00.000Z`).toISOString() : null,
         customerEmail: formData.email || user?.email || '', // Use form email or logged-in user email
         customerName: formData.customer, // Include customer name
-        shippingAddress: {
-          street: formData.address,
-          city: "Colombo",
-          state: "Western",
-          zipCode: "00100",
-          phone: formData.contact
-        },
-        billingAddress: {
-          street: formData.address,
-          city: "Colombo",
-          state: "Western",
-          zipCode: "00100",
-          phone: formData.contact
-        },
-        delivery: {
-          method: 'delivery',
-          estimatedDate: formData.preferredDate
-        },
-        paymentMethod: 'cash',
-        status: formData.status, // Include order status
         notes: userRole === 'customer'
           ? `Customer: ${formData.customer}, Contact: ${formData.contact}`
           : `Customer: ${formData.customer}, Contact: ${formData.contact}, Preferred delivery: ${formData.preferredDate} at ${formData.preferredTime}`
@@ -445,8 +427,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      // Send to backend with authentication and correct port
-      const response = await fetch('http://localhost:5001/api/orders', {
+      // Send to new main-order endpoint
+      const response = await fetch('http://localhost:5001/api/orders/main-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -464,14 +446,19 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         setShowCreateModal(false);
         setSelectedOrder(null);
         setFormData(defaultFormData);
-        showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+
+        const successMessage = result.data?.subOrders?.length > 0
+          ? `Order created successfully! Split into ${result.data.subOrders.length} sub-orders across warehouses.`
+          : `Order created successfully! Order ID: ${result.data?.mainOrder?.orderNumber || 'Generated'}`;
+
+        showSuccess('Order Created', successMessage);
 
         // Navigate to delivery calendar for scheduling if it's a new order and user is not customer
         if (!selectedOrder && userRole !== 'customer') {
           navigate('/deliveries', {
             state: {
               newOrder: {
-                orderId: result.data?.orderNumber || result.data?._id,
+                orderId: result.data?.mainOrder?.orderNumber || result.data?.mainOrder?._id,
                 customer: formData.customer,
                 address: formData.address,
                 date: formData.preferredDate,
@@ -523,32 +510,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       return;
     }
 
-    // Show beautiful delete confirmation modal
-    setOrderToDelete(order);
+    // Show delete confirmation modal
     setShowDeleteModal(true);
+
+    // For now, just show a warning that this feature is not implemented
+    showWarning('Delete Order', 'Order deletion is not implemented in the current system. Please contact an administrator.');
   };
 
-  const confirmDeleteOrder = async () => {
-    if (!orderToDelete) return;
 
-    setDeleteLoading(true);
-    try {
-      // Call API to delete order from backend or just remove locally for now
-      setOrders(orders.filter(order => order.id !== orderToDelete.id));
-      showSuccess('Success', 'Order deleted successfully');
-    } catch (err) {
-      showError('Error', 'Failed to delete order');
-    } finally {
-      setDeleteLoading(false);
-      setShowDeleteModal(false);
-      setOrderToDelete(null);
-    }
-  };
-
-  const cancelDeleteOrder = () => {
-    setShowDeleteModal(false);
-    setOrderToDelete(null);
-  };
 
   const validateTimeSlot = (time: string): boolean => {
     try {
@@ -595,23 +564,22 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     showWarning('Request Changes', `Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
   };
 
-  // Approve order
+  // Approve order - Updated for main order system
   const handleApproveOrder = async (orderId: string, notes: string = '') => {
     try {
-      console.log('=== APPROVE ORDER DEBUG ===');
+      console.log('=== APPROVE MAIN ORDER DEBUG ===');
       console.log('Order ID:', orderId);
       console.log('Notes:', notes);
 
       const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
       console.log('Token available:', token ? 'YES' : 'NO');
-      console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'none');
 
       if (!token) {
         showError('Authentication Error', 'No authentication token found. Please login again.');
         return;
       }
 
-      const url = `http://localhost:5001/api/orders/${orderId}/approve`;
+      const url = `http://localhost:5001/api/orders/main-order/${orderId}/approve`;
       console.log('Request URL:', url);
 
       const response = await fetch(url, {
@@ -624,27 +592,25 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       });
 
       console.log('Response status:', response.status);
-      console.log('Response headers:', Object.fromEntries(response.headers.entries()));
-
       const result = await response.json();
       console.log('Response data:', result);
 
       if (response.ok && result.success) {
-        console.log('✅ Approval successful');
+        console.log('✅ Main order approval successful');
         await fetchOrders(); // Refresh orders list
-        showSuccess('Order Approved', 'Order has been approved and confirmed successfully.');
+        showSuccess('Order Approved', 'Main order has been approved successfully. Sub-orders will be created automatically.');
       } else {
         console.error('❌ Approval failed:', result);
         throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('❌ Error approving order:', error);
+      console.error('❌ Error approving main order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      showError('Approval Failed', `Failed to approve order: ${errorMessage}`);
+      showError('Approval Failed', `Failed to approve main order: ${errorMessage}`);
     }
   };
 
-  // Reject order with reason
+  // Reject order with reason - Updated for main order system
   const handleRejectOrder = async (orderId: string) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
@@ -654,7 +620,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
     }
   };
 
-  // Confirm reject order
+  // Confirm reject order - Updated for main order system
   const confirmRejectOrder = async () => {
     if (!orderToReject || !rejectReason.trim()) {
       showError('Rejection Reason Required', 'Please provide a reason for rejecting this order.');
@@ -663,7 +629,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
     setRejectLoading(true);
     try {
-      console.log('=== REJECT ORDER DEBUG ===');
+      console.log('=== REJECT MAIN ORDER DEBUG ===');
       console.log('Order ID:', orderToReject.id);
       console.log('Reason:', rejectReason.trim());
 
@@ -675,7 +641,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         return;
       }
 
-      const url = `http://localhost:5001/api/orders/${orderToReject.id}/reject`;
+      const url = `http://localhost:5001/api/orders/main-order/${orderToReject.id}/reject`;
       console.log('Request URL:', url);
 
       const response = await fetch(url, {
@@ -692,9 +658,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       console.log('Response data:', result);
 
       if (response.ok && result.success) {
-        console.log('✅ Rejection successful');
+        console.log('✅ Main order rejection successful');
         await fetchOrders(); // Refresh orders list
-        showSuccess('Order Rejected', 'Order has been rejected and inventory restored.');
+        showSuccess('Order Rejected', 'Main order has been rejected successfully.');
         setShowRejectModal(false);
         setOrderToReject(null);
         setRejectReason('');
@@ -703,9 +669,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error(result.error || `HTTP ${response.status}: ${response.statusText}`);
       }
     } catch (error) {
-      console.error('❌ Error rejecting order:', error);
+      console.error('❌ Error rejecting main order:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      showError('Rejection Failed', `Failed to reject order: ${errorMessage}`);
+      showError('Rejection Failed', `Failed to reject main order: ${errorMessage}`);
     } finally {
       setRejectLoading(false);
     }
@@ -1148,15 +1114,18 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                             </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${{
-                              'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                              'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                              'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                              'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                              'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                              'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                              'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                            }[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${(() => {
+                                const statusStyles: { [key: string]: string } = {
+                                  'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                                  'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                  'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                  'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                  'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                  'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                  'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                                };
+                                return statusStyles[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                              })()
                               }`}>
                               {subOrder.status.charAt(0).toUpperCase() + subOrder.status.slice(1)}
                             </span>
@@ -1228,17 +1197,24 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                 </>
                               )}
                             </div>
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                              Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                              Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                              'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-                              Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-                              Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                              Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                              Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                              Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                            }[order.status]}
-                          }`}>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${(() => {
+                                const statusStyles: { [key: string]: string } = {
+                                  Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                  Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                  'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                  'pending_approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                  'approved': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                  'Approved': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                  Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                                  Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                  Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                  Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                  Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                  'rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                };
+                                return statusStyles[order.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                              })()
+                              }`}>
                               {order.status}
                             </span>
                           </div>
@@ -1309,7 +1285,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                               </>
                             ) : (
                               <>
-                                {order.status === 'Pending Approval' ? (
+                                {['Pending Approval', 'pending_approval'].includes(order.status) ? (
                                   <>
                                     <button
                                       onClick={() => handleApproveOrder(order.id)}
@@ -1453,16 +1429,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap">
-                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${{
-                                  Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                  Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                                  'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
-                                  Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
-                                  Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                                  Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                  Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                  Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                }[order.status]
+                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${(() => {
+                                    const statusStyles: { [key: string]: string } = {
+                                      Processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                                      Pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                                      'Pending Approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                      'pending_approval': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+                                      'approved': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                      'Approved': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                      Confirmed: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+                                      Shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                                      Delivered: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                                      Cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                      Rejected: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                                      'rejected': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                    };
+                                    return statusStyles[order.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
+                                  })()
                                   }`}>
                                   {order.status}
                                 </span>
@@ -1520,7 +1503,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                     </>
                                   ) : (
                                     <>
-                                      {order.status === 'Pending Approval' ? (
+                                      {['Pending Approval', 'pending_approval'].includes(order.status) ? (
                                         <>
                                           <button
                                             onClick={() => handleApproveOrder(order.id)}
@@ -1980,7 +1963,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                       ) : (
                         <>
                           <Save className="w-4 h-4" />
-                          {editingOrder ? 'Update Order' : 'Create Order'}
+                          {selectedOrder ? 'Update Order' : 'Create Order'}
                         </>
                       )}
                     </button>
@@ -2030,6 +2013,72 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                     className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 border border-transparent rounded-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
                   >
                     Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Reject Order Modal */}
+        {showRejectModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 transform transition-all duration-300 border border-gray-200 dark:border-gray-700">
+              <div className="p-6">
+                {/* Warning Icon */}
+                <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-red-100 to-red-200 dark:from-red-900/30 dark:to-red-800/30 rounded-full flex items-center justify-center">
+                  <XIcon size={32} className="text-red-600 dark:text-red-400" />
+                </div>
+
+                {/* Title */}
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">
+                  Reject Order
+                </h3>
+
+                {/* Order Info */}
+                {orderToReject && (
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">Order:</span> {orderToReject.orderNumber}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">Customer:</span> {orderToReject.customer}
+                    </p>
+                  </div>
+                )}
+
+                {/* Rejection Reason */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Reason for rejection *
+                  </label>
+                  <textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Please provide a detailed reason for rejecting this order..."
+                    rows={4}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 dark:bg-gray-700 dark:text-white resize-none"
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowRejectModal(false);
+                      setOrderToReject(null);
+                      setRejectReason('');
+                    }}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-800 transition-all duration-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmRejectOrder}
+                    disabled={rejectLoading || !rejectReason.trim()}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 border border-transparent rounded-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {rejectLoading ? 'Rejecting...' : 'Reject Order'}
                   </button>
                 </div>
               </div>

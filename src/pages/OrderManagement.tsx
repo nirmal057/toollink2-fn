@@ -49,6 +49,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const [showInlineForm, setShowInlineForm] = useState(false);
   const [editingOrder, setEditingOrder] = useState<Order | null>(null);
 
+  // State for showing warehouse division breakdown
+  const [showWarehouseBreakdown, setShowWarehouseBreakdown] = useState<string | null>(null);
+  const [warehouseBreakdownData, setWarehouseBreakdownData] = useState<any[]>([]);
+
   // Category browsing states
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [showItemBrowser, setShowItemBrowser] = useState(false);
@@ -1063,6 +1067,129 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const handleRequestChange = (order: Order) => {
     // For now, just show a notification - could be expanded to a modal
     showWarning('Request Changes', `Request changes for order ${order.id}. This feature allows you to request delivery time changes or special instructions.`);
+  };
+
+  // Preview warehouse division for an order
+  const previewWarehouseDivision = (order: Order) => {
+    const warehouseGroups = new Map<string, any[]>();
+
+    // Group items by their expected warehouse
+    for (const item of order.items) {
+      const inventoryItem = inventory.find(inv => inv.name.toLowerCase() === item.name.toLowerCase());
+
+      let warehouseCode = 'WM'; // Default to Main Warehouse
+      let warehouseName = 'Main Warehouse (Tools & Equipment)';
+
+      if (inventoryItem?.warehouse) {
+        switch (inventoryItem.warehouse.toLowerCase()) {
+          case 'warehouse1':
+          case 'w1':
+          case 'sand & aggregate':
+            warehouseCode = 'W1';
+            warehouseName = 'W1 - Sand & Aggregate';
+            break;
+          case 'warehouse2':
+          case 'w2':
+          case 'bricks & masonry':
+            warehouseCode = 'W2';
+            warehouseName = 'W2 - Bricks & Masonry';
+            break;
+          case 'warehouse3':
+          case 'w3':
+          case 'steel & metal':
+            warehouseCode = 'W3';
+            warehouseName = 'W3 - Steel & Metal';
+            break;
+          default:
+            warehouseCode = 'WM';
+            warehouseName = 'WM - Main Warehouse (Tools & Equipment)';
+        }
+      }
+
+      if (!warehouseGroups.has(warehouseCode)) {
+        warehouseGroups.set(warehouseCode, {
+          code: warehouseCode,
+          name: warehouseName,
+          items: []
+        });
+      }
+
+      const categoryId = getCategoryIdForWarehouse(warehouseCode, item.name);
+
+      warehouseGroups.get(warehouseCode).items.push({
+        name: item.name,
+        quantity: item.quantity,
+        categoryId: categoryId,
+        unitPrice: inventoryItem?.price || 0,
+        totalPrice: (inventoryItem?.price || 0) * item.quantity
+      });
+    }
+
+    return Array.from(warehouseGroups.values());
+  };
+
+  // Helper function to get category ID for a material in a warehouse
+  const getCategoryIdForWarehouse = (warehouseCode: string, materialName: string) => {
+    const materialLower = materialName.toLowerCase();
+
+    const categoryMappings: { [key: string]: { [key: string]: string } } = {
+      'W1': {
+        'sand': 'W1-002',
+        'fine': 'W1-002',
+        'river': 'W1-005',
+        'aggregate': 'W1-008',
+        'stone': 'W1-010',
+        'chip': 'W1-010',
+        'gravel': 'W1-009'
+      },
+      'W2': {
+        'brick': 'W2-004',
+        'clay': 'W2-004',
+        'block': 'W2-002',
+        'cement': 'W2-002',
+        'solid': 'W2-002',
+        'hollow': 'W2-003',
+        'masonry': 'W2-008'
+      },
+      'W3': {
+        '6mm': 'W3-002',
+        '8mm': 'W3-003',
+        '10mm': 'W3-004',
+        '12mm': 'W3-005',
+        '16mm': 'W3-006',
+        '20mm': 'W3-007',
+        '25mm': 'W3-008',
+        'rod': 'W3-001',
+        'steel': 'W3-001',
+        'wire': 'W3-009',
+        'mesh': 'W3-010'
+      },
+      'WM': {
+        'drill': 'WM-004',
+        'grinder': 'WM-011',
+        'tool': 'WM-001',
+        'cement': 'WM-012',
+        'paint': 'WM-013',
+        'hardware': 'WM-018'
+      }
+    };
+
+    const warehouseKeywords = categoryMappings[warehouseCode] || {};
+    for (const [keyword, categoryId] of Object.entries(warehouseKeywords)) {
+      if (materialLower.includes(keyword)) {
+        return categoryId;
+      }
+    }
+
+    // Default category for each warehouse
+    const defaultCategories = {
+      'W1': 'W1-001',
+      'W2': 'W2-001',
+      'W3': 'W3-001',
+      'WM': 'WM-001'
+    };
+
+    return defaultCategories[warehouseCode] || `${warehouseCode}-001`;
   };
 
   // Approve order
@@ -2321,6 +2448,18 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                 {order.status === 'Pending Approval' ? (
                                   <>
                                     <button
+                                      onClick={() => {
+                                        const warehouseDivision = previewWarehouseDivision(order);
+                                        setWarehouseBreakdownData(warehouseDivision);
+                                        setShowWarehouseBreakdown(order.id);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-800 px-3 py-1.5 text-xs border border-blue-600 rounded-lg flex items-center justify-center gap-1 flex-1 sm:flex-none"
+                                      title="Preview Warehouse Division"
+                                    >
+                                      <Package size={14} />
+                                      Preview
+                                    </button>
+                                    <button
                                       onClick={() => handleApproveOrder(order.id)}
                                       className="text-green-600 hover:text-green-800 px-3 py-1.5 text-xs border border-green-600 rounded-lg flex items-center justify-center gap-1 flex-1 sm:flex-none"
                                       title="Approve Order"
@@ -2581,6 +2720,136 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         </div>
 
 
+
+        {/* Warehouse Division Preview Modal */}
+        {showWarehouseBreakdown && warehouseBreakdownData.length > 0 && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-4xl w-full max-h-[80vh] overflow-hidden border border-gray-200 dark:border-gray-700"
+            >
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Warehouse Division Preview</h3>
+                    <p className="text-blue-100 mt-1">Order will be divided into {warehouseBreakdownData.length} warehouse sub-orders</p>
+                  </div>
+                  <button
+                    onClick={() => setShowWarehouseBreakdown(null)}
+                    className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors"
+                  >
+                    <XIcon size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 overflow-y-auto max-h-[60vh]">
+                <div className="grid gap-6">
+                  {warehouseBreakdownData.map((warehouse: any, index) => (
+                    <div key={warehouse.code} className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm ${warehouse.code === 'W1' ? 'bg-orange-500' :
+                              warehouse.code === 'W2' ? 'bg-red-500' :
+                                warehouse.code === 'W3' ? 'bg-blue-500' : 'bg-gray-500'
+                            }`}>
+                            {warehouse.code}
+                          </div>
+                          <div>
+                            <h4 className="font-semibold text-gray-900 dark:text-white">{warehouse.name}</h4>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">{warehouse.items.length} items</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-gray-900 dark:text-white">
+                            Sub-Order #{index + 1}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Total: LKR {warehouse.items.reduce((sum: number, item: any) => sum + item.totalPrice, 0).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <h5 className="font-medium text-gray-900 dark:text-white mb-2">Items with Category IDs:</h5>
+                        {warehouse.items.map((item: any, itemIndex: number) => (
+                          <div key={itemIndex} className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-gray-100 dark:border-gray-600">
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium text-gray-900 dark:text-white">{item.name}</span>
+                                  <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 text-xs rounded-full font-medium">
+                                    {item.categoryId}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                  <span>Quantity: <span className="font-medium">{item.quantity}</span></span>
+                                  {item.unitPrice > 0 && (
+                                    <span>Unit Price: <span className="font-medium">LKR {item.unitPrice.toLocaleString()}</span></span>
+                                  )}
+                                </div>
+                              </div>
+                              {item.totalPrice > 0 && (
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900 dark:text-white">
+                                    LKR {item.totalPrice.toLocaleString()}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-green-200 dark:border-green-700">
+                  <div className="flex items-start gap-3">
+                    <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <CheckIcon size={16} className="text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">After Approval</h4>
+                      <div className="space-y-2 text-sm text-green-700 dark:text-green-300">
+                        <p>✅ Order will be divided into <strong>{warehouseBreakdownData.length}</strong> sub-orders</p>
+                        <p>📦 Each warehouse will receive notification with their assigned items</p>
+                        <p>🏷️ Items will be organized with specific category IDs (W1-001, W2-004, etc.)</p>
+                        <p>📋 Sub-orders will be created with unique identifiers</p>
+                        <p>✉️ Customer will be notified about order confirmation</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-700/50 px-6 py-4 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowWarehouseBreakdown(null)}
+                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 hover:bg-gray-50 dark:hover:bg-gray-500 rounded-lg font-medium transition-colors duration-200 border border-gray-300 dark:border-gray-500"
+                  >
+                    Close Preview
+                  </button>
+                  <button
+                    onClick={() => {
+                      const orderId = showWarehouseBreakdown;
+                      setShowWarehouseBreakdown(null);
+                      if (orderId) {
+                        handleApproveOrder(orderId);
+                      }
+                    }}
+                    className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-lg font-medium transition-all duration-200 shadow-sm flex items-center gap-2"
+                  >
+                    <CheckIcon size={16} />
+                    Approve & Create Sub-Orders
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
 
         {/* Beautiful Delete Confirmation Modal */}
         {showDeleteModal && (
