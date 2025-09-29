@@ -27,6 +27,11 @@ import ActivitiesPage from './pages/ActivitiesPage';
 import AuditLogs from './pages/AuditLogs';
 import SystemReports from './pages/SystemReports';
 import WarehouseOrderReceived from './pages/WarehouseOrderReceived';
+import MyDeliveries from './pages/MyDeliveries';
+import W1WarehousePage from './pages/W1WarehousePage';
+import W2WarehousePage from './pages/W2WarehousePage';
+import W3WarehousePage from './pages/W3WarehousePage';
+import WMWarehousePage from './pages/WMWarehousePage';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext';
@@ -173,6 +178,50 @@ function AppRoutes() {
             element={
               <RoleGuard roles={[ROLES.ADMIN, ROLES.WAREHOUSE, ROLES.CASHIER, ROLES.DRIVER, ROLES.CUSTOMER]} fallback={<Unauthorized />}>
                 <DeliveryManagementSystem userRole={user.role} />
+              </RoleGuard>
+            }
+          />
+
+          {/* My Deliveries - warehouse-specific sub-orders */}
+          <Route
+            path="/my-deliveries"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <MyDeliveries />
+              </RoleGuard>
+            }
+          />
+
+          {/* Warehouse-Specific Pages */}
+          <Route
+            path="/warehouse/w1"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W1WarehousePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/w2"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W2WarehousePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/w3"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <W3WarehousePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="/warehouse/wm"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
+                <WMWarehousePage />
               </RoleGuard>
             }
           />

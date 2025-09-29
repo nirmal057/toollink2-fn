@@ -744,6 +744,9 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Determine if this is an update or create operation
+    const isUpdate = selectedOrder && selectedOrder.id;
+
     // Validate phone number - ensure +94 and 9 digits
     if (!formData.contact.startsWith('+94') || formData.contact.length !== 12) {
       showError('Invalid Phone Number', 'Phone number must be in format +94XXXXXXXXX (9 digits after +94)');
@@ -757,8 +760,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       return;
     }
 
-    // Validate preferred delivery date is not in the past
-    if (formData.preferredDate) {
+    // Validate preferred delivery date is not in the past (only for new orders, not updates)
+    if (!isUpdate && formData.preferredDate) {
       const selectedDate = new Date(formData.preferredDate);
       const today = new Date();
       today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
@@ -773,21 +776,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       return;
     }
 
-    // Check for delivery conflicts and auto-adjust if needed
+    // Check for delivery conflicts and auto-adjust if needed (only for new orders)
     let finalDeliveryDate = formData.preferredDate;
-    const existingDeliveries = await checkDeliveriesForDate(finalDeliveryDate);
+    if (!isUpdate) {
+      const existingDeliveries = await checkDeliveriesForDate(finalDeliveryDate);
 
-    if (existingDeliveries >= 10) { // If too many deliveries on selected date
-      showWarning('Delivery Date Adjusted', `Selected date has ${existingDeliveries} deliveries. Finding next available date...`);
-      finalDeliveryDate = await findNextAvailableDeliveryDate();
+      if (existingDeliveries >= 10) { // If too many deliveries on selected date
+        showWarning('Delivery Date Adjusted', `Selected date has ${existingDeliveries} deliveries. Finding next available date...`);
+        finalDeliveryDate = await findNextAvailableDeliveryDate();
 
-      // Update form data with new date
-      setFormData(prev => ({
-        ...prev,
-        preferredDate: finalDeliveryDate
-      }));
+        // Update form data with new date
+        setFormData(prev => ({
+          ...prev,
+          preferredDate: finalDeliveryDate
+        }));
 
-      showSuccess('Date Updated', `Delivery date automatically adjusted to ${new Date(finalDeliveryDate).toLocaleDateString()} to avoid conflicts.`);
+        showSuccess('Date Updated', `Delivery date automatically adjusted to ${new Date(finalDeliveryDate).toLocaleDateString()} to avoid conflicts.`);
+      }
     }
 
     setLoading(true);
@@ -851,9 +856,15 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         throw new Error('No authentication token found. Please login again.');
       }
 
-      // Send to basic orders endpoint that works with standalone MongoDB
-      const response = await fetch('http://localhost:5001/api/orders', {
-        method: 'POST',
+      // Determine API endpoint and method based on operation type
+      const apiUrl = isUpdate
+        ? `http://localhost:5001/api/orders/${selectedOrder.id}`
+        : 'http://localhost:5001/api/orders';
+
+      const method = isUpdate ? 'PUT' : 'POST';
+
+      const response = await fetch(apiUrl, {
+        method: method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -863,19 +874,23 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
       const result = await response.json();
 
-      if (result.success) {
-        // Refresh orders from backend to get the actual created order
+      if (response.ok && result.success) {
+        // Refresh orders from backend to get the updated/created order
         await fetchOrders();
 
-        // Send notifications based on user role and order status
-        if (userRole === 'customer') {
-          // For customer orders, notify admin/cashier for approval
-          await sendApprovalNotifications(result.data, formData);
-          showSuccess('Order Submitted', `Order submitted for approval! Order ID: ${result.data?.orderNumber || 'Generated'}. You will be notified once approved.`);
+        if (isUpdate) {
+          showSuccess('Order Updated', `Order updated successfully! Order ID: ${selectedOrder.orderNumber || selectedOrder.id}`);
         } else {
-          // For admin/cashier orders, send warehouse notifications directly
-          await sendWarehouseNotifications(result.data, formData);
-          showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+          // Send notifications based on user role and order status (only for new orders)
+          if (userRole === 'customer') {
+            // For customer orders, notify admin/cashier for approval
+            await sendApprovalNotifications(result.data, formData);
+            showSuccess('Order Submitted', `Order submitted for approval! Order ID: ${result.data?.orderNumber || 'Generated'}. You will be notified once approved.`);
+          } else {
+            // For admin/cashier orders, send warehouse notifications directly
+            await sendWarehouseNotifications(result.data, formData);
+            showSuccess('Order Created', `Order created successfully! Order ID: ${result.data?.orderNumber || 'Generated'}`);
+          }
         }
 
         setShowInlineForm(false);
@@ -883,7 +898,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
         await resetFormWithAutoDeliveryDate();
 
         // Navigate to delivery calendar for scheduling if it's a new order and user is not customer
-        if (!selectedOrder && userRole !== 'customer') {
+        if (!isUpdate && !selectedOrder && userRole !== 'customer') {
           navigate('/deliveries', {
             state: {
               newOrder: {
@@ -898,11 +913,20 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
           });
         }
       } else {
-        setError(result.message || result.error || 'Failed to create order');
+        // Handle specific error cases for both create and update
+        if (response.status === 403) {
+          showError('Permission Denied', `You do not have permission to ${isUpdate ? 'update' : 'create'} orders.`);
+        } else if (response.status === 400 && result.errorType === 'INVALID_ORDER_STATUS') {
+          showError('Cannot Update', 'Only pending orders can be edited. Orders with other statuses cannot be modified.');
+        } else if (response.status === 404) {
+          showError('Order Not Found', 'The order you are trying to update does not exist.');
+        } else {
+          setError(result.message || result.error || `Failed to ${isUpdate ? 'update' : 'create'} order`);
+        }
       }
     } catch (err) {
-      console.error('Order creation error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to process order');
+      console.error(`Order ${isUpdate ? 'update' : 'creation'} error:`, err);
+      setError(err instanceof Error ? err.message : `Failed to ${isUpdate ? 'update' : 'process'} order`);
     } finally {
       setLoading(false);
     }
@@ -949,11 +973,41 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
     setDeleteLoading(true);
     try {
-      // Call API to delete order from backend or just remove locally for now
-      setOrders(orders.filter(order => order.id !== orderToDelete.id));
-      showSuccess('Success', 'Order deleted successfully');
+      const token = localStorage.getItem('accessToken') || localStorage.getItem('token');
+
+      if (!token) {
+        showError('Error', 'No authentication token found. Please login again.');
+        return;
+      }
+
+      // Call API to delete order from backend
+      const response = await fetch(`http://localhost:5001/api/orders/${orderToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        // Remove from local state only if API call succeeds
+        setOrders(orders.filter(order => order.id !== orderToDelete.id));
+        showSuccess('Success', 'Order deleted successfully');
+      } else {
+        // Handle specific error cases
+        if (response.status === 403) {
+          showError('Permission Denied', 'You do not have permission to delete orders. Only admin and cashier roles can delete orders.');
+        } else if (response.status === 400 && result.errorType === 'INVALID_ORDER_STATUS') {
+          showError('Cannot Delete', 'Only pending orders can be deleted. Orders with other statuses cannot be deleted.');
+        } else {
+          showError('Error', result.error || 'Failed to delete order');
+        }
+      }
     } catch (err) {
-      showError('Error', 'Failed to delete order');
+      console.error('Delete order error:', err);
+      showError('Error', 'Failed to delete order. Please check your connection and try again.');
     } finally {
       setDeleteLoading(false);
       setShowDeleteModal(false);
@@ -2554,19 +2608,18 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                   <button
-                    onClick={() => setShowDeleteModal(false)}
+                    onClick={cancelDeleteOrder}
                     className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 dark:focus:ring-offset-gray-800 transition-all duration-200"
+                    disabled={deleteLoading}
                   >
                     Cancel
                   </button>
                   <button
-                    onClick={() => {
-                      // Handle delete logic here
-                      setShowDeleteModal(false);
-                    }}
-                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 border border-transparent rounded-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200"
+                    onClick={confirmDeleteOrder}
+                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-red-500 to-red-600 border border-transparent rounded-lg hover:from-red-600 hover:to-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={deleteLoading}
                   >
-                    Delete
+                    {deleteLoading ? 'Deleting...' : 'Delete'}
                   </button>
                 </div>
               </div>

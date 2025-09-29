@@ -54,9 +54,15 @@ export const WarehouseDashboard: React.FC<WarehouseDashboardProps> = () => {
                             </button>
                             <button
                                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                                onClick={() => window.location.href = '/warehouse/orders'}
+                                onClick={() => window.location.href = '/order-management'}
                             >
-                                📋 Process Orders
+                                📋 Process Sub-Orders
+                            </button>
+                            <button
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                onClick={() => window.location.href = '/my-deliveries'}
+                            >
+                                🚚 My Deliveries
                             </button>
                         </div>
                     </div>
@@ -228,8 +234,8 @@ export const WarehouseDashboard: React.FC<WarehouseDashboardProps> = () => {
                                         </p>
                                     </div>
                                     <span className={`px-2 py-1 text-xs rounded-full ${order.status === 'pending'
-                                            ? 'bg-yellow-100 text-yellow-800'
-                                            : 'bg-green-100 text-green-800'
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-green-100 text-green-800'
                                         }`}>
                                         {order.status || 'pending'}
                                     </span>

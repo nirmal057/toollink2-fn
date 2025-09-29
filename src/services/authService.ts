@@ -21,6 +21,7 @@ interface User {
   email: string;
   name: string;
   role: string;
+  warehouseCode?: string; // Warehouse code for warehouse users (W1, W2, W3, WM)
   isActive: boolean;
   createdAt: string;
 }

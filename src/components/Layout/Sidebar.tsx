@@ -17,13 +17,17 @@ import {
   AlertCircleIcon,
   PlusIcon,
   TruckIcon,
-  CalendarIcon
+  CalendarIcon,
+  ClipboardListIcon,
+  MapPinIcon,
+  WrenchIcon
 } from 'lucide-react';
 import NotificationDropdown from '../UI/NotificationDropdown';
 import { authService } from '../../services/authService';
 import { safeLogoutWithTimeout } from '../../utils/logoutUtils';
 import { useNotification } from '../../contexts/NotificationContext';
 import { CustomerApprovalNotificationService } from '../../services/customerApprovalNotificationService';
+import { useAuth } from '../../hooks/useAuth';
 
 interface SidebarProps {
   userRole: 'admin' | 'warehouse' | 'cashier' | 'customer';
@@ -34,6 +38,7 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [pendingApprovalCount, setPendingApprovalCount] = useState(0);
+  const { user } = useAuth();
   const { showError } = useNotification();
 
   // Load pending approval count for admin/cashier
@@ -162,6 +167,22 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       icon: <TruckIcon size={20} />,
       label: 'Delivery Management'
     },
+
+    // Warehouse-Specific Pages (Warehouse only - shows warehouse-specific sub-orders)
+    ...(normalizedRole === 'warehouse' && user?.warehouseCode ? [{
+      to: user.warehouseCode === 'W1' ? '/warehouse/w1' :
+          user.warehouseCode === 'W2' ? '/warehouse/w2' :
+          user.warehouseCode === 'W3' ? '/warehouse/w3' :
+          user.warehouseCode === 'WM' ? '/warehouse/wm' : '/my-deliveries',
+      icon: user.warehouseCode === 'W1' ? <MapPinIcon size={20} /> :
+            user.warehouseCode === 'W2' ? <PackageIcon size={20} /> :
+            user.warehouseCode === 'W3' ? <ShieldIcon size={20} /> :
+            user.warehouseCode === 'WM' ? <WrenchIcon size={20} /> : <ClipboardListIcon size={20} />,
+      label: user.warehouseCode === 'W1' ? 'W1 - Sand & Aggregates' :
+             user.warehouseCode === 'W2' ? 'W2 - Blocks & Masonry' :
+             user.warehouseCode === 'W3' ? 'W3 - Steel & Metal' :
+             user.warehouseCode === 'WM' ? 'WM - Tools & Equipment' : 'My Deliveries'
+    }] : []),
 
     // Delivery Calendar (Admin & Warehouse only)
     ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
