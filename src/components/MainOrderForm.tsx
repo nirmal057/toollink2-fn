@@ -162,7 +162,6 @@ interface Material {
     name: string;
     category: string;
     unit: string;
-    sellingPrice: number;
     sku: string;
     currentStock?: number;
     isActive?: boolean;
@@ -399,12 +398,10 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
         }));
     };
 
-    const calculateOrderTotal = () => {
+    // Order management system - no pricing calculations needed
+    const calculateItemCount = () => {
         return formData.categoryOrders.reduce((total, categoryOrder) => {
-            return total + categoryOrder.items.reduce((categoryTotal, item) => {
-                const material = materials.find(m => m._id === item.materialId);
-                return categoryTotal + (material ? material.sellingPrice * item.requestedQty : 0);
-            }, 0);
+            return total + categoryOrder.items.filter(item => item.materialId).length;
         }, 0);
     };
 
@@ -438,15 +435,13 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
 
                 groupedItems.get(key)?.materials.push({
                     ...material,
-                    requestedQty: item.requestedQty,
-                    totalPrice: material.sellingPrice * item.requestedQty
+                    requestedQty: item.requestedQty
                 });
             }
         });
 
         const preview = Array.from(groupedItems.entries()).map(([key, group], index) => {
             const [category] = key.split('-');
-            const totalAmount = group.materials.reduce((sum, m) => sum + m.totalPrice, 0);
             const totalItems = group.materials.reduce((sum, m) => sum + m.requestedQty, 0);
 
             // Calculate delivery sequence based on material priority
@@ -475,7 +470,7 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                 warehouse: group.warehouse,
                 warehouseLocation: group.warehouseLocation,
                 materials: group.materials,
-                totalAmount,
+
                 totalItems,
                 estimatedDate: deliveryDate.toLocaleDateString(),
                 estimatedTime: deliveryDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -759,8 +754,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                             <div
                                                 key={category}
                                                 className={`relative border-2 rounded-xl p-6 cursor-pointer transition-all duration-200 hover:shadow-lg ${isAdded
-                                                        ? 'border-green-500 bg-green-50 shadow-md'
-                                                        : 'border-gray-200 bg-white hover:border-blue-300'
+                                                    ? 'border-green-500 bg-green-50 shadow-md'
+                                                    : 'border-gray-200 bg-white hover:border-blue-300'
                                                     }`}
                                                 onClick={() => handleAddCategory(category)}
                                             >
@@ -793,8 +788,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                                 <span className="font-medium text-gray-700 truncate">
                                                                     {material.name}
                                                                 </span>
-                                                                <span className="text-green-600 font-semibold ml-2">
-                                                                    Rs. {material.sellingPrice}
+                                                                <span className="text-blue-600 font-semibold ml-2">
+                                                                    {material.unit}
                                                                 </span>
                                                             </div>
                                                         ))}
@@ -867,8 +862,7 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                             const Icon = getCategoryIcon(categoryOrder.category);
                             const colorClass = getCategoryColor(categoryOrder.category);
                             const categoryTotal = categoryOrder.items.reduce((total, item) => {
-                                const material = materials.find(m => m._id === item.materialId);
-                                return total + (material ? material.sellingPrice * item.requestedQty : 0);
+                                return total + item.requestedQty;
                             }, 0);
 
                             return (
@@ -876,8 +870,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                     {/* Enhanced Category Header */}
                                     <div
                                         className={`p-6 cursor-pointer transition-all duration-200 ${categoryOrder.isExpanded
-                                                ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
-                                                : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-blue-50 hover:to-blue-100'
+                                            ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
+                                            : 'bg-gradient-to-r from-gray-50 to-gray-100 text-gray-800 hover:from-blue-50 hover:to-blue-100'
                                             }`}
                                         onClick={() => toggleCategoryExpansion(categoryOrder.category)}
                                     >
@@ -896,8 +890,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                         {categoryTotal > 0 && (
                                                             <>
                                                                 <span className={`text-sm ${categoryOrder.isExpanded ? 'text-blue-100' : 'text-gray-400'}`}>•</span>
-                                                                <span className={`text-lg font-semibold ${categoryOrder.isExpanded ? 'text-green-200' : 'text-green-600'}`}>
-                                                                    Rs. {categoryTotal.toFixed(2)}
+                                                                <span className={`text-lg font-semibold ${categoryOrder.isExpanded ? 'text-blue-200' : 'text-blue-600'}`}>
+                                                                    {categoryTotal} items
                                                                 </span>
                                                             </>
                                                         )}
@@ -917,8 +911,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                     size="sm"
                                                     onClick={() => handleRemoveCategory(categoryOrder.category)}
                                                     className={`${categoryOrder.isExpanded
-                                                            ? 'bg-red-500 border-red-400 text-white hover:bg-red-600'
-                                                            : 'bg-white border-red-200 text-red-600 hover:bg-red-50'
+                                                        ? 'bg-red-500 border-red-400 text-white hover:bg-red-600'
+                                                        : 'bg-white border-red-200 text-red-600 hover:bg-red-50'
                                                         }`}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
@@ -962,7 +956,7 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                                             <div className="flex flex-col">
                                                                                 <span className="font-medium">{material.name}</span>
                                                                                 <span className="text-xs text-gray-500">
-                                                                                    Rs. {material.sellingPrice}/{material.unit} • {material.sku}
+                                                                                    Unit: {material.unit} • SKU: {material.sku}
                                                                                     {material.currentStock !== undefined &&
                                                                                         ` • Stock: ${material.currentStock}`
                                                                                     }
@@ -999,10 +993,10 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                                 return material && (
                                                                     <div className="text-xs space-y-1">
                                                                         <p className="text-gray-600">
-                                                                            Unit Price: Rs. {material.sellingPrice}/{material.unit}
+                                                                            Unit: {material.unit} • SKU: {material.sku}
                                                                         </p>
                                                                         <p className="font-medium text-blue-600">
-                                                                            Total: Rs. {(material.sellingPrice * item.requestedQty).toFixed(2)}
+                                                                            Quantity: {item.requestedQty} {material.unit}
                                                                         </p>
                                                                     </div>
                                                                 );
@@ -1038,10 +1032,10 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-2xl font-bold text-green-600">
-                                            Rs. {calculateOrderTotal().toFixed(2)}
+                                        <p className="text-2xl font-bold text-blue-600">
+                                            {calculateItemCount()} Items
                                         </p>
-                                        <p className="text-xs text-gray-500">Total Amount</p>
+                                        <p className="text-xs text-gray-500">Total Items</p>
                                     </div>
                                 </div>
                             </div>
@@ -1195,9 +1189,9 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                 </p>
                                             </div>
                                             <div>
-                                                <p className="text-gray-600">Total Value:</p>
+                                                <p className="text-gray-600">Total Categories:</p>
                                                 <p className="font-semibold text-blue-600">
-                                                    Rs. {orderPreview.reduce((sum: number, d: any) => sum + d.totalAmount, 0).toFixed(2)}
+                                                    {formData.categoryOrders.length} categories
                                                 </p>
                                             </div>
                                             <div>
@@ -1253,8 +1247,8 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                     </div>
 
                                                     <div className="text-right">
-                                                        <p className="text-lg font-bold text-blue-600">Rs. {delivery.totalAmount.toFixed(2)}</p>
-                                                        <p className="text-xs text-gray-500">{delivery.totalItems} items</p>
+                                                        <p className="text-lg font-bold text-blue-600">{delivery.totalItems} items</p>
+                                                        <p className="text-xs text-gray-500">from {delivery.warehouse}</p>
                                                     </div>
                                                 </div>
 
@@ -1265,7 +1259,7 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                                                             <div key={mIndex} className="flex justify-between items-center text-sm bg-white p-2 rounded border">
                                                                 <span className="flex-1">{material.name}</span>
                                                                 <span className="text-gray-600 mx-2">{material.requestedQty} {material.unit}</span>
-                                                                <span className="font-medium text-blue-600">Rs. {material.totalPrice.toFixed(2)}</span>
+                                                                <span className="font-medium text-blue-600">{material.sku}</span>
                                                             </div>
                                                         ))}
                                                     </div>

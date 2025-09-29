@@ -52,13 +52,10 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
   const availableWarehouses = Array.from(new Set(inventory.map(item => item.warehouse || 'main_warehouse'))).sort();
 
   // Calculate total function
-  const calculateTotal = () => {
+  // Order management system - no pricing calculations needed
+  const calculateItemCount = () => {
     return formData.items.reduce((total, item) => {
-      const inventoryItem = inventory.find(inv => inv.name === item.name);
-      if (inventoryItem && item.quantity) {
-        return total + (inventoryItem.selling_price * parseFloat(item.quantity.toString()));
-      }
-      return total;
+      return total + (item.quantity || 0);
     }, 0);
   };
 
@@ -289,7 +286,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
       'wire': '⚡',
       'default': '📦'
     };
-    
+
     const categoryLower = category.toLowerCase();
     // Find matching icon by checking if category contains any keyword
     for (const [key, icon] of Object.entries(iconMap)) {
@@ -881,8 +878,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 <button
                   onClick={() => setViewMode('orders')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'orders'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <TruckIcon className="w-4 h-4 mr-2 inline" />
@@ -891,8 +888,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                 <button
                   onClick={() => setViewMode('sub-orders')}
                   className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${viewMode === 'sub-orders'
-                      ? 'bg-blue-600 text-white shadow-sm'
-                      : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white'
                     }`}
                 >
                   <CalendarIcon className="w-4 h-4 mr-2 inline" />
@@ -1152,14 +1149,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${{
-                                'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-                                'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-                                'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
-                                'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
-                                'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
-                                'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
-                                'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
-                              }[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
+                              'created': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+                              'scheduled': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+                              'prepared': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+                              'dispatched': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+                              'delivered': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+                              'failed': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+                              'rescheduled': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                            }[subOrder.status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
                               }`}>
                               {subOrder.status.charAt(0).toUpperCase() + subOrder.status.slice(1)}
                             </span>
@@ -1253,12 +1250,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                 {order.items.map(item => `${item.name} (${item.quantity})`).join(', ')}
                               </span>
                             </div>
-                            {order.finalAmount && order.finalAmount > 0 && (
-                              <div>
-                                <span className="font-medium text-gray-700 dark:text-gray-300">Amount: </span>
-                                <span className="text-gray-600 dark:text-gray-400">LKR {order.finalAmount.toLocaleString()}</span>
-                              </div>
-                            )}
+
                             <div>
                               <span className="font-medium text-gray-700 dark:text-gray-300">Date: </span>
                               <span className="text-gray-600 dark:text-gray-400">{new Date(order.date).toLocaleDateString()}</span>
@@ -1745,7 +1737,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                           .map(category => {
                             const categoryIcon = getCategoryIcon(category);
                             const categoryItems = inventory.filter(item => item.category === category);
-                            
+
                             return (
                               <div
                                 key={category}
@@ -1812,7 +1804,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
 
                       {formData.items.map((item, index) => {
                         const selectedItem = inventory.find(invItem => invItem.name === item.name);
-                        
+
                         return (
                           <div key={index} className="bg-white dark:bg-gray-800 rounded-2xl border-2 border-gray-200 dark:border-gray-600 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
                             {/* Enhanced Header */}
@@ -1877,7 +1869,7 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                       })
                                     }
                                   </select>
-                                  
+
                                   {/* Material Info Display */}
                                   {selectedItem && (
                                     <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-2 border-blue-200 dark:border-blue-800 rounded-xl">
@@ -1895,8 +1887,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                           <span className="font-medium text-gray-800 dark:text-gray-200">{selectedItem.unit}</span>
                                         </div>
                                         <div className="flex items-center gap-2">
-                                          <span className="text-orange-600 dark:text-orange-400 font-bold">Price:</span>
-                                          <span className="font-medium text-gray-800 dark:text-gray-200">Rs. {selectedItem.selling_price}</span>
+                                          <span className="text-orange-600 dark:text-orange-400 font-bold">SKU:</span>
+                                          <span className="font-medium text-gray-800 dark:text-gray-200">{selectedItem.sku || 'N/A'}</span>
                                         </div>
                                       </div>
                                     </div>
@@ -1926,14 +1918,14 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                                       </span>
                                     )}
                                   </div>
-                                  
-                                  {/* Price Calculation */}
+
+                                  {/* Quantity Summary */}
                                   {selectedItem && item.quantity && (
-                                    <div className="p-3 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded-xl text-center">
-                                      <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                                        Rs. {(selectedItem.selling_price * item.quantity).toFixed(2)}
+                                    <div className="p-3 bg-gradient-to-r from-blue-100 to-blue-200 dark:from-blue-900/30 dark:to-blue-800/30 border border-blue-300 dark:border-blue-700 rounded-xl text-center">
+                                      <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                        {item.quantity} {selectedItem.unit}
                                       </p>
-                                      <p className="text-xs text-green-500 dark:text-green-400">Subtotal</p>
+                                      <p className="text-xs text-blue-500 dark:text-blue-400">Quantity</p>
                                     </div>
                                   )}
                                 </div>
@@ -1958,8 +1950,8 @@ const OrderManagement = ({ userRole }: { userRole: string }) => {
                       </div>
                       <div className="flex justify-between items-center text-xl border-t border-green-200 dark:border-green-700 pt-3">
                         <span className="font-bold text-green-700 dark:text-green-300">Total Amount:</span>
-                        <span className="font-bold text-2xl text-green-600 dark:text-green-400">
-                          Rs. {calculateTotal().toFixed(2)}
+                        <span className="font-bold text-2xl text-blue-600 dark:text-blue-400">
+                          {calculateItemCount()} Items
                         </span>
                       </div>
                     </div>
