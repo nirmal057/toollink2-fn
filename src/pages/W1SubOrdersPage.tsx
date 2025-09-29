@@ -50,6 +50,7 @@ interface SubOrder {
             fullName: string;
             email: string;
             username: string;
+            phone?: string;
         };
         requestedDeliveryDate: string;
     };
@@ -61,6 +62,26 @@ interface SubOrder {
     scheduledTime: string;
     status: string;
     createdAt: string;
+    // Existing customer information fields in database
+    customerInfo?: {
+        customerId?: string;
+        customerName?: string;
+        customerEmail?: string;
+        customerPhone?: string;
+    };
+    deliveryAddress?: {
+        street?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        country?: string;
+        phone?: string;
+        fullAddress?: string;
+    };
+    mainOrderDetails?: {
+        orderNumber?: string;
+        notes?: string;
+    };
 }
 
 const W1SubOrdersPage: React.FC = () => {
@@ -341,11 +362,21 @@ const W1SubOrdersPage: React.FC = () => {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Name: {subOrder.mainOrderId?.customerId?.fullName}
+                                            Name: {subOrder.customerInfo?.customerName ||
+                                                subOrder.mainOrderId?.customerId?.fullName ||
+                                                'Not available'}
                                         </p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Email: {subOrder.mainOrderId?.customerId?.email}
+                                            Email: {subOrder.customerInfo?.customerEmail ||
+                                                subOrder.mainOrderId?.customerId?.email ||
+                                                'Not available'}
                                         </p>
+                                        {(subOrder.customerInfo?.customerPhone || subOrder.mainOrderId?.customerId?.phone) && (
+                                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                Phone: {subOrder.customerInfo?.customerPhone ||
+                                                    subOrder.mainOrderId?.customerId?.phone}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Items */}

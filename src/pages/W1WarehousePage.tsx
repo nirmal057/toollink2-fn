@@ -22,6 +22,7 @@ interface SubOrder {
             fullName: string;
             email: string;
             username: string;
+            phone?: string;
         };
         requestedDeliveryDate: string;
     };
@@ -33,6 +34,26 @@ interface SubOrder {
     scheduledTime: string;
     status: string;
     createdAt: string;
+    // Existing customer information fields in database
+    customerInfo?: {
+        customerId?: string;
+        customerName?: string;
+        customerEmail?: string;
+        customerPhone?: string;
+    };
+    deliveryAddress?: {
+        street?: string;
+        city?: string;
+        state?: string;
+        zipCode?: string;
+        country?: string;
+        phone?: string;
+        fullAddress?: string;
+    };
+    mainOrderDetails?: {
+        orderNumber?: string;
+        notes?: string;
+    };
 }
 
 const W1WarehousePage: React.FC = () => {
@@ -302,12 +323,59 @@ const W1WarehousePage: React.FC = () => {
                                                 </span>
                                             </div>
                                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Name: {subOrder.mainOrderId?.customerId?.fullName}
+                                                Name: {subOrder.customerInfo?.customerName ||
+                                                    subOrder.mainOrderId?.customerId?.fullName ||
+                                                    'Not available'}
                                             </p>
                                             <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Email: {subOrder.mainOrderId?.customerId?.email}
+                                                Email: {subOrder.customerInfo?.customerEmail ||
+                                                    subOrder.mainOrderId?.customerId?.email ||
+                                                    'Not available'}
                                             </p>
+                                            {(subOrder.customerInfo?.customerPhone || subOrder.mainOrderId?.customerId?.phone) && (
+                                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                    Phone: {subOrder.customerInfo?.customerPhone ||
+                                                        subOrder.mainOrderId?.customerId?.phone}
+                                                </p>
+                                            )}
                                         </div>
+
+                                        {/* Delivery Address (if available) */}
+                                        {subOrder.deliveryAddress && (
+                                            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900 rounded-lg">
+                                                <div className="flex items-center mb-2">
+                                                    <Package className="w-4 h-4 text-gray-600 mr-2" />
+                                                    <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                        Delivery Address
+                                                    </span>
+                                                </div>
+                                                {subOrder.deliveryAddress.street && (
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {subOrder.deliveryAddress.street}
+                                                    </p>
+                                                )}
+                                                {(subOrder.deliveryAddress.city || subOrder.deliveryAddress.state) && (
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        {[subOrder.deliveryAddress.city, subOrder.deliveryAddress.state].filter(Boolean).join(', ')}
+                                                    </p>
+                                                )}
+                                                {subOrder.deliveryAddress.zipCode && (
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        ZIP: {subOrder.deliveryAddress.zipCode}
+                                                    </p>
+                                                )}
+                                                {subOrder.deliveryAddress.phone && (
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        Contact: {subOrder.deliveryAddress.phone}
+                                                    </p>
+                                                )}
+                                                {subOrder.deliveryAddress.country && (
+                                                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                        Country: {subOrder.deliveryAddress.country}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )}
 
                                         {/* Items */}
                                         <div className="mb-4">
