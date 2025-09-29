@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User } from 'lucide-react';
+import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User, MapPin, Phone, Mail, Home, Building } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
 
@@ -39,48 +39,43 @@ interface SubOrderItem {
     _id: string;
 }
 
+interface CustomerInfo {
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+}
+
+interface DeliveryAddress {
+    street?: string;
+    city?: string;
+    state?: string;
+    zipCode?: string;
+    country?: string;
+    phone?: string;
+    fullAddress?: string;
+}
+
 interface SubOrder {
     _id: string;
     subOrderNumber: string;
-    warehouseId?: string; // Warehouse database ID
-    mainOrderId: {
-        _id: string;
-        orderNumber: string;
-        customerId: {
-            fullName: string;
-            email: string;
-            username: string;
-            phone?: string;
-        };
-        requestedDeliveryDate: string;
-    };
-    warehouseCode: string;
-    materialCategory: string;
-    items: SubOrderItem[];
+    items: any[];
     totalAmount: number;
-    scheduledAt: string;
-    scheduledTime: string;
     status: string;
     createdAt: string;
-    // Existing customer information fields in database
-    customerInfo?: {
-        customerId?: string;
-        customerName?: string;
-        customerEmail?: string;
-        customerPhone?: string;
-    };
-    deliveryAddress?: {
-        street?: string;
-        city?: string;
-        state?: string;
-        zipCode?: string;
-        country?: string;
-        phone?: string;
-        fullAddress?: string;
-    };
-    mainOrderDetails?: {
+    updatedAt: string;
+    notes?: string;
+    projectDetails?: string;
+    customerInfo?: CustomerInfo;
+    deliveryAddress?: DeliveryAddress;
+    mainOrderId?: {
+        _id: string;
         orderNumber?: string;
-        notes?: string;
+        requestedDeliveryDate?: string;
+        customerId?: {
+            fullName: string;
+            email: string;
+            phone?: string;
+        };
     };
 }
 
@@ -353,29 +348,162 @@ const W1SubOrdersPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Customer Info */}
-                                    <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900 rounded-lg">
-                                        <div className="flex items-center mb-2">
-                                            <User className="w-4 h-4 text-gray-600 mr-2" />
-                                            <span className="text-sm font-medium text-gray-900 dark:text-white">
-                                                Customer Information
-                                            </span>
+                                    {/* Enhanced Customer & Delivery Information */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+                                        {/* Customer Information Card */}
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-900 dark:to-indigo-900 rounded-xl p-4 border border-blue-200 dark:border-blue-700 shadow-sm">
+                                            <div className="flex items-center mb-3">
+                                                <div className="bg-blue-500 p-2 rounded-lg mr-3">
+                                                    <User className="w-5 h-5 text-white" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Customer Details</h3>
+                                                    <p className="text-sm text-gray-600 dark:text-gray-300">Contact Information</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                        <User className="w-4 h-4 text-blue-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">Full Name</p>
+                                                        <p className="font-medium text-gray-900 dark:text-white">
+                                                            {subOrder.customerInfo?.customerName ||
+                                                                subOrder.mainOrderId?.customerId?.fullName ||
+                                                                'Not available'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                        <Mail className="w-4 h-4 text-green-500" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm text-gray-500 dark:text-gray-400">Email Address</p>
+                                                        <p className="font-medium text-gray-900 dark:text-white">
+                                                            {subOrder.customerInfo?.customerEmail ||
+                                                                subOrder.mainOrderId?.customerId?.email ||
+                                                                'Not available'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+
+                                                {(subOrder.customerInfo?.customerPhone || subOrder.mainOrderId?.customerId?.phone) && (
+                                                    <div className="flex items-center space-x-3">
+                                                        <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                            <Phone className="w-4 h-4 text-orange-500" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500 dark:text-gray-400">Phone Number</p>
+                                                            <p className="font-medium text-gray-900 dark:text-white">
+                                                                {subOrder.customerInfo?.customerPhone ||
+                                                                    subOrder.mainOrderId?.customerId?.phone}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Name: {subOrder.customerInfo?.customerName ||
-                                                subOrder.mainOrderId?.customerId?.fullName ||
-                                                'Not available'}
-                                        </p>
-                                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Email: {subOrder.customerInfo?.customerEmail ||
-                                                subOrder.mainOrderId?.customerId?.email ||
-                                                'Not available'}
-                                        </p>
-                                        {(subOrder.customerInfo?.customerPhone || subOrder.mainOrderId?.customerId?.phone) && (
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                                                Phone: {subOrder.customerInfo?.customerPhone ||
-                                                    subOrder.mainOrderId?.customerId?.phone}
-                                            </p>
+
+                                        {/* Delivery Address Card */}
+                                        {subOrder.deliveryAddress && (
+                                            <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900 dark:to-emerald-900 rounded-xl p-4 border border-green-200 dark:border-green-700 shadow-sm">
+                                                <div className="flex items-center mb-3">
+                                                    <div className="bg-green-500 p-2 rounded-lg mr-3">
+                                                        <MapPin className="w-5 h-5 text-white" />
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delivery Address</h3>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-300">Shipping Location</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    {subOrder.deliveryAddress.street && (
+                                                        <div className="flex items-start space-x-3">
+                                                            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                                <Home className="w-4 h-4 text-green-500" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm text-gray-500 dark:text-gray-400">Street Address</p>
+                                                                <p className="font-medium text-gray-900 dark:text-white">
+                                                                    {subOrder.deliveryAddress.street}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {(subOrder.deliveryAddress.city || subOrder.deliveryAddress.state) && (
+                                                        <div className="flex items-start space-x-3">
+                                                            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                                <Building className="w-4 h-4 text-blue-500" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm text-gray-500 dark:text-gray-400">City & State</p>
+                                                                <p className="font-medium text-gray-900 dark:text-white">
+                                                                    {[subOrder.deliveryAddress.city, subOrder.deliveryAddress.state].filter(Boolean).join(', ')}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {subOrder.deliveryAddress.zipCode && (
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="bg-white dark:bg-gray-800 p-1.5 rounded-lg shadow-sm">
+                                                                    <Package className="w-3 h-3 text-purple-500" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">ZIP Code</p>
+                                                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                        {subOrder.deliveryAddress.zipCode}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {subOrder.deliveryAddress.country && (
+                                                            <div className="flex items-center space-x-2">
+                                                                <div className="bg-white dark:bg-gray-800 p-1.5 rounded-lg shadow-sm">
+                                                                    <Building className="w-3 h-3 text-indigo-500" />
+                                                                </div>
+                                                                <div>
+                                                                    <p className="text-xs text-gray-500 dark:text-gray-400">Country</p>
+                                                                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                        {subOrder.deliveryAddress.country}
+                                                                    </p>
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {subOrder.deliveryAddress.phone && (
+                                                        <div className="flex items-center space-x-3">
+                                                            <div className="bg-white dark:bg-gray-800 p-2 rounded-lg shadow-sm">
+                                                                <Phone className="w-4 h-4 text-red-500" />
+                                                            </div>
+                                                            <div>
+                                                                <p className="text-sm text-gray-500 dark:text-gray-400">Contact Phone</p>
+                                                                <p className="font-medium text-gray-900 dark:text-white">
+                                                                    {subOrder.deliveryAddress.phone}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {subOrder.deliveryAddress.fullAddress && (
+                                                        <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border-l-4 border-green-500">
+                                                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Complete Address</p>
+                                                            <p className="text-sm font-medium text-gray-900 dark:text-white">
+                                                                {subOrder.deliveryAddress.fullAddress}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
 

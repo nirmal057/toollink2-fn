@@ -39,6 +39,12 @@ interface SubOrderItem {
     _id: string;
 }
 
+interface CustomerInfo {
+    customerName?: string;
+    customerEmail?: string;
+    customerPhone?: string;
+}
+
 interface SubOrder {
     _id: string;
     subOrderNumber: string;
@@ -50,6 +56,7 @@ interface SubOrder {
             fullName: string;
             email: string;
             username: string;
+            phone?: string;
         };
         requestedDeliveryDate: string;
     };
@@ -61,6 +68,7 @@ interface SubOrder {
     scheduledTime: string;
     status: string;
     createdAt: string;
+    customerInfo?: CustomerInfo;
 }
 
 const WMSubOrdersPage: React.FC = () => {
@@ -341,11 +349,21 @@ const WMSubOrdersPage: React.FC = () => {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Name: {subOrder.mainOrderId?.customerId?.fullName}
+                                            Name: {subOrder.customerInfo?.customerName ||
+                                                subOrder.mainOrderId?.customerId?.fullName ||
+                                                'Not available'}
                                         </p>
                                         <p className="text-sm text-gray-700 dark:text-gray-300">
-                                            Email: {subOrder.mainOrderId?.customerId?.email}
+                                            Email: {subOrder.customerInfo?.customerEmail ||
+                                                subOrder.mainOrderId?.customerId?.email ||
+                                                'Not available'}
                                         </p>
+                                        {(subOrder.customerInfo?.customerPhone || subOrder.mainOrderId?.customerId?.phone) && (
+                                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                Phone: {subOrder.customerInfo?.customerPhone ||
+                                                    subOrder.mainOrderId?.customerId?.phone}
+                                            </p>
+                                        )}
                                     </div>
 
                                     {/* Items */}
