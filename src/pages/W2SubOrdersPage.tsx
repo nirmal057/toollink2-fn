@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User, Hash } from 'lucide-react';
+import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
 

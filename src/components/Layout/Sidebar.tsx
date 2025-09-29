@@ -184,6 +184,20 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
             user.warehouseCode === 'WM' ? 'WM - Sub-Orders' : 'My Deliveries'
     }] : []),
 
+    // Warehouse Delivery Management (Warehouse only)
+    ...(normalizedRole === 'warehouse' ? [{
+      to: '/warehouse/delivery-management',
+      icon: <TruckIcon size={20} />,
+      label: 'Delivery Management'
+    }] : []),
+
+    // Warehouse Delivery Calendar (Warehouse only)
+    ...(normalizedRole === 'warehouse' ? [{
+      to: '/warehouse/delivery-calendar',
+      icon: <CalendarIcon size={20} />,
+      label: 'Delivery Calendar'
+    }] : []),
+
     // Delivery Calendar (Admin & Warehouse only)
     ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
       to: '/delivery-calendar',

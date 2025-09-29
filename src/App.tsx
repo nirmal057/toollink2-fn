@@ -36,6 +36,8 @@ import W3SubOrdersPage from './pages/W3SubOrdersPage';
 import W3WarehousePage from './pages/W3WarehousePage';
 import WMSubOrdersPage from './pages/WMSubOrdersPage';
 import WMWarehousePage from './pages/WMWarehousePage';
+import WarehouseDeliveryManagement from './pages/WarehouseDeliveryManagement';
+import WarehouseDeliveryCalendar from './pages/WarehouseDeliveryCalendar';
 import { AuthProvider, useAuth, RoleGuard } from './hooks/useAuth';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { GlobalNotificationProvider } from './contexts/GlobalNotificationContext';
@@ -192,6 +194,26 @@ function AppRoutes() {
             element={
               <RoleGuard roles={[ROLES.WAREHOUSE]} fallback={<Unauthorized />}>
                 <MyDeliveries />
+              </RoleGuard>
+            }
+          />
+
+          {/* Warehouse Delivery Management */}
+          <Route
+            path="/warehouse/delivery-management"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE, ROLES.ADMIN]} fallback={<Unauthorized />}>
+                <WarehouseDeliveryManagement />
+              </RoleGuard>
+            }
+          />
+
+          {/* Warehouse Delivery Calendar */}
+          <Route
+            path="/warehouse/delivery-calendar"
+            element={
+              <RoleGuard roles={[ROLES.WAREHOUSE, ROLES.ADMIN]} fallback={<Unauthorized />}>
+                <WarehouseDeliveryCalendar />
               </RoleGuard>
             }
           />
