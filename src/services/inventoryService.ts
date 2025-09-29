@@ -93,12 +93,10 @@ class InventoryService {  // Map backend inventory item to frontend format
       id: backendItem._id?.toString() || backendItem.id?.toString() || '',
       name: backendItem.name || '',
       category: backendItem.category || '',
-      quantity: backendItem.stock?.currentQuantity || backendItem.current_stock || backendItem.quantity || 0,
-      unit: backendItem.stock?.unit || backendItem.unit || 'pieces',
-      threshold: backendItem.stock?.minimumQuantity || backendItem.min_stock_level || backendItem.threshold || 0,
-      location: backendItem.location?.warehouse ?
-        `${backendItem.location.warehouse}${backendItem.location.zone ? ' - ' + backendItem.location.zone : ''}` :
-        backendItem.location || '',
+      quantity: backendItem.current_stock || backendItem.quantity || 0,
+      unit: backendItem.unit || 'pieces',
+      threshold: backendItem.min_stock_level || backendItem.threshold || 0,
+      location: backendItem.location || backendItem.warehouse || '',
       lastUpdated: backendItem.updatedAt || backendItem.updated_at
         ? new Date(backendItem.updatedAt || backendItem.updated_at).toISOString().split('T')[0]
         : backendItem.createdAt || backendItem.created_at
@@ -106,47 +104,67 @@ class InventoryService {  // Map backend inventory item to frontend format
           : new Date().toISOString().split('T')[0],
       description: backendItem.description || '',
       sku: backendItem.sku || '',
-      current_stock: backendItem.stock?.currentQuantity || backendItem.current_stock,
-      min_stock_level: backendItem.stock?.minimumQuantity || backendItem.min_stock_level,
-      max_stock_level: backendItem.stock?.maximumQuantity || backendItem.max_stock_level,
-      supplier_info: backendItem.supplier?.name || backendItem.supplier_info || '',
-      status: backendItem.status || backendItem.isActive ? 'active' : 'inactive',
+      current_stock: backendItem.current_stock || backendItem.quantity || 0,
+      min_stock_level: backendItem.min_stock_level || backendItem.threshold || 0,
+      max_stock_level: backendItem.max_stock_level || 1000,
+      warehouse: backendItem.warehouse || '',
+      warehouseCode: backendItem.warehouseCode || backendItem.warehouse || '',
+      supplier_info: typeof backendItem.supplier_info === 'object'
+        ? backendItem.supplier_info
+        : { name: backendItem.supplier_info || '', contact: '', phone: '' },
+      status: backendItem.status || 'active',
       created_at: backendItem.createdAt || backendItem.created_at,
       updated_at: backendItem.updatedAt || backendItem.updated_at,
       created_by: backendItem.created_by,
       updated_by: backendItem.updated_by,
-      low_stock_alert: backendItem.stock?.currentQuantity <= backendItem.stock?.minimumQuantity
+      low_stock_alert: backendItem.low_stock_alert || (backendItem.current_stock || 0) <= (backendItem.min_stock_level || 0),
+      barcode: backendItem.barcode || '',
+      weight: backendItem.weight || 0,
+      dimensions: backendItem.dimensions || { length: 0, width: 0, height: 0, unit: 'cm' },
+      tags: backendItem.tags || []
     };
   }
   // Map frontend item to backend format
   private mapFrontendToBackend(frontendItem: CreateInventoryItem | UpdateInventoryItem): any {
     const sku = frontendItem.sku || this.generateTempSku(frontendItem.category || '');
 
+    // Extract supplier info properly
+    const supplierInfo = typeof frontendItem.supplier_info === 'object' && frontendItem.supplier_info
+      ? frontendItem.supplier_info
+      : { name: (frontendItem.supplier_info as any) || '', contact: '', phone: '', email: '', address: '' };
+
     return {
       name: frontendItem.name,
       category: frontendItem.category,
       description: frontendItem.description || '',
       sku: sku,
-      pricing: {
-        costPrice: 0,
-        sellingPrice: 0,
-        currency: 'LKR'
+      quantity: frontendItem.quantity || 0,
+      current_stock: frontendItem.current_stock || frontendItem.quantity || 0,
+      unit: frontendItem.unit || 'pieces',
+      threshold: frontendItem.threshold || 10,
+      min_stock_level: frontendItem.min_stock_level || frontendItem.threshold || 10,
+      max_stock_level: frontendItem.max_stock_level || (frontendItem.quantity || 0) * 10 || 1000,
+      location: frontendItem.location || frontendItem.warehouse || 'WM',
+      warehouse: frontendItem.warehouse || 'WM',
+      warehouseCode: frontendItem.warehouseCode || frontendItem.warehouse || 'WM',
+      supplier_info: {
+        name: supplierInfo.name || '',
+        contact: supplierInfo.contact || '',
+        phone: supplierInfo.phone || '',
+        email: supplierInfo.email || '',
+        address: supplierInfo.address || ''
       },
-      stock: {
-        currentQuantity: frontendItem.quantity || 0,
-        minimumQuantity: frontendItem.threshold || 0,
-        unit: frontendItem.unit || 'piece'
+      status: frontendItem.status || 'active',
+      low_stock_alert: frontendItem.low_stock_alert !== false,
+      barcode: frontendItem.barcode || '',
+      weight: frontendItem.weight || 0,
+      dimensions: frontendItem.dimensions || {
+        length: 0,
+        width: 0,
+        height: 0,
+        unit: 'cm'
       },
-      location: {
-        warehouse: frontendItem.location || 'Main Warehouse',
-        zone: ''
-      },
-      supplier: {
-        name: frontendItem.supplier_info || '',
-        phone: '',
-        email: ''
-      },
-      isActive: true
+      tags: frontendItem.tags || []
     };
   }
 
@@ -227,14 +245,19 @@ class InventoryService {  // Map backend inventory item to frontend format
     }
   }
 
-  // Create new inventory item
-  async createItem(itemData: CreateInventoryItem): Promise<InventoryItem> {
+  // Create new inventory item (with smart duplicate handling)
+  async createItem(itemData: CreateInventoryItem): Promise<{ item: InventoryItem; action: string; message: string; details?: any }> {
     try {
       const backendData = this.mapFrontendToBackend(itemData);
       const response = await api.post(API_CONFIG.ENDPOINTS.INVENTORY.CREATE, backendData);
 
       if (response.data.success) {
-        return this.mapBackendToFrontend(response.data.item);
+        return {
+          item: this.mapBackendToFrontend(response.data.data),
+          action: response.data.action || 'created',
+          message: response.data.message || 'Inventory item processed successfully',
+          details: response.data.details
+        };
       } else {
         throw new Error(response.data.error || 'Failed to create inventory item');
       }

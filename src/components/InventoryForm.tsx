@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { PackageIcon, PlusIcon, SaveIcon, RefreshCwIcon } from 'lucide-react';
 import { CreateInventoryItem, InventoryItem } from '../services/inventoryService';
+import {
+    WarehouseCategoryUtils,
+    WAREHOUSE_OPTIONS,
+    CategoryItem
+} from '../config/warehouseCategories';
 
 interface InventoryFormProps {
     onSubmit: (item: CreateInventoryItem) => void;
@@ -10,35 +15,6 @@ interface InventoryFormProps {
     userWarehouse?: string;
     isModal?: boolean;
 }
-
-// Warehouse mapping
-const WAREHOUSE_OPTIONS = [
-    { key: 'W1', name: 'W1 - Sand & Aggregate', code: 'W1' },
-    { key: 'W2', name: 'W2 - Bricks & Masonry', code: 'W2' },
-    { key: 'W3', name: 'W3 - Steel & Metal', code: 'W3' },
-    { key: 'WM', name: 'WM - Tools & Equipment', code: 'WM' }
-];
-
-// Categories by warehouse
-const WAREHOUSE_CATEGORIES = {
-    'W1': [
-        'Fine Sand', 'Medium Sand', 'Coarse Sand', 'River Sand', 'Aggregate',
-        'Gravel', 'Stone Chips', 'Sand & Aggregate'
-    ],
-    'W2': [
-        'Solid Cement Blocks', 'Hollow Cement Blocks', 'Clay Bricks', '4 Inch Blocks',
-        '6 Inch Blocks', '8 Inch Blocks', 'Bricks & Masonry', 'Masonry Blocks'
-    ],
-    'W3': [
-        '6mm Steel Rods', '8mm Steel Rods', '10mm Steel Rods', '12mm Steel Rods',
-        '16mm Steel Rods', '20mm Steel Rods', 'Steel Wire', 'Steel Mesh', 'Steel & Reinforcement'
-    ],
-    'WM': [
-        'Power Drills', 'Angle Grinders', 'Hand Tools', 'Measuring Tools', 'Safety Equipment',
-        'Cement', 'Paint & Chemicals', 'Electrical Items', 'Plumbing Supplies',
-        'Tiles & Ceramics', 'Roofing Materials', 'Hardware & Fasteners', 'Tools & Equipment'
-    ]
-};
 
 const UNITS = ['pieces', 'kg', 'liters', 'meters', 'boxes', 'sets', 'cubic_ft', 'bags', 'sheets', 'rolls'];
 
@@ -63,9 +39,14 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
     });
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-    // Get categories for selected warehouse
-    const getCategories = (warehouse: string) => {
-        return WAREHOUSE_CATEGORIES[warehouse as keyof typeof WAREHOUSE_CATEGORIES] || WAREHOUSE_CATEGORIES['WM'];
+    // Get categories for selected warehouse using the new system
+    const getCategories = (warehouse: string): string[] => {
+        return WarehouseCategoryUtils.getLegacyCategoriesForWarehouse(warehouse);
+    };
+
+    // Get categories with IDs for selected warehouse
+    const getCategoriesWithIds = (warehouse: string): CategoryItem[] => {
+        return WarehouseCategoryUtils.getCategoriesForWarehouse(warehouse);
     };
 
     // Handle warehouse change
@@ -174,7 +155,7 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
         }
     };
 
-    const currentCategories = getCategories(formData.warehouse || userWarehouse);
+
 
     return (
         <div className={`${isModal ? '' : 'max-w-4xl mx-auto p-6'}`}>
@@ -238,10 +219,10 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
                             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                         </div>
 
-                        {/* Category */}
+                        {/* Category with ID System */}
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                Category *
+                                Category * <span className="text-xs text-gray-500">(Warehouse-Category ID System)</span>
                             </label>
                             <select
                                 value={formData.category}
@@ -250,13 +231,21 @@ const InventoryForm: React.FC<InventoryFormProps> = ({
                                     }`}
                             >
                                 <option value="">Select Category</option>
-                                {currentCategories.map(category => (
-                                    <option key={category} value={category}>
-                                        {category}
+                                {getCategoriesWithIds(formData.warehouse || userWarehouse).map((categoryItem: CategoryItem) => (
+                                    <option key={categoryItem.id} value={categoryItem.name}>
+                                        {categoryItem.id} - {categoryItem.name}
                                     </option>
                                 ))}
                             </select>
                             {errors.category && <p className="text-red-500 text-sm mt-1">{errors.category}</p>}
+
+                            {/* Show selected category ID */}
+                            {formData.category && (
+                                <div className="mt-2 text-xs text-blue-600 dark:text-blue-400">
+                                    Selected Category ID: {getCategoriesWithIds(formData.warehouse || userWarehouse)
+                                        .find(cat => cat.name === formData.category)?.id || 'N/A'}
+                                </div>
+                            )}
                         </div>
                     </div>
 

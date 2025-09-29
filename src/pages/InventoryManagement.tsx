@@ -209,10 +209,23 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
         ));
         toast.success('Item updated successfully');
       } else {
-        // Add new item
-        const newItem = await inventoryService.createItem(itemData);
-        setInventory(prevInventory => [...prevInventory, newItem]);
-        toast.success('Item created successfully');
+        // Add new item (with smart duplicate handling)
+        const result = await inventoryService.createItem(itemData);
+
+        if (result.action === 'updated') {
+          // Existing item was updated
+          setInventory(prevInventory => prevInventory.map(item =>
+            item.id === result.item.id ? result.item : item
+          ));
+          const detailsMsg = result.details ?
+            ` (Previous: ${result.details.previousQuantity} → Added: ${result.details.addedQuantity} → Total: ${result.details.newQuantity})`
+            : '';
+          toast.success(result.message + detailsMsg);
+        } else {
+          // New item was created
+          setInventory(prevInventory => [...prevInventory, result.item]);
+          toast.success(result.message);
+        }
       }
       setShowCreateModal(false);
       setSelectedItem(null);
