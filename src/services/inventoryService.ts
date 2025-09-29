@@ -10,18 +10,35 @@ export interface InventoryItem {
   location: string;
   lastUpdated: string;
   // Backend fields
+  warehouse?: string;
+  warehouseCode?: string;
   description?: string;
   sku?: string;
   current_stock?: number;
   min_stock_level?: number;
   max_stock_level?: number;
-  supplier_info?: string;
-  status?: 'active' | 'inactive';
+  supplier_info?: {
+    name?: string;
+    contact?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
+  status?: 'active' | 'inactive' | 'discontinued';
   created_at?: string;
   updated_at?: string;
   created_by?: string;
   updated_by?: string;
   low_stock_alert?: boolean;
+  barcode?: string;
+  weight?: number;
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+    unit?: string;
+  };
+  tags?: string[];
 }
 
 export interface InventoryStats {
@@ -39,9 +56,31 @@ export interface CreateInventoryItem {
   unit: string;
   threshold: number;
   location: string;
+  warehouse?: string;
+  warehouseCode?: string;
   description?: string;
   sku?: string;
-  supplier_info?: string;
+  supplier_info?: {
+    name?: string;
+    contact?: string;
+    email?: string;
+    phone?: string;
+    address?: string;
+  };
+  min_stock_level?: number;
+  max_stock_level?: number;
+  current_stock?: number;
+  status?: 'active' | 'inactive' | 'discontinued';
+  low_stock_alert?: boolean;
+  barcode?: string;
+  weight?: number;
+  dimensions?: {
+    length?: number;
+    width?: number;
+    height?: number;
+    unit?: string;
+  };
+  tags?: string[];
 }
 
 export interface UpdateInventoryItem extends Partial<CreateInventoryItem> {
