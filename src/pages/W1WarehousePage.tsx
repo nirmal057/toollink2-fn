@@ -169,7 +169,7 @@ const W1WarehousePage: React.FC = () => {
                             </label>
                             <select
                                 value={filter.status}
-                                onChange={(e) => setFilter({...filter, status: e.target.value})}
+                                onChange={(e) => setFilter({ ...filter, status: e.target.value })}
                                 className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             >
                                 <option value="">All Statuses</option>
@@ -186,7 +186,7 @@ const W1WarehousePage: React.FC = () => {
                             </label>
                             <select
                                 value={filter.dateRange}
-                                onChange={(e) => setFilter({...filter, dateRange: e.target.value})}
+                                onChange={(e) => setFilter({ ...filter, dateRange: e.target.value })}
                                 className="border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             >
                                 <option value="all">All Time</option>
