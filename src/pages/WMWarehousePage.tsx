@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, Package, Truck, CheckCircle, AlertCircle, XCircle, User, MapPin, Wrench } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import { API_CONFIG } from '../config/api';
+import InventoryCategoryChart from '../components/InventoryCategoryChart';
 
 interface SubOrderItem {
     materialId: string;
@@ -203,6 +204,32 @@ const WMWarehousePage: React.FC = () => {
                         <div className="flex items-center">
                             <XCircle className="w-5 h-5 text-red-500 mr-2" />
                             <p className="text-red-800 dark:text-red-200">{error}</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Warehouse Inventory Categories */}
+                {!error && user?.warehouseCode === 'WM' && (
+                    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm mb-6">
+                        <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                            <h2 className="text-xl font-semibold text-gray-900 dark:text-white flex items-center">
+                                <Package className="w-6 h-6 text-green-600 mr-2" />
+                                WM Warehouse - Inventory Category Distribution
+                            </h2>
+                            <p className="text-gray-600 dark:text-gray-300 mt-1">
+                                Your warehouse's tools, equipment and machinery categories
+                            </p>
+                        </div>
+                        <div className="p-6">
+                            <InventoryCategoryChart
+                                height={300}
+                                showControls={true}
+                                chartType="pie"
+                                className="mb-4"
+                                isAdminView={false}
+                                userRole="warehouse"
+                                userWarehouse="WM"
+                            />
                         </div>
                     </div>
                 )}

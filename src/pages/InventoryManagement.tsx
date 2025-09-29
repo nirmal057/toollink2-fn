@@ -353,6 +353,8 @@ const InventoryManagement: React.FC<InventoryManagementProps> = ({ userRole }) =
               chartType="pie"
               className="mb-6"
               isAdminView={userRole === 'admin'}
+              userRole={userRole}
+              userWarehouse={currentUserWarehouse !== 'all' ? currentUserWarehouse : undefined}
             />
           </motion.div>
 

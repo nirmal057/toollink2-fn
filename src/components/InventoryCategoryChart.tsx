@@ -31,6 +31,8 @@ interface InventoryCategoryChartProps {
     chartType?: 'pie' | 'bar';
     className?: string;
     isAdminView?: boolean; // New prop to determine if admin should see warehouse grouping
+    userRole?: string; // User role to determine data filtering
+    userWarehouse?: string; // User's specific warehouse code
 }
 
 // Color palette for categories
@@ -45,7 +47,9 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
     showControls = true,
     chartType: initialChartType = 'pie',
     className = '',
-    isAdminView = false
+    isAdminView = false,
+    userRole = 'customer',
+    userWarehouse = null
 }) => {
     const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
     const [loading, setLoading] = useState(true);
@@ -174,7 +178,18 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
                 return;
             }
 
-            const response = await fetch('http://localhost:5001/api/inventory/stats', {
+            // Choose endpoint based on user role and requirements
+            let endpoint = 'http://localhost:5001/api/inventory/stats';
+
+            // For warehouse users, use the warehouse-specific categories endpoint for detailed view
+            if (userRole === 'warehouse' && userWarehouse) {
+                endpoint = 'http://localhost:5001/api/inventory/warehouse-categories';
+            } else if (userRole === 'admin' && !isAdminView) {
+                // Admin viewing detailed categories (not grouped by warehouse)
+                endpoint = 'http://localhost:5001/api/inventory/warehouse-categories';
+            }
+
+            const response = await fetch(endpoint, {
                 headers: {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
@@ -184,29 +199,83 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
             if (response.ok) {
                 const result = await response.json();
                 if (result.success && result.data) {
-                    const statsData: InventoryStatsData = result.data;
-                    const total = statsData.totalItems || 0;
-                    setTotalItems(total);
 
-                    if (statsData.categoryDistribution && statsData.categoryDistribution.length > 0) {
-                        let dataToProcess = statsData.categoryDistribution;
+                    if (endpoint.includes('warehouse-categories')) {
+                        // Handle warehouse-specific categories response
+                        if (result.data.userRole === 'warehouse') {
+                            const categories = result.data.categories || [];
+                            const total = categories.reduce((sum: number, cat: any) => sum + cat.count, 0);
+                            setTotalItems(total);
 
-                        // If admin view, group detailed categories by warehouse
-                        if (isAdminView) {
-                            dataToProcess = groupCategoriesByWarehouse(statsData.categoryDistribution);
+                            const processedData = categories.map((item: any, index: number) => ({
+                                _id: item._id || 'Unknown',
+                                shortName: createShortName(item._id || 'Unknown'),
+                                count: item.count || 0,
+                                totalStock: item.totalStock || 0,
+                                lowStockItems: item.lowStockItems || 0,
+                                percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+                                color: COLORS[index % COLORS.length]
+                            }));
+
+                            setCategoryData(processedData);
+                        } else if (result.data.userRole === 'admin') {
+                            // Admin viewing all warehouses - flatten or group as needed
+                            const allWarehouses = result.data.allWarehouses || {};
+                            let allCategories: any[] = [];
+
+                            // Flatten all categories from all warehouses
+                            Object.entries(allWarehouses).forEach(([warehouse, categories]: [string, any]) => {
+                                if (Array.isArray(categories)) {
+                                    categories.forEach(cat => {
+                                        allCategories.push({
+                                            ...cat,
+                                            warehouse,
+                                            _id: cat.category
+                                        });
+                                    });
+                                }
+                            });
+
+                            const total = allCategories.reduce((sum, cat) => sum + cat.count, 0);
+                            setTotalItems(total);
+
+                            const processedData = allCategories.map((item, index) => ({
+                                _id: item._id || item.category || 'Unknown',
+                                shortName: createShortName(item._id || item.category || 'Unknown'),
+                                count: item.count || 0,
+                                warehouse: item.warehouse,
+                                percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+                                color: COLORS[index % COLORS.length]
+                            }));
+
+                            setCategoryData(processedData);
                         }
-
-                        const processedData = dataToProcess.map((item, index) => ({
-                            _id: item._id || 'Unknown',
-                            shortName: createShortName(item._id || 'Unknown'),
-                            count: item.count || 0,
-                            percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
-                            color: COLORS[index % COLORS.length]
-                        }));
-
-                        setCategoryData(processedData);
                     } else {
-                        setCategoryData([]);
+                        // Handle regular stats response (original behavior)
+                        const statsData: InventoryStatsData = result.data;
+                        const total = statsData.totalItems || 0;
+                        setTotalItems(total);
+
+                        if (statsData.categoryDistribution && statsData.categoryDistribution.length > 0) {
+                            let dataToProcess = statsData.categoryDistribution;
+
+                            // If admin view, group detailed categories by warehouse
+                            if (isAdminView && userRole === 'admin') {
+                                dataToProcess = groupCategoriesByWarehouse(statsData.categoryDistribution);
+                            }
+
+                            const processedData = dataToProcess.map((item, index) => ({
+                                _id: item._id || 'Unknown',
+                                shortName: createShortName(item._id || 'Unknown'),
+                                count: item.count || 0,
+                                percentage: total > 0 ? Math.round((item.count / total) * 100) : 0,
+                                color: COLORS[index % COLORS.length]
+                            }));
+
+                            setCategoryData(processedData);
+                        } else {
+                            setCategoryData([]);
+                        }
                     }
                 }
             } else {
@@ -241,6 +310,21 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
                     <p className="text-sm text-gray-600 dark:text-gray-300">
                         Percentage: <span className="font-medium">{data.percentage}%</span>
                     </p>
+                    {data.totalStock && (
+                        <p className="text-sm text-gray-600 dark:text-gray-300">
+                            Total Stock: <span className="font-medium">{data.totalStock}</span>
+                        </p>
+                    )}
+                    {data.lowStockItems && data.lowStockItems > 0 && (
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                            Low Stock: <span className="font-medium">{data.lowStockItems} items</span>
+                        </p>
+                    )}
+                    {data.warehouse && userRole === 'admin' && (
+                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                            Warehouse: <span className="font-medium">{data.warehouse}</span>
+                        </p>
+                    )}
                 </div>
             );
         }
@@ -360,10 +444,18 @@ const InventoryCategoryChart: React.FC<InventoryCategoryChartProps> = ({
                         <PackageIcon className="w-5 h-5 text-blue-500 mr-2" />
                         <div>
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
-                                Inventory Category Distribution
+                                {userRole === 'admin' && isAdminView ?
+                                    'Inventory by Warehouse' :
+                                    userRole === 'warehouse' && userWarehouse ?
+                                        `${userWarehouse} Warehouse Categories` :
+                                        'Inventory Category Distribution'
+                                }
                             </h3>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {totalItems} total items across {categoryData.length} categories
+                                {userRole === 'warehouse' && userWarehouse ?
+                                    `${totalItems} items in your warehouse across ${categoryData.length} categories` :
+                                    `${totalItems} total items across ${categoryData.length} categories`
+                                }
                             </p>
                         </div>
                     </div>

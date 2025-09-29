@@ -524,6 +524,8 @@ const AdminDashboard: React.FC = () => {
             chartType="pie"
             className="shadow-xl"
             isAdminView={true}
+            userRole="admin"
+            userWarehouse={undefined}
           />
         </div>
 
