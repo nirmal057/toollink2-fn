@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import OrderApprovalManager from '../OrderApprovalManager';
 
 interface AdminDashboardProps { }
 
@@ -71,6 +72,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                     </div>
                 </div>
 
+                {/* Order Approval Management */}
+                <OrderApprovalManager />
+
                 {/* Quick Stats */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
@@ -112,12 +116,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenue</p>
+                                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Materials</p>
                                 <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                                    Rs. {dashboardData?.summary?.monthlyRevenue?.toLocaleString() || '0'}
+                                    {dashboardData?.summary?.totalMaterials || 0}
                                 </p>
                             </div>
-                            <div className="text-green-600 text-3xl">💰</div>
+                            <div className="text-purple-500 text-3xl">�</div>
                         </div>
                     </div>
                 </div>
@@ -177,14 +181,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = () => {
                         <div className="space-y-3">
                             <button
                                 className="w-full text-left p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors"
-                                onClick={() => window.location.href = '/admin/reports/sales'}
+                                onClick={() => window.location.href = '/admin/reports/orders'}
                             >
                                 <div className="flex items-center justify-between">
-                                    <span className="font-medium">💹 Sales Reports</span>
+                                    <span className="font-medium">� Order Reports</span>
                                     <span className="text-indigo-600">→</span>
                                 </div>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                    Generate detailed sales analytics
+                                    Generate detailed order analytics and trends
                                 </p>
                             </button>
 

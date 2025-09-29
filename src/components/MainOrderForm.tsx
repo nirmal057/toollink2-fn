@@ -527,11 +527,18 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                 setSuccess(true);
                 const { mainOrder, subOrders } = result.data;
 
-                // Show success notification with details
-                showSuccess(
-                    'Order Created Successfully!',
-                    `Main order ${mainOrder.orderNumber} has been split into ${subOrders.length} delivery batches. Warehouses have been notified.`
-                );
+                // Show success notification with role-specific details
+                if (user.role === 'customer') {
+                    showSuccess(
+                        'Order Submitted Successfully!',
+                        `Your order #${mainOrder.orderNumber} has been submitted for approval. You will be notified once it's approved by our team.`
+                    );
+                } else {
+                    showSuccess(
+                        'Order Created Successfully!',
+                        `Main order ${mainOrder.orderNumber} has been approved and split into ${subOrders.length} delivery batches. Warehouses have been notified.`
+                    );
+                }
 
                 if (onOrderCreated) {
                     onOrderCreated(mainOrder, subOrders);
@@ -618,6 +625,17 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                     </p>
                 </CardHeader>
             </Card>
+
+            {/* Approval Process Information for Customers */}
+            {user.role === 'customer' && (
+                <Alert variant="default">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                        <strong>Order Approval Process:</strong> Your order will be submitted for approval by our team.
+                        You'll receive a notification and email confirmation once it's approved. Orders are typically reviewed within 2-4 hours during business hours.
+                    </AlertDescription>
+                </Alert>
+            )}
 
             {error && (
                 <Alert variant="destructive">
@@ -1299,10 +1317,10 @@ const MainOrderForm: React.FC<MainOrderFormProps> = ({ user, onOrderCreated, onC
                         {submitting ? (
                             <>
                                 <Clock className="w-4 h-4 mr-2 animate-spin" />
-                                Creating Order...
+                                {user.role === 'customer' ? 'Submitting Order...' : 'Creating Order...'}
                             </>
                         ) : (
-                            'Create Main Order'
+                            user.role === 'customer' ? 'Submit Order for Approval' : 'Create Main Order'
                         )}
                     </Button>
                 </div>
