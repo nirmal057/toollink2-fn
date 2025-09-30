@@ -342,17 +342,22 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                 return;
             }
 
-            // Generate tracking number
-            const trackingNumber = `TL${Date.now()}${Math.floor(Math.random() * 1000)}`;
-
-            // Prepare delivery data
+            // Prepare delivery data to match backend API structure
             const deliveryData = {
-                trackingNumber,
                 orderId: addDeliveryForm.orderId || null,
-                orderNumber: addDeliveryForm.orderNumber || null,
-                customerName: addDeliveryForm.customerName,
-                customerEmail: addDeliveryForm.customerEmail || '',
-                contactNumber: addDeliveryForm.customerPhone,
+                warehouseId: addDeliveryForm.warehouseId || 'WM',
+                warehouseName: getWarehouseName(addDeliveryForm.warehouseId || 'WM'),
+                items: addDeliveryForm.items.length > 0 ? addDeliveryForm.items : [{
+                    inventoryId: 'manual',
+                    itemName: 'Manual Delivery Entry',
+                    category: 'General',
+                    quantity: 1,
+                    warehouse: addDeliveryForm.warehouseId || 'WM',
+                    unit: 'item'
+                }],
+                deliveryDate: addDeliveryForm.deliveryDate,
+                timeSlot: addDeliveryForm.deliveryTimeSlot || '9:00-11:00',
+                priority: addDeliveryForm.priority,
                 deliveryAddress: {
                     street: addDeliveryForm.deliveryAddress.street,
                     city: addDeliveryForm.deliveryAddress.city,
@@ -361,33 +366,14 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                     country: addDeliveryForm.deliveryAddress.country || 'USA',
                     additionalInfo: addDeliveryForm.deliveryAddress.additionalInfo || ''
                 },
-                deliveryDate: addDeliveryForm.deliveryDate,
-                deliveryTimeSlot: addDeliveryForm.deliveryTimeSlot || '',
-                priority: addDeliveryForm.priority,
-                warehouseId: addDeliveryForm.warehouseId || 'W1',
-                specialInstructions: addDeliveryForm.specialInstructions || '',
-                requiresSignature: addDeliveryForm.requiresSignature,
-                deliveryMethod: addDeliveryForm.deliveryMethod,
-                items: addDeliveryForm.items.length > 0 ? addDeliveryForm.items : [{
-                    inventoryId: 'manual',
-                    itemName: 'Manual Delivery Entry',
-                    category: 'General',
-                    quantity: 1,
-                    warehouse: addDeliveryForm.warehouseId || 'W1',
-                    unit: 'item'
-                }],
-                status: 'scheduled',
-                createdBy: user?.id || 'admin',
-                createdDate: new Date().toISOString(),
-                statusHistory: [{
-                    status: 'scheduled',
-                    timestamp: new Date().toISOString(),
-                    updatedBy: user?.email || 'Admin',
-                    notes: 'Delivery created through admin panel'
-                }]
+                customerName: addDeliveryForm.customerName,
+                customerEmail: addDeliveryForm.customerEmail || '',
+                contactNumber: addDeliveryForm.customerPhone,
+                alternateContact: '', // Add if needed in form
+                specialInstructions: addDeliveryForm.specialInstructions || ''
             };
 
-            // Create delivery
+            // Create delivery via API
             const response = await fetch('http://localhost:5001/api/delivery-management/deliveries', {
                 method: 'POST',
                 headers: {
@@ -400,33 +386,7 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
             if (response.ok) {
                 const result = await response.json();
 
-                // Also create calendar entry for the delivery
-                try {
-                    await fetch('http://localhost:5001/api/delivery-calendar/schedule', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            deliveryId: result.delivery?.id || trackingNumber,
-                            trackingNumber: trackingNumber,
-                            customerName: addDeliveryForm.customerName,
-                            deliveryDate: addDeliveryForm.deliveryDate,
-                            timeSlot: addDeliveryForm.deliveryTimeSlot || '9:00-11:00',
-                            warehouseId: addDeliveryForm.warehouseId || 'W1',
-                            priority: addDeliveryForm.priority,
-                            status: 'scheduled',
-                            address: `${addDeliveryForm.deliveryAddress.street}, ${addDeliveryForm.deliveryAddress.city}`,
-                            notes: addDeliveryForm.specialInstructions || 'Scheduled delivery'
-                        })
-                    });
-                } catch (calendarError) {
-                    console.warn('Calendar entry creation failed:', calendarError);
-                    // Don't fail the entire operation if calendar fails
-                }
-
-                showSuccess('Delivery Created', `New delivery created successfully with tracking number: ${trackingNumber}`);
+                showSuccess('Delivery Created', `New delivery created successfully with tracking number: ${result.delivery?.trackingNumber}`);
 
                 // Refresh deliveries list
                 loadDeliveries();
@@ -447,7 +407,16 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
         }
     };
 
-    const resetAddDeliveryForm = () => {
+    // Helper function to get warehouse name
+    const getWarehouseName = (warehouseCode: string) => {
+        const warehouseNames = {
+            'W1': 'Sand & Aggregate Warehouse',
+            'W2': 'Bricks & Masonry Warehouse',
+            'W3': 'Steel & Metal Warehouse',
+            'WM': 'Main Warehouse'
+        };
+        return warehouseNames[warehouseCode as keyof typeof warehouseNames] || 'Main Warehouse';
+    }; const resetAddDeliveryForm = () => {
         setAddDeliveryForm({
             orderId: '',
             orderNumber: '',
