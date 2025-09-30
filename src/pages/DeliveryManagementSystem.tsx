@@ -141,6 +141,7 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
     const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
+    const [submittingDelivery, setSubmittingDelivery] = useState(false);
     const [filters, setFilters] = useState<FilterOptions>({
         status: 'all',
         priority: 'all',
@@ -320,6 +321,7 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
 
     const createDelivery = async () => {
         try {
+            setSubmittingDelivery(true);
             const token = localStorage.getItem('accessToken');
 
             // Validate required fields
@@ -329,32 +331,119 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                 return;
             }
 
+            // Validate delivery date is not in the past
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of today
+            const selectedDate = new Date(addDeliveryForm.deliveryDate);
+            selectedDate.setHours(0, 0, 0, 0); // Set to start of selected date
+
+            if (selectedDate < today) {
+                showError('Invalid Date', 'Delivery date cannot be in the past. Please select today or a future date.');
+                return;
+            }
+
+            // Generate tracking number
+            const trackingNumber = `TL${Date.now()}${Math.floor(Math.random() * 1000)}`;
+
+            // Prepare delivery data
+            const deliveryData = {
+                trackingNumber,
+                orderId: addDeliveryForm.orderId || null,
+                orderNumber: addDeliveryForm.orderNumber || null,
+                customerName: addDeliveryForm.customerName,
+                customerEmail: addDeliveryForm.customerEmail || '',
+                contactNumber: addDeliveryForm.customerPhone,
+                deliveryAddress: {
+                    street: addDeliveryForm.deliveryAddress.street,
+                    city: addDeliveryForm.deliveryAddress.city,
+                    state: addDeliveryForm.deliveryAddress.state,
+                    zipCode: addDeliveryForm.deliveryAddress.zipCode,
+                    country: addDeliveryForm.deliveryAddress.country || 'USA',
+                    additionalInfo: addDeliveryForm.deliveryAddress.additionalInfo || ''
+                },
+                deliveryDate: addDeliveryForm.deliveryDate,
+                deliveryTimeSlot: addDeliveryForm.deliveryTimeSlot || '',
+                priority: addDeliveryForm.priority,
+                warehouseId: addDeliveryForm.warehouseId || 'W1',
+                specialInstructions: addDeliveryForm.specialInstructions || '',
+                requiresSignature: addDeliveryForm.requiresSignature,
+                deliveryMethod: addDeliveryForm.deliveryMethod,
+                items: addDeliveryForm.items.length > 0 ? addDeliveryForm.items : [{
+                    inventoryId: 'manual',
+                    itemName: 'Manual Delivery Entry',
+                    category: 'General',
+                    quantity: 1,
+                    warehouse: addDeliveryForm.warehouseId || 'W1',
+                    unit: 'item'
+                }],
+                status: 'scheduled',
+                createdBy: user?.id || 'admin',
+                createdDate: new Date().toISOString(),
+                statusHistory: [{
+                    status: 'scheduled',
+                    timestamp: new Date().toISOString(),
+                    updatedBy: user?.email || 'Admin',
+                    notes: 'Delivery created through admin panel'
+                }]
+            };
+
+            // Create delivery
             const response = await fetch('http://localhost:5001/api/delivery-management/deliveries', {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    ...addDeliveryForm,
-                    createdBy: user?.id,
-                    status: 'scheduled',
-                    trackingNumber: `TL${Date.now()}`, // Generate tracking number
-                    createdDate: new Date().toISOString()
-                })
+                body: JSON.stringify(deliveryData)
             });
 
             if (response.ok) {
-                showSuccess('Delivery Created', 'New delivery has been created successfully');
+                const result = await response.json();
+
+                // Also create calendar entry for the delivery
+                try {
+                    await fetch('http://localhost:5001/api/delivery-calendar/schedule', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            deliveryId: result.delivery?.id || trackingNumber,
+                            trackingNumber: trackingNumber,
+                            customerName: addDeliveryForm.customerName,
+                            deliveryDate: addDeliveryForm.deliveryDate,
+                            timeSlot: addDeliveryForm.deliveryTimeSlot || '9:00-11:00',
+                            warehouseId: addDeliveryForm.warehouseId || 'W1',
+                            priority: addDeliveryForm.priority,
+                            status: 'scheduled',
+                            address: `${addDeliveryForm.deliveryAddress.street}, ${addDeliveryForm.deliveryAddress.city}`,
+                            notes: addDeliveryForm.specialInstructions || 'Scheduled delivery'
+                        })
+                    });
+                } catch (calendarError) {
+                    console.warn('Calendar entry creation failed:', calendarError);
+                    // Don't fail the entire operation if calendar fails
+                }
+
+                showSuccess('Delivery Created', `New delivery created successfully with tracking number: ${trackingNumber}`);
+
+                // Refresh deliveries list
                 loadDeliveries();
+
+                // Close modal and reset form
                 setShowAddDeliveryModal(false);
                 resetAddDeliveryForm();
+
             } else {
-                throw new Error('Failed to create delivery');
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to create delivery');
             }
         } catch (error) {
             console.error('Error creating delivery:', error);
-            showError('Creation Failed', 'Failed to create new delivery');
+            showError('Creation Failed', `Failed to create new delivery: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        } finally {
+            setSubmittingDelivery(false);
         }
     };
 
@@ -1411,7 +1500,12 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                         className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
                     >
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Delivery</h3>
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Delivery</h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                                    Fill out the form below to create a new delivery. Required fields are marked with *
+                                </p>
+                            </div>
                             <button
                                 onClick={() => {
                                     setShowAddDeliveryModal(false);
@@ -1616,9 +1710,13 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                                         type="date"
                                         value={addDeliveryForm.deliveryDate}
                                         onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                                        min={new Date().toISOString().split('T')[0]}
                                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
                                         required
                                     />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                        Must be today or a future date
+                                    </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -1700,6 +1798,17 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                                 </label>
                             </div>
 
+                            {/* Information Panel */}
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                <h5 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">After Submission:</h5>
+                                <ul className="text-sm text-blue-800 dark:text-blue-200 space-y-1">
+                                    <li>• A unique tracking number will be generated</li>
+                                    <li>• Delivery will be automatically added to the delivery calendar</li>
+                                    <li>• Status will be set to "Scheduled"</li>
+                                    <li>• You can assign drivers and track progress from the main dashboard</li>
+                                </ul>
+                            </div>
+
                             {/* Action Buttons */}
                             <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">
                                 <button
@@ -1714,10 +1823,23 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                                 </button>
                                 <button
                                     type="submit"
-                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 flex items-center space-x-2"
+                                    disabled={submittingDelivery}
+                                    className={`px-6 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 flex items-center space-x-2 ${submittingDelivery
+                                        ? 'bg-gray-400 cursor-not-allowed'
+                                        : 'bg-blue-600 hover:bg-blue-700'
+                                        } text-white`}
                                 >
-                                    <PlusIcon className="w-5 h-5" />
-                                    <span>Create Delivery</span>
+                                    {submittingDelivery ? (
+                                        <>
+                                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                                            <span>Creating...</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <PlusIcon className="w-5 h-5" />
+                                            <span>Create Delivery</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
                         </form>
