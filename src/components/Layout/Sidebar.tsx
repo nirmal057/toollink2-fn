@@ -198,13 +198,6 @@ const Sidebar = ({ userRole, onLogout }: SidebarProps) => {
       label: 'Delivery Calendar'
     }] : []),
 
-    // Delivery Calendar (Admin & Warehouse only)
-    ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
-      to: '/delivery-calendar',
-      icon: <CalendarIcon size={20} />,
-      label: 'Delivery Calendar'
-    }] : []),
-
     // Driver Management (Admin & Warehouse only)
     ...([normalizedRole].includes('admin') || ['warehouse'].includes(normalizedRole) ? [{
       to: '/driver-management',

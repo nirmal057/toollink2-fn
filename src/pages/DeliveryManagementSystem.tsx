@@ -140,6 +140,7 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
     const [showDetails, setShowDetails] = useState(false);
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [showStatusModal, setShowStatusModal] = useState(false);
+    const [showAddDeliveryModal, setShowAddDeliveryModal] = useState(false);
     const [filters, setFilters] = useState<FilterOptions>({
         status: 'all',
         priority: 'all',
@@ -163,6 +164,30 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
         status: '',
         notes: '',
         location: null as { latitude: number; longitude: number } | null
+    });
+
+    const [addDeliveryForm, setAddDeliveryForm] = useState({
+        orderId: '',
+        orderNumber: '',
+        customerName: '',
+        customerPhone: '',
+        customerEmail: '',
+        deliveryAddress: {
+            street: '',
+            city: '',
+            state: '',
+            zipCode: '',
+            country: 'USA',
+            additionalInfo: ''
+        },
+        items: [] as DeliveryItem[],
+        deliveryDate: '',
+        deliveryTimeSlot: '',
+        priority: 'normal' as 'normal' | 'urgent' | 'critical',
+        warehouseId: '',
+        specialInstructions: '',
+        requiresSignature: true,
+        deliveryMethod: 'standard'
     });
 
     // Load data based on user role
@@ -291,6 +316,72 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
             console.error('Error assigning delivery:', error);
             showError('Assignment Failed', 'Failed to assign delivery to driver');
         }
+    };
+
+    const createDelivery = async () => {
+        try {
+            const token = localStorage.getItem('accessToken');
+
+            // Validate required fields
+            if (!addDeliveryForm.customerName || !addDeliveryForm.customerPhone ||
+                !addDeliveryForm.deliveryAddress.street || !addDeliveryForm.deliveryDate) {
+                showError('Validation Error', 'Please fill in all required fields');
+                return;
+            }
+
+            const response = await fetch('http://localhost:5001/api/delivery-management/deliveries', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ...addDeliveryForm,
+                    createdBy: user?.id,
+                    status: 'scheduled',
+                    trackingNumber: `TL${Date.now()}`, // Generate tracking number
+                    createdDate: new Date().toISOString()
+                })
+            });
+
+            if (response.ok) {
+                showSuccess('Delivery Created', 'New delivery has been created successfully');
+                loadDeliveries();
+                setShowAddDeliveryModal(false);
+                resetAddDeliveryForm();
+            } else {
+                throw new Error('Failed to create delivery');
+            }
+        } catch (error) {
+            console.error('Error creating delivery:', error);
+            showError('Creation Failed', 'Failed to create new delivery');
+        }
+    };
+
+    const resetAddDeliveryForm = () => {
+        setAddDeliveryForm({
+            orderId: '',
+            orderNumber: '',
+            customerName: '',
+            customerPhone: '',
+            customerEmail: '',
+            deliveryAddress: {
+                street: '',
+                city: '',
+                state: '',
+                zipCode: '',
+                country: 'USA',
+                additionalInfo: ''
+            },
+            items: [],
+            deliveryDate: '',
+            deliveryTimeSlot: '',
+            priority: 'normal',
+            warehouseId: '',
+            specialInstructions: '',
+            requiresSignature: true,
+            deliveryMethod: 'standard'
+        });
     };
 
     // Filter and sort functions
@@ -510,7 +601,7 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
 
                 {canCreateDelivery() && (
                     <button
-                        onClick={() => {/* Handle create delivery */ }}
+                        onClick={() => setShowAddDeliveryModal(true)}
                         className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         <PlusIcon className="w-5 h-5" />
@@ -536,8 +627,8 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key as any)}
                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${activeTab === tab.key
-                                ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
-                                : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                            ? 'bg-white dark:bg-gray-600 text-blue-600 dark:text-blue-400 shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
                             }`}
                     >
                         {tab.label}
@@ -815,8 +906,8 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                                         key={status}
                                         onClick={() => updateDeliveryStatus(delivery.id, status)}
                                         className={`px-3 py-2 text-sm rounded-lg text-white ${status === 'delivered' ? 'bg-green-600 hover:bg-green-700' :
-                                                status === 'failed' ? 'bg-red-600 hover:bg-red-700' :
-                                                    'bg-blue-600 hover:bg-blue-700'
+                                            status === 'failed' ? 'bg-red-600 hover:bg-red-700' :
+                                                'bg-blue-600 hover:bg-blue-700'
                                             }`}
                                     >
                                         {status.replace('_', ' ').toUpperCase()}
@@ -990,8 +1081,8 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                             key={page}
                             onClick={() => setCurrentPage(page)}
                             className={`px-3 py-2 text-sm rounded-lg ${isActive
-                                    ? 'bg-blue-600 text-white'
-                                    : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                                ? 'bg-blue-600 text-white'
+                                : 'border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                                 }`}
                         >
                             {page}
@@ -1309,6 +1400,330 @@ const DeliveryManagementSystem: React.FC<{ userRole: string }> = ({ userRole }) 
                     </div>
                 )}
             </div>
+
+            {/* Add Delivery Modal */}
+            {showAddDeliveryModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+                    >
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Create New Delivery</h3>
+                            <button
+                                onClick={() => {
+                                    setShowAddDeliveryModal(false);
+                                    resetAddDeliveryForm();
+                                }}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            >
+                                <XCircleIcon className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={(e) => { e.preventDefault(); createDelivery(); }} className="space-y-6">
+                            {/* Customer Information */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Customer Information</h4>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Customer Name *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={addDeliveryForm.customerName}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, customerName: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Phone Number *
+                                            </label>
+                                            <input
+                                                type="tel"
+                                                value={addDeliveryForm.customerPhone}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, customerPhone: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                                required
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Email
+                                            </label>
+                                            <input
+                                                type="email"
+                                                value={addDeliveryForm.customerEmail}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, customerEmail: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Order Information</h4>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Order ID
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={addDeliveryForm.orderId}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, orderId: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Order Number
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={addDeliveryForm.orderNumber}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, orderNumber: e.target.value }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                                Priority
+                                            </label>
+                                            <select
+                                                value={addDeliveryForm.priority}
+                                                onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, priority: e.target.value as 'normal' | 'urgent' | 'critical' }))}
+                                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            >
+                                                <option value="normal">Normal</option>
+                                                <option value="urgent">Urgent</option>
+                                                <option value="critical">Critical</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Delivery Address */}
+                            <div>
+                                <h4 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Delivery Address</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Street Address *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addDeliveryForm.deliveryAddress.street}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, street: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            City *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addDeliveryForm.deliveryAddress.city}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, city: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            State *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addDeliveryForm.deliveryAddress.state}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, state: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            ZIP Code *
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addDeliveryForm.deliveryAddress.zipCode}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, zipCode: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            required
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Country
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={addDeliveryForm.deliveryAddress.country}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, country: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                        />
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                            Additional Information
+                                        </label>
+                                        <textarea
+                                            value={addDeliveryForm.deliveryAddress.additionalInfo}
+                                            onChange={(e) => setAddDeliveryForm(prev => ({
+                                                ...prev,
+                                                deliveryAddress: { ...prev.deliveryAddress, additionalInfo: e.target.value }
+                                            }))}
+                                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                            rows={2}
+                                            placeholder="Apartment, suite, unit, building, floor, etc."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Delivery Details */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Delivery Date *
+                                    </label>
+                                    <input
+                                        type="date"
+                                        value={addDeliveryForm.deliveryDate}
+                                        onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, deliveryDate: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                        required
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Time Slot
+                                    </label>
+                                    <select
+                                        value={addDeliveryForm.deliveryTimeSlot}
+                                        onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, deliveryTimeSlot: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="">Select time slot</option>
+                                        <option value="9:00-11:00">9:00 AM - 11:00 AM</option>
+                                        <option value="11:00-13:00">11:00 AM - 1:00 PM</option>
+                                        <option value="13:00-15:00">1:00 PM - 3:00 PM</option>
+                                        <option value="15:00-17:00">3:00 PM - 5:00 PM</option>
+                                        <option value="17:00-19:00">5:00 PM - 7:00 PM</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Special Instructions */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    Special Instructions
+                                </label>
+                                <textarea
+                                    value={addDeliveryForm.specialInstructions}
+                                    onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, specialInstructions: e.target.value }))}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    rows={3}
+                                    placeholder="Any special delivery instructions..."
+                                />
+                            </div>
+
+                            {/* Delivery Options */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Delivery Method
+                                    </label>
+                                    <select
+                                        value={addDeliveryForm.deliveryMethod}
+                                        onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, deliveryMethod: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="standard">Standard Delivery</option>
+                                        <option value="express">Express Delivery</option>
+                                        <option value="same-day">Same Day Delivery</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                        Warehouse
+                                    </label>
+                                    <select
+                                        value={addDeliveryForm.warehouseId}
+                                        onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, warehouseId: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white"
+                                    >
+                                        <option value="">Select warehouse</option>
+                                        <option value="W1">Warehouse 1 (W1)</option>
+                                        <option value="W2">Warehouse 2 (W2)</option>
+                                        <option value="W3">Warehouse 3 (W3)</option>
+                                        <option value="WM">Main Warehouse (WM)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center">
+                                <input
+                                    type="checkbox"
+                                    id="requiresSignature"
+                                    checked={addDeliveryForm.requiresSignature}
+                                    onChange={(e) => setAddDeliveryForm(prev => ({ ...prev, requiresSignature: e.target.checked }))}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                                <label htmlFor="requiresSignature" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                                    Requires signature on delivery
+                                </label>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200 dark:border-gray-600">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAddDeliveryModal(false);
+                                        resetAddDeliveryForm();
+                                    }}
+                                    className="px-4 py-2 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 flex items-center space-x-2"
+                                >
+                                    <PlusIcon className="w-5 h-5" />
+                                    <span>Create Delivery</span>
+                                </button>
+                            </div>
+                        </form>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 };
